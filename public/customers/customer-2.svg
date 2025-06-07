@@ -1,0 +1,33 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="100" fill="#EC4899"/>
+  
+  <!-- Face -->
+  <circle cx="100" cy="85" r="35" fill="#FDE68A"/>
+  
+  <!-- Hair -->
+  <path d="M65 55 Q100 35 135 55 Q130 45 125 40 Q100 30 75 40 Q70 45 65 55" fill="#7C2D12"/>
+  <path d="M65 55 Q65 75 70 95 Q100 90 130 95 Q135 75 135 55" fill="#7C2D12"/>
+  
+  <!-- Eyes -->
+  <circle cx="90" cy="80" r="3" fill="#1F2937"/>
+  <circle cx="110" cy="80" r="3" fill="#1F2937"/>
+  
+  <!-- Eyelashes -->
+  <path d="M87 77 L87 74" stroke="#1F2937" stroke-width="1"/>
+  <path d="M93 77 L93 74" stroke="#1F2937" stroke-width="1"/>
+  <path d="M107 77 L107 74" stroke="#1F2937" stroke-width="1"/>
+  <path d="M113 77 L113 74" stroke="#1F2937" stroke-width="1"/>
+  
+  <!-- Nose -->
+  <ellipse cx="100" cy="90" rx="1.5" ry="2" fill="#F59E0B"/>
+  
+  <!-- Lips -->
+  <ellipse cx="100" cy="97" rx="4" ry="2" fill="#EF4444"/>
+  
+  <!-- Body -->
+  <rect x="75" y="130" width="50" height="70" fill="#8B5CF6" rx="10"/>
+  
+  <!-- Text -->
+  <text x="100" y="190" text-anchor="middle" fill="white" font-family="Arial" font-size="12" font-weight="bold">PRIYA</text>
+</svg> 

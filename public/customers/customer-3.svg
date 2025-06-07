@@ -1,0 +1,33 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="100" fill="#059669"/>
+  
+  <!-- Face -->
+  <circle cx="100" cy="85" r="35" fill="#FBBF24"/>
+  
+  <!-- Hair -->
+  <path d="M75 65 Q100 50 125 65 Q120 55 115 50 Q100 45 85 50 Q80 55 75 65" fill="#374151"/>
+  
+  <!-- Eyes -->
+  <circle cx="90" cy="80" r="3" fill="#1F2937"/>
+  <circle cx="110" cy="80" r="3" fill="#1F2937"/>
+  
+  <!-- Eyebrows -->
+  <path d="M85 75 Q90 73 95 75" stroke="#374151" stroke-width="2" fill="none"/>
+  <path d="M105 75 Q110 73 115 75" stroke="#374151" stroke-width="2" fill="none"/>
+  
+  <!-- Nose -->
+  <ellipse cx="100" cy="90" rx="1.5" ry="2" fill="#F59E0B"/>
+  
+  <!-- Mouth -->
+  <path d="M95 95 Q100 98 105 95" stroke="#1F2937" stroke-width="2" fill="none"/>
+  
+  <!-- Mustache -->
+  <ellipse cx="100" cy="93" rx="6" ry="1.5" fill="#374151"/>
+  
+  <!-- Body -->
+  <rect x="75" y="130" width="50" height="70" fill="#F59E0B" rx="10"/>
+  
+  <!-- Text -->
+  <text x="100" y="190" text-anchor="middle" fill="white" font-family="Arial" font-size="12" font-weight="bold">AMIT</text>
+</svg> 

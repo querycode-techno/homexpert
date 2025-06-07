@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 97%;
+    --foreground: 215 14% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 14% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 14% 15%;
+
+    --primary: 210 90% 36%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 120 61% 42%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 10% 96%;
+    --muted-foreground: 215 14% 45%;
+
+    --accent: 120 61% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 10% 90%;
+    --input: 214 10% 90%;
+    --ring: 210 90% 36%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 215 14% 10%;
+    --foreground: 0 0% 97%;
+
+    --card: 215 14% 15%;
+    --card-foreground: 0 0% 97%;
+
+    --popover: 215 14% 15%;
+    --popover-foreground: 0 0% 97%;
+
+    --primary: 210 90% 36%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 120 61% 42%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 215 14% 20%;
+    --muted-foreground: 215 14% 65%;
+
+    --accent: 120 61% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 14% 25%;
+    --input: 215 14% 25%;
+    --ring: 210 90% 36%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom styles */
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
+}
+
+.hero-pattern {
+  background-color: #f8f8f8;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230959af' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(9, 89, 175, 0.1), 0 8px 10px -6px rgba(9, 89, 175, 0.1);
+}
