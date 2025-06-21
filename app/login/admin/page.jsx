@@ -22,7 +22,7 @@ export default function AdminLoginPage() {
               </div>
               <div className="space-y-4">
                 <Button size="lg" asChild className="w-full md:w-auto">
-                  <Link href="/admin/login">Go to Admin Login</Link>
+                  <Link href="/auth/admin-login">Go to Admin Login</Link>
                 </Button>
                 <p className="text-sm text-muted-foreground">
                   Use the dedicated admin login page for better security and features.

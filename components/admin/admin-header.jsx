@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Bell, Search, Settings } from "lucide-react"
+import { Bell, Search, Settings, LogOut, User } from "lucide-react"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -13,8 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import { useLogout } from "@/hooks/useLogout"
 
 export function AdminHeader() {
+  const { data: session } = useSession()
+  const { logout, isLoggingOut } = useLogout()
   const [notifications, setNotifications] = useState([
     {
       id: 1,
@@ -42,7 +46,7 @@ export function AdminHeader() {
   const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
       <div className="hidden md:block flex-1">
         <div className="relative max-w-md">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -95,9 +99,48 @@ export function AdminHeader() {
         <Button variant="ghost" size="icon">
           <Settings className="h-5 w-5" />
         </Button>
-        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-primary font-bold">A</span>
-        </div>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-primary font-bold">
+                  {session?.user?.name?.charAt(0)?.toUpperCase() || 'A'}
+                </span>
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">
+                  {session?.user?.name || 'Admin User'}
+                </p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {session?.user?.email || 'admin@homexpert.com'}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer">
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="cursor-pointer text-destructive focus:text-destructive"
+              onClick={logout}
+              disabled={isLoggingOut}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>{isLoggingOut ? 'Logging out...' : 'Log out'}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )

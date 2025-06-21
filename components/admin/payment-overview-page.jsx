@@ -10,8 +10,8 @@ import { Search, Download, Filter, MoreHorizontal, ArrowUpRight, CreditCard, Cal
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
+import { toast } from "sonner"
+
 import {
   Dialog,
   DialogContent,
@@ -38,7 +38,7 @@ import {
 
 export function PaymentOverviewPage() {
   const { bookings, vendors, exportToCSV } = useData()
-  const { toast } = useToast()
+
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [dateRange, setDateRange] = useState("month")
@@ -144,10 +144,7 @@ export function PaymentOverviewPage() {
 
   const handleExport = () => {
     exportToCSV(filteredTransactions, "payment_transactions")
-    toast({
-      title: "Export Successful",
-      description: "Payment transactions data has been exported to CSV.",
-    })
+    toast.success("Payment transactions data has been exported to CSV.")
   }
 
   const handleFilterChange = (name, value) => {
@@ -548,7 +545,7 @@ export function PaymentOverviewPage() {
         </TabsContent>
       </Tabs>
 
-      <Toaster />
+
     </div>
   )
 }

@@ -21,7 +21,7 @@ export function AdminLoginForm() {
     setTimeout(() => {
       setIsLoading(false)
       // Redirect to admin login page
-      window.location.href = "/admin/login"
+      window.location.href = "/auth/admin-login"
     }, 1500)
   }
 
@@ -72,7 +72,7 @@ export function AdminLoginForm() {
             )}
           </Button>
           <div className="text-center text-sm text-muted-foreground mt-4">
-            <Link href="/admin/login" className="text-primary hover:underline">
+            <Link href="/auth/admin-login" className="text-primary hover:underline">
               Go to dedicated admin login page
             </Link>
           </div>

@@ -17,6 +17,7 @@ export default function RootLayout({ children }) {
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           {children}
         </ThemeProvider>
+        <div id="dialog-root" />
       </body>
     </html>
   )

@@ -31,12 +31,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
+import { toast } from "sonner"
+
 
 export function BookingManagement() {
   const { bookings, vendors, addBooking, updateBooking, deleteBooking, exportToCSV, importFromCSV } = useData()
-  const { toast } = useToast()
+
 
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
@@ -842,7 +842,7 @@ export function BookingManagement() {
         </AlertDialog>
       </Tabs>
 
-      <Toaster />
+
     </div>
   )
 }

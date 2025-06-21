@@ -30,12 +30,12 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
+import { toast } from "sonner"
+
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 export function NotificationsSupport() {
-  const { toast } = useToast()
+
   const [activeTab, setActiveTab] = useState("notifications")
   const [searchTerm, setSearchTerm] = useState("")
   const [notifications, setNotifications] = useState([])
@@ -351,11 +351,7 @@ export function NotificationsSupport() {
   const handleCreateTicket = () => {
     // Validate form
     if (!ticketForm.subject || !ticketForm.description) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields.")
       return
     }
 
@@ -383,10 +379,7 @@ export function NotificationsSupport() {
     setSupportTickets([...supportTickets, newTicket])
 
     // Show success message
-    toast({
-      title: "Ticket Created",
-      description: `Support ticket #${newTicket.id} has been created successfully.`,
-    })
+    toast.success(`Support ticket #${newTicket.id} has been created successfully.`)
 
     // Close dialog and reset form
     setIsCreateTicketOpen(false)
@@ -396,11 +389,7 @@ export function NotificationsSupport() {
   const handleCreateNotification = () => {
     // Validate form
     if (!notificationForm.title || !notificationForm.message) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields.")
       return
     }
 
@@ -419,10 +408,7 @@ export function NotificationsSupport() {
     setNotifications([...notifications, newNotification])
 
     // Show success message
-    toast({
-      title: "Notification Created",
-      description: `Notification has been created and sent to ${notificationForm.target}.`,
-    })
+    toast.success(`Notification has been created and sent to ${notificationForm.target}.`)
 
     // Close dialog and reset form
     setIsCreateNotificationOpen(false)
@@ -439,10 +425,7 @@ export function NotificationsSupport() {
     setSupportTickets(supportTickets.filter((ticket) => ticket.id !== currentTicket.id))
 
     // Show success message
-    toast({
-      title: "Ticket Deleted",
-      description: `Support ticket #${currentTicket.id} has been deleted successfully.`,
-    })
+    toast.success(`Support ticket #${currentTicket.id} has been deleted successfully.`)
 
     // Close dialog and reset
     setIsDeleteDialogOpen(false)
@@ -454,10 +437,7 @@ export function NotificationsSupport() {
     setNotifications(notifications.filter((notification) => notification.id !== currentNotification.id))
 
     // Show success message
-    toast({
-      title: "Notification Deleted",
-      description: `Notification has been deleted successfully.`,
-    })
+    toast.success("Notification has been deleted successfully.")
 
     // Close dialog and reset
     setIsDeleteNotificationOpen(false)
@@ -469,10 +449,7 @@ export function NotificationsSupport() {
     setNotifications(notifications.map((n) => (n.id === notification.id ? { ...n, read: true } : n)))
 
     // Show success message
-    toast({
-      title: "Notification Marked as Read",
-      description: `Notification has been marked as read.`,
-    })
+    toast.success("Notification has been marked as read.")
   }
 
   const handleMarkAllAsRead = () => {
@@ -480,19 +457,12 @@ export function NotificationsSupport() {
     setNotifications(notifications.map((n) => ({ ...n, read: true })))
 
     // Show success message
-    toast({
-      title: "All Notifications Marked as Read",
-      description: `All notifications have been marked as read.`,
-    })
+    toast.success("All notifications have been marked as read.")
   }
 
   const handleReplyToTicket = () => {
     if (!replyForm.trim()) {
-      toast({
-        title: "Empty Reply",
-        description: "Please enter a reply message.",
-        variant: "destructive",
-      })
+      toast.error("Please enter a reply message.")
       return
     }
 
@@ -518,10 +488,7 @@ export function NotificationsSupport() {
     setSupportTickets(supportTickets.map((ticket) => (ticket.id === currentTicket.id ? updatedTicket : ticket)))
 
     // Show success message
-    toast({
-      title: "Reply Sent",
-      description: `Your reply to ticket #${currentTicket.id} has been sent.`,
-    })
+    toast.success(`Your reply to ticket #${currentTicket.id} has been sent.`)
 
     // Reset form
     setReplyForm("")
@@ -539,10 +506,7 @@ export function NotificationsSupport() {
     setSupportTickets(supportTickets.map((t) => (t.id === ticket.id ? updatedTicket : t)))
 
     // Show success message
-    toast({
-      title: "Ticket Closed",
-      description: `Support ticket #${ticket.id} has been closed.`,
-    })
+    toast.success(`Support ticket #${ticket.id} has been closed.`)
 
     // Update current ticket if it's open
     if (currentTicket && currentTicket.id === ticket.id) {
@@ -561,10 +525,7 @@ export function NotificationsSupport() {
     setSupportTickets(supportTickets.map((t) => (t.id === ticket.id ? updatedTicket : t)))
 
     // Show success message
-    toast({
-      title: "Ticket Reopened",
-      description: `Support ticket #${ticket.id} has been reopened.`,
-    })
+    toast.success(`Support ticket #${ticket.id} has been reopened.`)
 
     // Update current ticket if it's open
     if (currentTicket && currentTicket.id === ticket.id) {
@@ -1161,7 +1122,7 @@ export function NotificationsSupport() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Toaster />
+
     </div>
   )
 }

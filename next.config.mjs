@@ -9,6 +9,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  reactStrictMode: false, // Disable strict mode to fix dialog issues
 }
 
 export default nextConfig

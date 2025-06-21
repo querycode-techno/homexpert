@@ -46,7 +46,7 @@ export function Header() {
             <Link href="/login/vendor">Vendor Login</Link>
           </Button>
           <Button asChild>
-            <Link href="/admin/login">Admin Login</Link>
+            <Link href="/auth/admin-login">Admin Login</Link>
           </Button>
         </div>
 
@@ -76,7 +76,7 @@ export function Header() {
                   </Link>
                 </Button>
                 <Button asChild className="w-full">
-                  <Link href="/admin/login" onClick={() => setIsOpen(false)}>
+                  <Link href="/auth/admin-login" onClick={() => setIsOpen(false)}>
                     Admin Login
                   </Link>
                 </Button>

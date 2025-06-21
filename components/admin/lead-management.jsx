@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import {
   Search,
   Plus,
@@ -168,7 +168,7 @@ const serviceTypes = ["Plumbing", "Electrical", "Cleaning", "Painting", "Applian
 const locations = ["Bangalore", "Mumbai", "Delhi", "Hyderabad", "Chennai", "Kolkata", "Pune", "Ahmedabad"]
 
 export function LeadManagement() {
-  const { toast } = useToast()
+
   const [leads, setLeads] = useState(initialLeads)
   const [vendors, setVendors] = useState(initialVendors)
   const [filteredLeads, setFilteredLeads] = useState(leads)
@@ -271,11 +271,7 @@ export function LeadManagement() {
   const handleAddLead = () => {
     // Validate required fields
     if (!newLead.name || !newLead.phone || !newLead.service || !newLead.location) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields.")
       return
     }
 
@@ -295,10 +291,7 @@ export function LeadManagement() {
 
     setIsAddLeadOpen(false)
 
-    toast({
-      title: "Lead Added",
-      description: "New lead has been successfully added.",
-    })
+    toast.success("New lead has been successfully added.")
   }
 
   // Generate multiple leads
@@ -342,10 +335,7 @@ export function LeadManagement() {
     setIsProcessing(false)
     setGenerationStep(2)
 
-    toast({
-      title: "Leads Generated",
-      description: `${numLeadsToGenerate} leads have been successfully generated. Choose how to distribute them.`,
-    })
+    toast.success(`${numLeadsToGenerate} leads have been successfully generated. Choose how to distribute them.`)
   }
 
   // Complete the lead generation process
@@ -357,10 +347,7 @@ export function LeadManagement() {
       setIsGenerateLeadsOpen(false)
       setGenerationStep(1)
 
-      toast({
-        title: "Leads Added",
-        description: `${generatedLeads.length} leads have been added to your lead pool.`,
-      })
+      toast.success(`${generatedLeads.length} leads have been successfully added.`)
 
       return
     }
@@ -371,11 +358,7 @@ export function LeadManagement() {
       const vendor = vendors.find((v) => v.name === selectedDistributionVendor)
 
       if (!vendor) {
-        toast({
-          title: "Vendor Not Found",
-          description: "The selected vendor could not be found.",
-          variant: "destructive",
-        })
+        toast.error("Vendor Not Found: The selected vendor could not be found.")
         return
       }
 
@@ -400,28 +383,18 @@ export function LeadManagement() {
       setLeads([...leads, ...updatedLeads])
       setVendors(updatedVendors)
 
-      toast({
-        title: "Leads Assigned",
-        description: `${generatedLeads.length} leads have been assigned to ${vendor.name}.`,
-      })
+      toast.success(`${generatedLeads.length} leads have been assigned to ${vendor.name}.`)
     } else if (distributionMethod === "distribute_all") {
       // Distribute to all available vendors
       const activeVendors = vendors.filter((v) => v.leadQuota > v.leadsUsed)
 
       if (activeVendors.length === 0) {
-        toast({
-          title: "No Available Vendors",
-          description: "There are no vendors with available lead quota.",
-          variant: "destructive",
-        })
+        toast.error("No Available Vendors: There are no vendors with available lead quota.")
 
         // Add leads without assigning
         setLeads([...leads, ...generatedLeads])
 
-        toast({
-          title: "Leads Added Without Assignment",
-          description: `${generatedLeads.length} leads have been added without assignment due to no available vendors.`,
-        })
+        toast.warning(`Leads Added Without Assignment: ${generatedLeads.length} leads have been added without assignment due to no available vendors.`)
 
         setIsGenerateLeadsOpen(false)
         setGenerationStep(1)
@@ -464,10 +437,7 @@ export function LeadManagement() {
         .map(([vendor, count]) => `${vendor}: ${count} leads`)
         .join(", ")
 
-      toast({
-        title: "Leads Distributed",
-        description: `${updatedLeads.length} leads have been distributed among ${activeVendors.length} vendors. ${distributionSummary}`,
-      })
+      toast.success(`Leads Distributed: ${updatedLeads.length} leads have been distributed among ${activeVendors.length} vendors. ${distributionSummary}`)
     } else if (distributionMethod === "distribute_by_service") {
       // Distribute by service type
       const updatedLeads = [...generatedLeads]
@@ -530,12 +500,9 @@ export function LeadManagement() {
         .map(([vendor, count]) => `${vendor}: ${count} leads`)
         .join(", ")
 
-      toast({
-        title: "Leads Distributed by Service",
-        description: `${assignedCount} leads have been assigned based on service type. ${
-          unassignedCount > 0 ? `${unassignedCount} leads could not be assigned due to no matching vendor.` : ""
-        } ${distributionSummary}`,
-      })
+      toast.success(`${assignedCount} leads have been assigned based on service type. ${
+        unassignedCount > 0 ? `${unassignedCount} leads could not be assigned due to no matching vendor.` : ""
+      } ${distributionSummary}`)
     }
 
     setIsGenerateLeadsOpen(false)
@@ -553,11 +520,7 @@ export function LeadManagement() {
   // Delete selected leads
   const handleDeleteLeads = () => {
     if (selectedLeads.length === 0) {
-      toast({
-        title: "No Leads Selected",
-        description: "Please select at least one lead to delete.",
-        variant: "destructive",
-      })
+      toast.error("No Leads Selected: Please select at least one lead to delete.")
       return
     }
 
@@ -565,20 +528,13 @@ export function LeadManagement() {
     setLeads(updatedLeads)
     setSelectedLeads([])
 
-    toast({
-      title: "Leads Deleted",
-      description: `${selectedLeads.length} leads have been deleted.`,
-    })
+          toast.success(`Leads Deleted: ${selectedLeads.length} leads have been deleted.`)
   }
 
   // Assign leads to vendor
   const handleAssignLeads = (vendorName) => {
     if (selectedLeads.length === 0) {
-      toast({
-        title: "No Leads Selected",
-        description: "Please select at least one lead to assign.",
-        variant: "destructive",
-      })
+              toast.error("No Leads Selected: Please select at least one lead to assign.")
       return
     }
 
@@ -588,11 +544,7 @@ export function LeadManagement() {
       const activeVendors = vendors.filter((v) => v.leadQuota > v.leadsUsed)
 
       if (activeVendors.length === 0) {
-        toast({
-          title: "No Available Vendors",
-          description: "There are no vendors with available lead quota.",
-          variant: "destructive",
-        })
+        toast.error("No Available Vendors: There are no vendors with available lead quota.")
         return
       }
 
@@ -638,10 +590,7 @@ export function LeadManagement() {
         .map(([vendor, count]) => `${vendor}: ${count} leads`)
         .join(", ")
 
-      toast({
-        title: "Leads Distributed",
-        description: `${selectedLeads.length} leads have been distributed among ${activeVendors.length} vendors. ${distributionSummary}`,
-      })
+      toast.success(`${selectedLeads.length} leads have been distributed among ${activeVendors.length} vendors. ${distributionSummary}`)
 
       return
     }
@@ -779,10 +728,7 @@ export function LeadManagement() {
 
     setIsAddVendorOpen(false)
 
-    toast({
-      title: "Vendor Added",
-      description: "New vendor has been successfully added.",
-    })
+    toast.success("New vendor has been successfully added.")
   }
 
   // Open vendor lead management dialog
