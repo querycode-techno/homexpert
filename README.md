@@ -114,3 +114,4 @@ next.config.mjs        # Next.js configuration
 # package.json
 # tsconfig.json        # If using TypeScript
 # homexpert
+# homexpert
