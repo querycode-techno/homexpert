@@ -32,6 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
+import { serviceUtils } from "@/lib/utils"
 
 
 export function BookingManagement() {
@@ -339,11 +340,9 @@ export function BookingManagement() {
                               <SelectValue placeholder="Select service" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Plumbing">Plumbing</SelectItem>
-                              <SelectItem value="Electrical">Electrical</SelectItem>
-                              <SelectItem value="Cleaning">Cleaning</SelectItem>
-                              <SelectItem value="Painting">Painting</SelectItem>
-                              <SelectItem value="Carpentry">Carpentry</SelectItem>
+                              {serviceUtils.getAllServices().map((service) => (
+                                <SelectItem key={service} value={service}>{service}</SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
@@ -735,11 +734,9 @@ export function BookingManagement() {
                       <SelectValue placeholder="Select service" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Plumbing">Plumbing</SelectItem>
-                      <SelectItem value="Electrical">Electrical</SelectItem>
-                      <SelectItem value="Cleaning">Cleaning</SelectItem>
-                      <SelectItem value="Painting">Painting</SelectItem>
-                      <SelectItem value="Carpentry">Carpentry</SelectItem>
+                      {serviceUtils.getAllServices().map((service) => (
+                        <SelectItem key={service} value={service}>{service}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Facebook, Instagram, Linkedin, Youtube } from "lucide-react"
+import { serviceUtils } from "@/lib/utils"
 
 export function Footer() {
   return (
@@ -40,31 +41,13 @@ export function Footer() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Services</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
-                  Plumbing
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
-                  Electrical
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
-                  Cleaning
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
-                  Painting
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
-                  Carpentry
-                </Link>
-              </li>
+              {serviceUtils.getAllServices().slice(0, 5).map((service) => (
+                <li key={service}>
+                  <Link href="/services" className="text-sm text-text-secondary hover:text-primary">
+                    {service}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div className="space-y-4">

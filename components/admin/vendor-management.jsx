@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { useData } from "@/lib/data-context"
+import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -18,42 +17,98 @@ import {
 import { VendorList, VendorForm } from "./vendor"
 
 export function VendorManagement() {
-  const {
-    vendors,
-    addVendor,
-    updateVendor,
-    deleteVendor,
-    subscriptions,
-    leads,
-    exportToCSV,
-    importFromCSV,
-  } = useData()
+  // State management
+  const [vendors, setVendors] = useState([])
+  const [stats, setStats] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10,
+    hasNextPage: false,
+    hasPrevPage: false
+  })
 
-  // Vendor states
+  // Dialog states
   const [isAddVendorOpen, setIsAddVendorOpen] = useState(false)
   const [isEditVendorOpen, setIsEditVendorOpen] = useState(false)
   const [isDeleteVendorDialogOpen, setIsDeleteVendorDialogOpen] = useState(false)
   const [currentVendor, setCurrentVendor] = useState(null)
 
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filters, setFilters] = useState({
+    status: "",
+    city: "",
+    service: "",
+    verified: ""
+  })
+
   // File input ref
   const vendorFileInputRef = useRef(null)
 
-  // Calculate vendor lead counts
-  const vendorLeadCounts = {}
-  if (vendors && leads) {
-    vendors.forEach((vendor) => {
-      if (vendor && vendor.name) {
-        const vendorLeads = leads.filter((lead) => lead.assignedTo === vendor.name)
-        vendorLeadCounts[vendor.id] = vendorLeads.length
+  // Fetch vendors
+  const fetchVendors = async (page = 1, search = "", filterParams = {}) => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: pagination.itemsPerPage.toString(),
+        ...(search && { search }),
+        ...filterParams
+      })
+
+      const response = await fetch(`/api/admin/vendors?${params}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setVendors(data.data.vendors)
+        setPagination(data.data.pagination)
+        setStats(data.data.stats)
+      } else {
+        throw new Error(data.error)
       }
-    })
+    } catch (error) {
+      console.error('Error fetching vendors:', error)
+      toast.error('Failed to fetch vendors')
+    } finally {
+      setLoading(false)
+    }
   }
 
+  // Load vendors on component mount
+  useEffect(() => {
+    fetchVendors()
+  }, [])
+
   // Vendor handlers
-  const handleAddVendor = (formData) => {
-    const newVendor = addVendor(formData)
-    toast.success(`Vendor Added: ${newVendor.name} has been added successfully.`)
-    setIsAddVendorOpen(false)
+  const handleAddVendor = async (formData) => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin/vendors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success(`Vendor Added: ${data.data.userData.name} has been added successfully.`)
+        setIsAddVendorOpen(false)
+        fetchVendors(pagination.currentPage, searchTerm, filters)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error('Error adding vendor:', error)
+      toast.error(error.message || 'Failed to add vendor')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleEditVendor = (vendor) => {
@@ -61,11 +116,33 @@ export function VendorManagement() {
     setIsEditVendorOpen(true)
   }
 
-  const handleUpdateVendor = (formData) => {
-    updateVendor(currentVendor.id, formData)
-    toast.success(`Vendor Updated: ${formData.name} has been updated successfully.`)
-    setIsEditVendorOpen(false)
-    setCurrentVendor(null)
+  const handleUpdateVendor = async (formData) => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/admin/vendors/${currentVendor._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success(`Vendor Updated: ${data.data.userData.name} has been updated successfully.`)
+        setIsEditVendorOpen(false)
+        setCurrentVendor(null)
+        fetchVendors(pagination.currentPage, searchTerm, filters)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error('Error updating vendor:', error)
+      toast.error(error.message || 'Failed to update vendor')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDeleteVendor = (vendor) => {
@@ -73,16 +150,85 @@ export function VendorManagement() {
     setIsDeleteVendorDialogOpen(true)
   }
 
-  const confirmDeleteVendor = () => {
-    deleteVendor(currentVendor.id)
-    toast.success(`Vendor Deleted: ${currentVendor.name} has been deleted successfully.`)
-    setIsDeleteVendorDialogOpen(false)
-    setCurrentVendor(null)
+  const confirmDeleteVendor = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/admin/vendors/${currentVendor._id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success(`Vendor Deleted: ${currentVendor.userData.name} has been deleted successfully.`)
+        setIsDeleteVendorDialogOpen(false)
+        setCurrentVendor(null)
+        fetchVendors(pagination.currentPage, searchTerm, filters)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error('Error deleting vendor:', error)
+      toast.error(error.message || 'Failed to delete vendor')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleViewVendor = (vendor) => {
+    // TODO: Implement vendor detail view
+    toast.info(`View details for ${vendor.userData.name} - To be implemented`)
+  }
+
+  const handleVerifyVendor = async (vendor) => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/admin/vendors/${vendor._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          verified: {
+            isVerified: true,
+            verificationNotes: 'Vendor verified by admin'
+          }
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success(`Vendor Verified: ${vendor.userData.name} has been verified.`)
+        fetchVendors(pagination.currentPage, searchTerm, filters)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error('Error verifying vendor:', error)
+      toast.error(error.message || 'Failed to verify vendor')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSearch = (search) => {
+    setSearchTerm(search)
+    fetchVendors(1, search, filters)
+  }
+
+  const handleFilter = (newFilters) => {
+    setFilters(newFilters)
+    fetchVendors(1, searchTerm, newFilters)
+  }
+
+  const handlePageChange = (page) => {
+    fetchVendors(page, searchTerm, filters)
   }
 
   const handleVendorExport = () => {
-    exportToCSV(vendors, "vendors")
-    toast.success("Vendor data has been exported to CSV.")
+    // TODO: Implement export functionality
+    toast.info("Export functionality - To be implemented")
   }
 
   const handleVendorImport = () => {
@@ -92,26 +238,9 @@ export function VendorManagement() {
   const handleVendorFileChange = (e) => {
     const file = e.target.files[0]
     if (file) {
-      importFromCSV(file, "vendors", (data) => {
-        toast.success(`Import Successful: ${data.length} vendors have been imported.`)
-      })
+      // TODO: Implement import functionality
+      toast.info("Import functionality - To be implemented")
     }
-  }
-
-  // Vendor lead management handlers (placeholders for now)
-  const handleAddLeads = (vendor) => {
-    // This can be implemented with a separate dialog
-    toast.info(`Add leads functionality for ${vendor.name} - To be implemented`)
-  }
-
-  const handleRemoveLeads = (vendor) => {
-    // This can be implemented with a separate dialog
-    toast.info(`Remove leads functionality for ${vendor.name} - To be implemented`)
-  }
-
-  const handleViewLeadHistory = (vendor) => {
-    // This can be implemented with a separate dialog
-    toast.info(`Lead history for ${vendor.name} - To be implemented`)
   }
 
   return (
@@ -124,15 +253,19 @@ export function VendorManagement() {
       {/* Vendor Management */}
       <VendorList
         vendors={vendors}
-        vendorLeadCounts={vendorLeadCounts}
+        stats={stats}
+        loading={loading}
+        pagination={pagination}
         onAddVendor={() => setIsAddVendorOpen(true)}
         onEditVendor={handleEditVendor}
         onDeleteVendor={handleDeleteVendor}
-        onAddLeads={handleAddLeads}
-        onRemoveLeads={handleRemoveLeads}
-        onViewLeadHistory={handleViewLeadHistory}
+        onViewVendor={handleViewVendor}
+        onVerifyVendor={handleVerifyVendor}
         onExport={handleVendorExport}
         onImport={handleVendorImport}
+        onSearch={handleSearch}
+        onFilter={handleFilter}
+        onPageChange={handlePageChange}
       />
 
       {/* Vendor Form Dialogs */}
@@ -140,9 +273,9 @@ export function VendorManagement() {
         isOpen={isAddVendorOpen}
         onClose={() => setIsAddVendorOpen(false)}
         onSubmit={handleAddVendor}
-        subscriptions={subscriptions}
+        loading={loading}
         title="Add New Vendor"
-        description="Create a new vendor account with subscription details."
+        description="Create a new vendor account with business details."
       />
 
       <VendorForm
@@ -153,9 +286,9 @@ export function VendorManagement() {
         }}
         vendor={currentVendor}
         onSubmit={handleUpdateVendor}
-        subscriptions={subscriptions}
+        loading={loading}
         title="Edit Vendor"
-        description="Update vendor information and subscription details."
+        description="Update vendor information and business details."
       />
 
       {/* Delete Vendor Dialog */}

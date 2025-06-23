@@ -64,6 +64,12 @@ export function AdminSidebar() {
       permission: can.viewEmployees, // Using same permission for now
     },
     {
+      title: "Service Management",
+      icon: <Settings className="h-5 w-5" />,
+      href: "/admin/services",
+      permission: can.manageRoles, // Admin only for service management
+    },
+    {
       title: "Payment Overview",
       icon: <CreditCard className="h-5 w-5" />,
       href: "/admin/payments",
