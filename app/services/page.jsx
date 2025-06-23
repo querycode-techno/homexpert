@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -20,7 +20,7 @@ import servicesData from '@/lib/data/services.json'
 import LeadFormPopup from '@/components/lead-form-popup'
 import Link from 'next/link'
 
-export default function ServicesPage() {
+function ServicesPageContent() {
   const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -379,5 +379,42 @@ export default function ServicesPage() {
         price={selectedBookingService.price}
       />
     </div>
+  )
+}
+
+// Loading component for Suspense fallback
+function ServicesPageLoading() {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <main className="flex-1">
+        <section className="bg-gradient-to-r from-primary/10 to-secondary/10 py-12">
+          <div className="container px-4 md:px-6">
+            <div className="text-center space-y-4">
+              <div className="h-8 bg-gray-200 rounded-md w-48 mx-auto animate-pulse"></div>
+              <div className="h-6 bg-gray-200 rounded-md w-96 mx-auto animate-pulse"></div>
+            </div>
+          </div>
+        </section>
+        <section className="py-16">
+          <div className="container px-4 md:px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-48 bg-gray-200 rounded-lg animate-pulse"></div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </div>
+  )
+}
+
+export default function ServicesPage() {
+  return (
+    <Suspense fallback={<ServicesPageLoading />}>
+      <ServicesPageContent />
+    </Suspense>
   )
 } 

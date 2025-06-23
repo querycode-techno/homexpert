@@ -62,18 +62,14 @@ export function LeadDetailsDialog({
     
     setRemovingVendor(vendorId)
     try {
-      // Get current vendor list and remove the specific vendor
-      const currentVendors = lead.availableToVendors?.vendor || []
-      const updatedVendors = currentVendors.filter(id => id !== vendorId)
-      
       const response = await fetch(`/api/admin/leads/${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'assignVendors',
+          action: 'removeVendor',
           data: {
-            vendorIds: updatedVendors,
-            assignedBy: 'admin' // You might want to get the actual admin ID
+            vendorId: vendorId,
+            performedBy: 'admin' // You might want to get the actual admin ID
           }
         })
       })

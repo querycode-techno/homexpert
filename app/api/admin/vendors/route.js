@@ -49,17 +49,99 @@ export async function GET(request) {
     }
 
     // Filter by verification
-    if (verified !== undefined) {
-      query['verified.isVerified'] = verified === 'true';
+    console.log('DEBUG VENDORS: verified param:', verified, 'type:', typeof verified);
+    if (verified && verified !== 'all' && verified !== '') {
+      if (verified === 'verified') {
+        query['verified.isVerified'] = true;
+      } else if (verified === 'unverified') {
+        query['verified.isVerified'] = false;
+      }
     }
 
     // Calculate pagination
     const skip = (page - 1) * limit;
 
+    // Debug logging - let's see what's actually in the database
+    console.log('DEBUG VENDORS: Starting debug...');
+    
+    // Check vendors collection
+    const allVendorsCount = await vendorsCollection.countDocuments({});
+    const allVendors = await vendorsCollection.find({}).limit(3).toArray();
+    console.log('DEBUG VENDORS: Total vendors in collection:', allVendorsCount);
+    console.log('DEBUG VENDORS: Sample vendors:', allVendors.map(v => ({
+      id: v._id,
+      businessName: v.businessName,
+      userRef: v.user,
+      userRefType: typeof v.user,
+      status: v.status
+    })));
+    
+    // Check users collection
+    const usersCount = await usersCollection.countDocuments({});
+    const sampleUsers = await usersCollection.find({}).limit(3).toArray();
+    console.log('DEBUG VENDORS: Total users in collection:', usersCount);
+    console.log('DEBUG VENDORS: Sample users:', sampleUsers.map(u => ({
+      id: u._id,
+      name: u.name,
+      email: u.email,
+      role: u.role
+    })));
+    
+    // Test lookup manually for first vendor
+    if (allVendors.length > 0) {
+      const testVendor = allVendors[0];
+      console.log('DEBUG VENDORS: Testing lookup for vendor:', testVendor._id, 'user ref:', testVendor.user);
+      
+      const userLookupTest = await usersCollection.findOne({ _id: testVendor.user });
+      console.log('DEBUG VENDORS: Direct user lookup result:', userLookupTest ? {
+        id: userLookupTest._id,
+        name: userLookupTest.name,
+        email: userLookupTest.email
+      } : 'No user found with ID: ' + testVendor.user);
+    }
+
+    // Debug the query object
+    console.log('DEBUG VENDORS: Query object:', JSON.stringify(query, null, 2));
+    
     // Get total count for pagination
     const total = await vendorsCollection.countDocuments(query);
+    console.log('DEBUG VENDORS: Total count with query:', total);
 
-    // Get vendors with user data
+    // Get vendors with user data - using LEFT JOIN approach to see what happens
+    const vendorsWithDebug = await vendorsCollection.aggregate([
+      { $match: query },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userData',
+          pipeline: [
+            { $project: { password: 0 } }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          userDataCount: { $size: '$userData' },
+          hasUserData: { $gt: [{ $size: '$userData' }, 0] }
+        }
+      },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ]).toArray();
+
+    console.log('DEBUG VENDORS: Vendors with lookup results:', vendorsWithDebug.map(v => ({
+      id: v._id,
+      businessName: v.businessName,
+      userRef: v.user,
+      userDataCount: v.userDataCount,
+      hasUserData: v.hasUserData,
+      userData: v.userData.length > 0 ? v.userData[0].name : 'No user data'
+    })));
+
+    // Now get the vendors using the original approach with $unwind
     const vendors = await vendorsCollection.aggregate([
       { $match: query },
       {
@@ -92,6 +174,8 @@ export async function GET(request) {
         services: vendors[0].services,
         city: vendors[0].address?.city
       });
+    } else {
+      console.log('DEBUG VENDORS: No vendors after $unwind - user lookup failed');
     }
 
     // Calculate pagination info

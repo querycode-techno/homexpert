@@ -222,10 +222,20 @@ export async function PATCH(request, { params }) {
           );
         }
 
-        // Validate performedBy ObjectId if provided
+        // Handle performedBy - if it's "admin" string, find the admin user
         let validPerformedBy = null;
-        if (data.performedBy && mongoose.Types.ObjectId.isValid(data.performedBy)) {
-          validPerformedBy = new mongoose.Types.ObjectId(data.performedBy);
+        if (data.performedBy) {
+          if (data.performedBy === 'admin') {
+            const adminRole = await Role.findOne({ name: 'admin' });
+            if (adminRole) {
+              const adminUser = await User.findOne({ role: adminRole._id }).lean();
+              if (adminUser) {
+                validPerformedBy = adminUser._id;
+              }
+            }
+          } else if (mongoose.Types.ObjectId.isValid(data.performedBy)) {
+            validPerformedBy = new mongoose.Types.ObjectId(data.performedBy);
+          }
         }
 
         updateQuery = {
@@ -278,10 +288,20 @@ export async function PATCH(request, { params }) {
 
         const currentLeadForAssign = await Lead.findById(id).lean();
         
-        // Validate assignedBy ObjectId if provided
+        // Handle assignedBy - if it's "admin" string, find the admin user
         let validAssignedBy = null;
-        if (data.assignedBy && mongoose.Types.ObjectId.isValid(data.assignedBy)) {
-          validAssignedBy = new mongoose.Types.ObjectId(data.assignedBy);
+        if (data.assignedBy) {
+          if (data.assignedBy === 'admin') {
+            const adminRole = await Role.findOne({ name: 'admin' });
+            if (adminRole) {
+              const adminUser = await User.findOne({ role: adminRole._id }).lean();
+              if (adminUser) {
+                validAssignedBy = adminUser._id;
+              }
+            }
+          } else if (mongoose.Types.ObjectId.isValid(data.assignedBy)) {
+            validAssignedBy = new mongoose.Types.ObjectId(data.assignedBy);
+          }
         }
         
         updateQuery = {
@@ -307,13 +327,117 @@ export async function PATCH(request, { params }) {
         message = `Lead assigned to ${vendors.length} vendor(s)`;
         break;
 
+      case 'removeVendor':
+        if (!data?.vendorId) {
+          return NextResponse.json(
+            { success: false, error: 'vendorId is required' },
+            { status: 400 }
+          );
+        }
+
+        // Get the vendor details for logging
+        const vendorRoleForRemoval = await Role.findOne({ name: 'vendor' });
+        if (!vendorRoleForRemoval) {
+          return NextResponse.json(
+            { success: false, error: 'Vendor role not found' },
+            { status: 400 }
+          );
+        }
+
+        const vendorToRemove = await User.findOne({ 
+          _id: data.vendorId, 
+          role: vendorRoleForRemoval._id 
+        }).lean();
+
+        if (!vendorToRemove) {
+          return NextResponse.json(
+            { success: false, error: 'Vendor not found' },
+            { status: 400 }
+          );
+        }
+
+        const currentLeadForRemoval = await Lead.findById(id).lean();
+        
+        // Handle performedBy - if it's "admin" string, find the admin user
+        let validPerformedByRemoval = null;
+        if (data.performedBy) {
+          if (data.performedBy === 'admin') {
+            const adminRoleForRemoval = await Role.findOne({ name: 'admin' });
+            if (adminRoleForRemoval) {
+              const adminUserForRemoval = await User.findOne({ role: adminRoleForRemoval._id }).lean();
+              if (adminUserForRemoval) {
+                validPerformedByRemoval = adminUserForRemoval._id;
+              }
+            }
+          } else if (mongoose.Types.ObjectId.isValid(data.performedBy)) {
+            validPerformedByRemoval = new mongoose.Types.ObjectId(data.performedBy);
+          }
+        }
+
+        // Remove the vendor from the array
+        const currentVendors = currentLeadForRemoval?.availableToVendors?.vendor || [];
+        const updatedVendors = currentVendors.filter(vendorId => vendorId.toString() !== data.vendorId);
+
+        let newStatus = currentLeadForRemoval?.status;
+        let additionalUpdates = {};
+
+        // If no vendors left, change status back to pending
+        if (updatedVendors.length === 0) {
+          newStatus = 'pending';
+          additionalUpdates = {
+            $unset: {
+              'availableToVendors': 1,
+              'madeAvailableAt': 1
+            }
+          };
+        } else {
+          additionalUpdates = {
+            $set: {
+              'availableToVendors.vendor': updatedVendors,
+              'availableToVendors.assignedAt': new Date(),
+              'availableToVendors.assignedBy': currentLeadForRemoval?.availableToVendors?.assignedBy || null
+            }
+          };
+        }
+
+        updateQuery = {
+          ...additionalUpdates,
+          $set: {
+            ...additionalUpdates.$set,
+            status: newStatus,
+            modifiedBy: validPerformedByRemoval,
+            updatedAt: new Date()
+          },
+          $push: {
+            leadProgressHistory: {
+              fromStatus: currentLeadForRemoval?.status || 'available',
+              toStatus: newStatus,
+              date: new Date(),
+              performedBy: validPerformedByRemoval,
+              reason: `Vendor removed: ${vendorToRemove.name}${updatedVendors.length === 0 ? ' (no vendors remaining, status changed to pending)' : ''}`
+            }
+          }
+        };
+        message = `Vendor ${vendorToRemove.name} removed from lead`;
+        break;
+
       case 'unassignVendors':
         const currentLeadForUnassign = await Lead.findById(id).lean();
         
-        // Validate performedBy ObjectId if provided
+        // Handle performedBy - if it's "admin" string, find the admin user
         let validPerformedByUnassign = null;
-        if (data.performedBy && mongoose.Types.ObjectId.isValid(data.performedBy)) {
-          validPerformedByUnassign = new mongoose.Types.ObjectId(data.performedBy);
+        if (data.performedBy) {
+          if (data.performedBy === 'admin') {
+            const adminRoleForUnassign = await Role.findOne({ name: 'admin' });
+            if (adminRoleForUnassign) {
+              const adminUserForUnassign = await User.findOne({ role: adminRoleForUnassign._id }).lean();
+              if (adminUserForUnassign) {
+                validPerformedByUnassign = adminUserForUnassign._id;
+              }
+            }
+          } else if (mongoose.Types.ObjectId.isValid(data.performedBy)) {
+            validPerformedByUnassign = new mongoose.Types.ObjectId(data.performedBy);
+          }
         }
         
         updateQuery = {

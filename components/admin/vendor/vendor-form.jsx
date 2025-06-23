@@ -46,6 +46,7 @@ import {
   Lock
 } from "lucide-react"
 import DocumentUpload from "./document-upload"
+import { ServiceSelector } from "./service-selector"
 import { serviceUtils } from "@/lib/utils"
 
 // Get service options from services.json
@@ -114,16 +115,6 @@ export function VendorForm({
     }
   })
 
-  const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
-    control: form.control,
-    name: "services"
-  })
-
-  const { fields: serviceAreaFields, append: appendServiceArea, remove: removeServiceArea } = useFieldArray({
-    control: form.control,
-    name: "address.serviceAreas"
-  })
-
   // Populate form when editing
   useEffect(() => {
     if (isEdit && vendor) {
@@ -174,18 +165,6 @@ export function VendorForm({
 
   const handleSubmit = (data) => {
     onSubmit(data)
-  }
-
-  const addService = (service) => {
-    const currentServices = form.getValues("services")
-    if (!currentServices.includes(service)) {
-      form.setValue("services", [...currentServices, service])
-    }
-  }
-
-  const removeServiceItem = (index) => {
-    const currentServices = form.getValues("services")
-    form.setValue("services", currentServices.filter((_, i) => i !== index))
   }
 
   return (
@@ -310,35 +289,11 @@ export function VendorForm({
 
                 <div className="md:col-span-2">
                   <FormLabel>Services</FormLabel>
-                  <div className="space-y-2">
-                    <Select onValueChange={addService}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select services to add" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {serviceOptions.map((service) => (
-                          <SelectItem key={service} value={service}>
-                            {service}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    
-                    <div className="flex flex-wrap gap-2">
-                      {form.watch("services").map((service, index) => (
-                        <Badge key={index} variant="secondary" className="gap-1">
-                          {service}
-                          <button
-                            type="button"
-                            onClick={() => removeServiceItem(index)}
-                            className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                  <ServiceSelector
+                    selectedServices={form.watch("services")}
+                    onServicesChange={(services) => form.setValue("services", services)}
+                    placeholder="Search or select services..."
+                  />
                 </div>
 
                 {isEdit && (

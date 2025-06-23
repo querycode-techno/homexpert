@@ -24,19 +24,31 @@ export async function POST(request) {
     await requireAdmin();
     await connectDB();
 
-      const { 
-    leadIds, 
-    vendorIds, 
-    assignmentType = 'manual', // manual, auto, round-robin
-    criteria = {},
-    assignedBy 
-  } = await request.json();
+    const { 
+      leadIds, 
+      vendorIds, 
+      assignmentType = 'manual', // manual, auto, round-robin
+      criteria = {},
+      assignedBy,
+      assignmentMode = 'selected' // 'selected' or 'all'
+    } = await request.json();
 
-  // Validate assignedBy ObjectId if provided
-  let validAssignedBy = null;
-  if (assignedBy && mongoose.Types.ObjectId.isValid(assignedBy)) {
-    validAssignedBy = new mongoose.Types.ObjectId(assignedBy);
-  }
+    // Handle assignedBy - if it's "admin" string, find the admin user
+    let validAssignedBy = null;
+    if (assignedBy) {
+      if (assignedBy === 'admin') {
+        // Find the admin user (you might want to pass the actual admin ID from frontend)
+        const adminRole = await Role.findOne({ name: 'admin' });
+        if (adminRole) {
+          const adminUser = await User.findOne({ role: adminRole._id }).lean();
+          if (adminUser) {
+            validAssignedBy = adminUser._id;
+          }
+        }
+      } else if (mongoose.Types.ObjectId.isValid(assignedBy)) {
+        validAssignedBy = new mongoose.Types.ObjectId(assignedBy);
+      }
+    }
 
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
       return NextResponse.json(
@@ -127,7 +139,7 @@ export async function POST(request) {
                 toStatus: 'available',
                 date: new Date(),
                 performedBy: validAssignedBy,
-                reason: `Round-robin assigned to: ${assignedVendor.name}`
+                reason: `Round-robin assigned to vendor: ${assignedVendor.name}`
               }
             }
           },
@@ -147,6 +159,9 @@ export async function POST(request) {
       const vendorNames = vendors.map(v => v.name);
 
       leads.forEach(lead => {
+        const assignmentTypeText = assignmentMode === 'all' ? 'all available vendors' : `${vendors.length} selected vendor(s)`;
+        const reasonText = `Assigned to ${assignmentTypeText}: ${vendorNames.join(', ')}`;
+        
         const promise = Lead.findByIdAndUpdate(
           lead._id,
           {
@@ -165,7 +180,7 @@ export async function POST(request) {
                 toStatus: 'available',
                 date: new Date(),
                 performedBy: validAssignedBy,
-                reason: `${assignmentType} assigned to ${vendors.length} vendor(s): ${vendorNames.join(', ')}`
+                reason: reasonText
               }
             }
           },
