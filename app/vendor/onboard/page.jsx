@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Separator } from "@/components/ui/separator"
 import {
   Form,
   FormControl,
@@ -28,56 +27,14 @@ import {
   FileText,
   CreditCard,
   CheckCircle,
-  AlertCircle,
-  ArrowLeft,
-  ArrowRight
+  Lock
 } from "lucide-react"
 import { ServiceSelector } from "@/components/admin/vendor/service-selector"
 import DocumentUpload from "@/components/admin/vendor/document-upload"
 import { toast } from "sonner"
 
-const steps = [
-  {
-    id: 1,
-    title: "Personal Information",
-    description: "Tell us about yourself",
-    icon: User
-  },
-  {
-    id: 2,
-    title: "Business Details",
-    description: "Your business information",
-    icon: Building
-  },
-  {
-    id: 3,
-    title: "Address & Location",
-    description: "Where you operate",
-    icon: MapPin
-  },
-  {
-    id: 4,
-    title: "Services Offered",
-    description: "What services do you provide",
-    icon: Briefcase
-  },
-  {
-    id: 5,
-    title: "Documents",
-    description: "Upload required documents",
-    icon: FileText
-  },
-  {
-    id: 6,
-    title: "Bank Details",
-    description: "Payment information",
-    icon: CreditCard
-  }
-]
-
 export default function VendorOnboardingPage() {
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
 
@@ -119,77 +76,43 @@ export default function VendorOnboardingPage() {
     }
   })
 
-  const nextStep = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
-
-  const validateCurrentStep = () => {
-    const values = form.getValues()
-    
-    switch (currentStep) {
-      case 1: // Personal Information
-        if (!values.name || !values.email || !values.phone || !values.password) {
-          return "Please fill all required fields"
-        }
-        if (values.password !== values.confirmPassword) {
-          return "Passwords do not match"
-        }
-        if (values.password.length < 6) {
-          return "Password must be at least 6 characters"
-        }
-        return null
-      case 2: // Business Details
-        if (!values.businessName || !values.services.length) {
-          return "Business name and at least one service are required"
-        }
-        return null
-      case 3: // Address
-        if (!values.address.street || !values.address.city || 
-            !values.address.state || !values.address.pincode) {
-          return "Complete address information is required"
-        }
-        return null
-      case 4: // Services (already validated in step 2)
-        return null
-      case 5: // Documents
-        if (!values.documents.aadharCard.number || !values.documents.aadharCard.imageUrl ||
-            !values.documents.panCard.number || !values.documents.panCard.imageUrl) {
-          return "Aadhar Card and PAN Card are required"
-        }
-        return null
-      case 6: // Bank Details
-        if (!values.documents.bankDetails.accountHolderName || 
-            !values.documents.bankDetails.accountNumber || 
-            !values.documents.bankDetails.ifscCode) {
-          return "Complete bank details are required"
-        }
-        return null
-      default:
-        return null
-    }
-  }
-
-  const handleNext = () => {
-    const error = validateCurrentStep()
-    if (error) {
-      toast.error(error)
+  const handleSubmit = async (data) => {
+    // Validate required fields
+    if (!data.name || !data.email || !data.phone || !data.password) {
+      toast.error("Please fill all required personal information fields")
       return
     }
-    nextStep()
-  }
 
-  const handleSubmit = async (data) => {
-    const error = validateCurrentStep()
-    if (error) {
-      toast.error(error)
+    if (data.password !== data.confirmPassword) {
+      toast.error("Passwords do not match")
+      return
+    }
+
+    if (data.password.length < 6) {
+      toast.error("Password must be at least 6 characters")
+      return
+    }
+
+    if (!data.businessName || !data.services.length) {
+      toast.error("Business name and at least one service are required")
+      return
+    }
+
+    if (!data.address.street || !data.address.city || !data.address.state || !data.address.pincode) {
+      toast.error("Complete address information is required")
+      return
+    }
+
+    if (!data.documents.aadharCard.number || !data.documents.aadharCard.imageUrl ||
+        !data.documents.panCard.number || !data.documents.panCard.imageUrl) {
+      toast.error("Aadhar Card and PAN Card are required")
+      return
+    }
+
+    if (!data.documents.bankDetails.accountHolderName || 
+        !data.documents.bankDetails.accountNumber || 
+        !data.documents.bankDetails.ifscCode) {
+      toast.error("Complete bank details are required")
       return
     }
 
@@ -268,10 +191,6 @@ export default function VendorOnboardingPage() {
     )
   }
 
-  const currentStepData = steps[currentStep - 1]
-  const StepIcon = currentStepData.icon
-  const progress = (currentStep / steps.length) * 100
-
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -287,175 +206,35 @@ export default function VendorOnboardingPage() {
               </p>
             </div>
 
-            {/* Progress Bar */}
-            <div className="mb-8">
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium">Step {currentStep} of {steps.length}</span>
-                <span className="text-sm text-muted-foreground">{Math.round(progress)}% Complete</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-            </div>
-
-            {/* Steps Navigation */}
-            <div className="flex justify-center mb-8">
-              <div className="flex space-x-4 overflow-x-auto pb-2">
-                {steps.map((step, index) => {
-                  const StepIconComponent = step.icon
-                  const isActive = currentStep === step.id
-                  const isCompleted = currentStep > step.id
-                  
-                  return (
-                    <div
-                      key={step.id}
-                      className={`flex flex-col items-center space-y-2 min-w-[120px] ${
-                        isActive ? 'text-primary' : isCompleted ? 'text-green-600' : 'text-muted-foreground'
-                      }`}
-                    >
-                      <div
-                        className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                          isActive
-                            ? 'border-primary bg-primary text-white'
-                            : isCompleted
-                            ? 'border-green-600 bg-green-600 text-white'
-                            : 'border-muted-foreground'
-                        }`}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle className="w-5 h-5" />
-                        ) : (
-                          <StepIconComponent className="w-5 h-5" />
-                        )}
-                      </div>
-                      <div className="text-center">
-                        <div className="text-xs font-medium">{step.title}</div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
             {/* Main Form Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <StepIcon className="h-6 w-6 text-primary" />
-                  {currentStepData.title}
-                </CardTitle>
-                <p className="text-muted-foreground">{currentStepData.description}</p>
+                <CardTitle>Vendor Application Form</CardTitle>
+                <p className="text-muted-foreground">
+                  Please fill out all the required information to submit your vendor application.
+                </p>
               </CardHeader>
               
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                     
-                    {/* Step 1: Personal Information */}
-                    {currentStep === 1 && (
-                      <div className="space-y-4">
-                        <Alert>
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            This information will be used to create your vendor account.
-                          </AlertDescription>
-                        </Alert>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Full Name *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter your full name" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email Address *</FormLabel>
-                                <FormControl>
-                                  <Input type="email" placeholder="Enter your email" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="phone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Phone Number *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter your phone number" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div /> {/* Empty div for spacing */}
-
-                          <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Password *</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="Create a password" {...field} />
-                                </FormControl>
-                                <FormDescription>
-                                  Minimum 6 characters
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="confirmPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Confirm Password *</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="Confirm your password" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                    {/* Personal Information */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">Personal Information</h3>
                       </div>
-                    )}
-
-                    {/* Step 2: Business Details */}
-                    {currentStep === 2 && (
-                      <div className="space-y-4">
-                        <Alert>
-                          <Building className="h-4 w-4" />
-                          <AlertDescription>
-                            Tell us about your business and what services you provide.
-                          </AlertDescription>
-                        </Alert>
-
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
-                          name="businessName"
+                          name="name"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Business/Company Name *</FormLabel>
+                              <FormLabel>Full Name *</FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter your business name" {...field} />
+                                <Input placeholder="Enter your full name" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -464,9 +243,105 @@ export default function VendorOnboardingPage() {
 
                         <FormField
                           control={form.control}
-                          name="businessDescription"
+                          name="email"
                           render={({ field }) => (
                             <FormItem>
+                              <FormLabel>Email Address *</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="Enter your email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone Number *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter your phone number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div /> {/* Empty div for spacing */}
+
+                        <FormField
+                          control={form.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password *</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="Create a password" {...field} />
+                              </FormControl>
+                              <FormDescription>
+                                Minimum 6 characters
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="confirmPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirm Password *</FormLabel>
+                              <FormControl>
+                                <Input type="password" placeholder="Confirm your password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Business Information */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Building className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">Business Information</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="businessName"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Business Name *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter your business name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="md:col-span-2">
+                          <FormLabel>Services *</FormLabel>
+                          <ServiceSelector
+                            selectedServices={form.watch("services")}
+                            onServicesChange={(services) => form.setValue("services", services)}
+                            placeholder="Search and select services you provide..."
+                          />
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="businessDescription"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
                               <FormLabel>Business Description</FormLabel>
                               <FormControl>
                                 <Textarea
@@ -483,282 +358,218 @@ export default function VendorOnboardingPage() {
                           )}
                         />
                       </div>
-                    )}
+                    </div>
 
-                    {/* Step 3: Address */}
-                    {currentStep === 3 && (
-                      <div className="space-y-4">
-                        <Alert>
-                          <MapPin className="h-4 w-4" />
-                          <AlertDescription>
-                            Where is your business located? This helps customers find you.
-                          </AlertDescription>
-                        </Alert>
+                    <Separator />
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="address.street"
-                            render={({ field }) => (
-                              <FormItem className="md:col-span-2">
-                                <FormLabel>Street Address *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter street address" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="address.area"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Area/Locality</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter area or locality" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="address.city"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>City *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter city" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="address.state"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>State *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter state" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="address.pincode"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Pincode *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter pincode" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                    {/* Address */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">Address Information</h3>
                       </div>
-                    )}
-
-                    {/* Step 4: Services */}
-                    {currentStep === 4 && (
-                      <div className="space-y-4">
-                        <Alert>
-                          <Briefcase className="h-4 w-4" />
-                          <AlertDescription>
-                            Select the services you provide. You can add more services later.
-                          </AlertDescription>
-                        </Alert>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="address.street"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Street Address *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter street address" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
                         <FormField
                           control={form.control}
-                          name="services"
+                          name="address.area"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Services Offered *</FormLabel>
+                              <FormLabel>Area/Locality</FormLabel>
                               <FormControl>
-                                <ServiceSelector
-                                  selectedServices={field.value}
-                                  onServicesChange={field.onChange}
-                                  placeholder="Search and select services you provide..."
-                                />
+                                <Input placeholder="Enter area or locality" {...field} />
                               </FormControl>
-                              <FormDescription>
-                                Search or browse by category to select the services you offer
-                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address.city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter city" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address.state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter state" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address.pincode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Pincode *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter pincode" {...field} />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
                       </div>
-                    )}
+                    </div>
 
-                    {/* Step 5: Documents */}
-                    {currentStep === 5 && (
-                      <div className="space-y-6">
-                        <Alert>
-                          <FileText className="h-4 w-4" />
-                          <AlertDescription>
-                            Upload required documents for verification. All documents will be reviewed by our team.
-                          </AlertDescription>
-                        </Alert>
+                    <Separator />
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Aadhar Card */}
-                          <DocumentUpload
-                            document={form.watch("documents.aadharCard")}
-                            documentType="aadharCard"
-                            title="Aadhar Card"
-                            required={true}
-                            numberField="number"
-                            numberFieldName="Aadhar Number"
-                            onDocumentChange={(updatedDoc) => {
-                              form.setValue("documents.aadharCard", updatedDoc)
-                            }}
-                            onNumberChange={(value) => {
-                              form.setValue("documents.aadharCard.number", value)
-                            }}
-                            disabled={false}
-                          />
-
-                          {/* PAN Card */}
-                          <DocumentUpload
-                            document={form.watch("documents.panCard")}
-                            documentType="panCard"
-                            title="PAN Card"
-                            required={true}
-                            numberField="number"
-                            numberFieldName="PAN Number"
-                            onDocumentChange={(updatedDoc) => {
-                              form.setValue("documents.panCard", updatedDoc)
-                            }}
-                            onNumberChange={(value) => {
-                              form.setValue("documents.panCard.number", value)
-                            }}
-                            disabled={false}
-                          />
-
-                          {/* Business License */}
-                          <DocumentUpload
-                            document={form.watch("documents.businessLicense")}
-                            documentType="businessLicense"
-                            title="Business License"
-                            required={false}
-                            numberField="number"
-                            numberFieldName="License Number"
-                            onDocumentChange={(updatedDoc) => {
-                              form.setValue("documents.businessLicense", updatedDoc)
-                            }}
-                            onNumberChange={(value) => {
-                              form.setValue("documents.businessLicense.number", value)
-                            }}
-                            disabled={false}
-                          />
-                        </div>
+                    {/* Documents */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">Documents</h3>
                       </div>
-                    )}
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Aadhar Card */}
+                        <DocumentUpload
+                          document={form.watch("documents.aadharCard")}
+                          documentType="aadharCard"
+                          title="Aadhar Card"
+                          required={true}
+                          numberField="number"
+                          numberFieldName="Aadhar Number"
+                          onDocumentChange={(updatedDoc) => {
+                            form.setValue("documents.aadharCard", updatedDoc)
+                          }}
+                          onNumberChange={(value) => {
+                            form.setValue("documents.aadharCard.number", value)
+                          }}
+                          disabled={false}
+                        />
 
-                    {/* Step 6: Bank Details */}
-                    {currentStep === 6 && (
-                      <div className="space-y-4">
-                        <Alert>
-                          <CreditCard className="h-4 w-4" />
-                          <AlertDescription>
-                            Bank details are required for receiving payments from completed jobs.
-                          </AlertDescription>
-                        </Alert>
+                        {/* PAN Card */}
+                        <DocumentUpload
+                          document={form.watch("documents.panCard")}
+                          documentType="panCard"
+                          title="PAN Card"
+                          required={true}
+                          numberField="number"
+                          numberFieldName="PAN Number"
+                          onDocumentChange={(updatedDoc) => {
+                            form.setValue("documents.panCard", updatedDoc)
+                          }}
+                          onNumberChange={(value) => {
+                            form.setValue("documents.panCard.number", value)
+                          }}
+                          disabled={false}
+                        />
 
-                        <div className="p-4 border rounded-lg space-y-4">
-                          <h4 className="font-medium text-lg">Bank Account Information</h4>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="documents.bankDetails.accountHolderName"
-                              render={({ field }) => (
-                                <FormItem className="md:col-span-2">
-                                  <FormLabel>Account Holder Name *</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter account holder name" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                        {/* Business License */}
+                        <DocumentUpload
+                          document={form.watch("documents.businessLicense")}
+                          documentType="businessLicense"
+                          title="Business License"
+                          required={false}
+                          numberField="number"
+                          numberFieldName="License Number"
+                          onDocumentChange={(updatedDoc) => {
+                            form.setValue("documents.businessLicense", updatedDoc)
+                          }}
+                          onNumberChange={(value) => {
+                            form.setValue("documents.businessLicense.number", value)
+                          }}
+                          disabled={false}
+                        />
 
-                            <FormField
-                              control={form.control}
-                              name="documents.bankDetails.accountNumber"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Account Number *</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter account number" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                        {/* Bank Details */}
+                        <div className="space-y-4">
+                          <div className="p-4 border rounded-lg">
+                            <h4 className="font-medium mb-3 flex items-center gap-2">
+                              <CreditCard className="h-4 w-4" />
+                              Bank Details
+                              <span className="text-red-500">*</span>
+                            </h4>
+                            
+                            <div className="space-y-3">
+                              <FormField
+                                control={form.control}
+                                name="documents.bankDetails.accountHolderName"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Account Holder Name</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Enter account holder name" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                            <FormField
-                              control={form.control}
-                              name="documents.bankDetails.ifscCode"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>IFSC Code *</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter IFSC code" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                              <FormField
+                                control={form.control}
+                                name="documents.bankDetails.accountNumber"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Account Number</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Enter account number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="documents.bankDetails.ifscCode"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>IFSC Code</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Enter IFSC code" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
-                    )}
+                    </div>
 
-                    {/* Navigation Buttons */}
-                    <div className="flex justify-between pt-6">
+                    {/* Submit Button */}
+                    <div className="flex justify-end pt-6">
                       <Button
-                        type="button"
-                        variant="outline"
-                        onClick={prevStep}
-                        disabled={currentStep === 1}
-                        className="flex items-center gap-2"
+                        type="submit"
+                        disabled={loading}
+                        size="lg"
+                        className="px-8"
                       >
-                        <ArrowLeft className="h-4 w-4" />
-                        Previous
+                        {loading ? "Submitting..." : "Submit Application"}
                       </Button>
-
-                      {currentStep < steps.length ? (
-                        <Button
-                          type="button"
-                          onClick={handleNext}
-                          className="flex items-center gap-2"
-                        >
-                          Next
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        <Button
-                          type="submit"
-                          disabled={loading}
-                          className="flex items-center gap-2"
-                        >
-                          {loading ? "Submitting..." : "Submit Application"}
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                      )}
                     </div>
                   </form>
                 </Form>
