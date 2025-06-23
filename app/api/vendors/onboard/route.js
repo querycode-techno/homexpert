@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { connectDB } from '@/lib/db'
+import { database } from '@/lib/db'
+import { ObjectId } from 'mongodb'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request) {
@@ -49,11 +50,10 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
-    // Connect to database
-    const { db } = await connectDB()
-    const usersCollection = db.collection('users')
-    const vendorsCollection = db.collection('vendors')
-    const rolesCollection = db.collection('roles')
+    // Get database collections
+    const usersCollection = await database.getUsersCollection()
+    const vendorsCollection = await database.getVendorsCollection()
+    const rolesCollection = await database.getRolesCollection()
 
     // Check if user already exists
     const existingUser = await usersCollection.findOne({

@@ -11,47 +11,47 @@ export function HeroSection() {
   ]
 
   return (
-    <section className="hero-pattern py-20 md:py-32">
+    <section className="hero-pattern py-12 md:py-16 lg:py-20">
       <div className="container px-4 md:px-6">
-        <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
-          <div className="flex flex-col justify-center space-y-4">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center min-h-[calc(100vh-8rem)]">
+          <div className="flex flex-col justify-center space-y-6">
+            <div className="space-y-4">
+              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
                 Your Home Services <span className="gradient-text">Expert</span>
               </h1>
-              <p className="max-w-[600px] text-text-secondary md:text-xl">
+              <p className="max-w-[600px] text-text-secondary text-lg md:text-xl leading-relaxed">
                 Connect with trusted professionals for all your home service needs. Quality service, guaranteed
                 satisfaction.
               </p>
             </div>
-            <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              <Button size="lg" asChild className="text-white hover:bg-primary/90 px-4 py-2">
-                <Link href="/vendor/onboard">Become a Vendor</Link>
+            <div className="flex flex-col gap-3 min-[400px]:flex-row">
+              <Button size="lg" asChild className="text-white hover:bg-primary/90 px-6 py-3 text-base font-semibold">
+                <Link href="/contact">Contact Us</Link>
               </Button>
-              <Button size="lg" variant="outline" className="text-black hover:text-white hover:bg-secondary/90 px-4 py-2" asChild>
+              <Button size="lg" variant="outline" className="text-black hover:text-white hover:bg-secondary/90 px-6 py-3 text-base font-semibold" asChild>
                 <Link href="#services">Explore Services</Link>
               </Button>
             </div>
-            <div className="flex items-center gap-4 pt-4">
-              <div className="flex -space-x-3">
+            <div className="flex items-center gap-6 pt-2">
+              <div className="flex -space-x-2">
                 {customerImages.map((customer, i) => (
                   <div key={i} className="relative">
                     <Image
                       src={customer.src}
                       alt={customer.alt}
-                      width={40}
-                      height={40}
+                      width={44}
+                      height={44}
                       className="inline-block rounded-full object-cover ring-2 ring-background shadow-lg hover:scale-110 transition-transform duration-200"
                     />
                   </div>
                 ))}
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary text-white text-sm font-bold ring-2 ring-background shadow-lg">
+                <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-r from-primary to-secondary text-white text-sm font-bold ring-2 ring-background shadow-lg">
                   +
                 </div>
               </div>
               <div className="flex flex-col">
-                <p className="text-sm text-text-secondary">
-                  Trusted by <span className="font-medium text-text">1,000+</span> customers
+                <p className="text-sm font-medium text-text-secondary">
+                  Trusted by <span className="font-semibold text-text">1,000+</span> customers
                 </p>
                 <div className="flex items-center gap-1 mt-1">
                   <div className="flex">
@@ -65,19 +65,20 @@ export function HeroSection() {
                       </svg>
                     ))}
                   </div>
-                  <span className="text-xs text-text-secondary ml-1">4.9/5</span>
+                  <span className="text-xs font-medium text-text-secondary ml-1">4.9/5</span>
                 </div>
               </div>
             </div>
           </div>
-          <div className="mx-auto lg:mx-0 relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg blur-3xl opacity-50" />
+          <div className="mx-auto lg:mx-0 relative flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl blur-3xl opacity-50" />
             <Image
               src="/home-service-professionals.png"
-              width={550}
-              height={550}
+              width={500}
+              height={500}
               alt="HomeXpert Services"
-              className="mx-auto aspect-square rounded-lg object-cover"
+              className="relative rounded-2xl object-cover shadow-2xl max-w-full h-auto"
+              priority
             />
           </div>
         </div>

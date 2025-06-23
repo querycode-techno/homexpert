@@ -12,8 +12,9 @@ export function LandingPage() {
       <Header />
       <main className="flex-1">
         <HeroSection />
-        <FeaturesSection />
         <ServicesSection />
+        <FeaturesSection />
+        
         <TestimonialsSection />
         <CtaSection />
       </main>
