@@ -15,7 +15,7 @@ export function CtaSection() {
           </div>
           <div className="flex flex-col gap-2 min-[400px]:flex-row">
             <Button size="lg" asChild>
-              <Link href="/register/vendor">Become a Vendor</Link>
+              <Link href="/vendor/onboard">Become a Vendor</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/login/vendor">Vendor Login</Link>
