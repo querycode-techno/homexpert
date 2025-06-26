@@ -8,9 +8,6 @@ import { Input } from '@/components/ui/input'
 import { 
   Search, 
   Plus, 
-  Edit, 
-  Trash2, 
-  Eye,
   Filter,
   Download,
   Upload
@@ -158,7 +155,7 @@ export default function ServicesManagement() {
             </div>
             
             {/* Action Buttons */}
-            <div className="flex gap-2">
+            {/* <div className="flex gap-2">
               <Button variant="outline" size="sm">
                 <Upload className="h-4 w-4 mr-2" />
                 Import
@@ -171,7 +168,7 @@ export default function ServicesManagement() {
                 <Plus className="h-4 w-4 mr-2" />
                 Add Service
               </Button>
-            </div>
+            </div> */}
           </div>
         </CardContent>
       </Card>
@@ -203,17 +200,6 @@ export default function ServicesManagement() {
                           <Badge variant="outline">
                             {service.subServices.length} sub-services
                           </Badge>
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="ghost">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="ghost">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
                         </div>
                       </div>
                     </AccordionTrigger>
