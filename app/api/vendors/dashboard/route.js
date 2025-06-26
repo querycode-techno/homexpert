@@ -166,7 +166,7 @@ export async function GET(request) {
             }
           }
         }
-      ]),
+      ]).toArray(),
       
       // Revenue and conversion statistics
       leadsCollection.aggregate([
@@ -192,7 +192,7 @@ export async function GET(request) {
             totalLeads: { $sum: 1 }
           }
         }
-      ]),
+      ]).toArray(),
       
       // Recent taken leads (last 10)
       leadsCollection.find(
@@ -293,7 +293,10 @@ export async function GET(request) {
       vendor.address,
       vendor.phone,
       vendor.description,
-      vendor.documents?.some(doc => doc.verified)
+      vendor.documents?.aadharCard?.verified || 
+      vendor.documents?.panCard?.verified || 
+      vendor.documents?.businessLicense?.verified || 
+      vendor.documents?.bankDetails?.verified
     ];
     const completedFields = requiredFields.filter(Boolean).length;
     const accountCompletionPercentage = Math.round((completedFields / requiredFields.length) * 100);
