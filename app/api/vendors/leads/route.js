@@ -172,7 +172,7 @@ export async function GET(request) {
           }
         }
       }
-    ]);
+    ]).toArray();
 
     // Calculate summary statistics
     const summary = {
