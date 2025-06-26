@@ -175,15 +175,21 @@ export async function GET(request) {
     ]).toArray();
 
     // Calculate summary statistics
+    const byStatus = leadStats.reduce((acc, stat) => {
+      acc[stat._id] = { count: stat.count, value: stat.totalValue };
+      return acc;
+    }, {});
+    
+    const totalValue = leadStats.reduce((sum, stat) => sum + stat.totalValue, 0);
+    
+    const conversionRate = totalCount > 0 ? 
+      Math.round(((byStatus?.completed?.count || 0) + (byStatus?.converted?.count || 0)) / totalCount * 100) : 0;
+    
     const summary = {
       total: totalCount,
-      byStatus: leadStats.reduce((acc, stat) => {
-        acc[stat._id] = { count: stat.count, value: stat.totalValue };
-        return acc;
-      }, {}),
-      totalValue: leadStats.reduce((sum, stat) => sum + stat.totalValue, 0),
-      conversionRate: totalCount > 0 ? 
-        Math.round(((summary.byStatus?.completed?.count || 0) + (summary.byStatus?.converted?.count || 0)) / totalCount * 100) : 0
+      byStatus,
+      totalValue,
+      conversionRate
     };
 
     // Add missing status counts
