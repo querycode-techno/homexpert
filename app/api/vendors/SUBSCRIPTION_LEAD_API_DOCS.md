@@ -952,6 +952,189 @@ Mark a follow-up as completed or reopen it.
 }
 ```
 
+### 17. Get Vendor Dashboard
+**GET** `/dashboard`
+
+Get comprehensive dashboard data including subscription status, lead analytics, performance metrics, and business insights.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "profile": {
+      "id": "vendor_id",
+      "userId": "user_id",
+      "businessName": "ABC Plumbing Services",
+      "name": "John Smith",
+      "email": "john@abcplumbing.com",
+      "phone": "9876543210",
+      "services": ["plumbing", "electrical"],
+      "rating": 4.5,
+      "totalJobs": 45,
+      "status": "active",
+      "isVerified": true,
+      "accountCompletion": 85,
+      "joinedDate": "2023-01-15T00:00:00.000Z",
+      "daysSinceJoining": 365
+    },
+    "subscription": {
+      "id": "subscription_id",
+      "planName": "Premium Plan",
+      "status": "active",
+      "isActive": true,
+      "startDate": "2024-01-01T00:00:00.000Z",
+      "endDate": "2024-04-01T00:00:00.000Z",
+      "daysRemaining": 45,
+      "isExpiringSoon": false,
+      "usage": {
+        "leadsConsumed": 25,
+        "leadsRemaining": 75,
+        "totalLeads": 100,
+        "usagePercentage": 25,
+        "monthlyUsage": [
+          {
+            "month": "2024-01",
+            "leadsUsed": 25,
+            "leadsAllocated": 50
+          }
+        ]
+      },
+      "features": [...],
+      "performance": {...}
+    },
+    "leads": {
+      "available": {
+        "count": 15,
+        "hasAccess": true
+      },
+      "taken": {
+        "total": 45,
+        "today": 2,
+        "week": 8,
+        "month": 25,
+        "growth": {
+          "today": 100,
+          "week": 14,
+          "month": 25
+        }
+      },
+      "status": {
+        "taken": { "count": 5, "value": 12500 },
+        "contacted": { "count": 8, "value": 20000 },
+        "scheduled": { "count": 10, "value": 25000 },
+        "completed": { "count": 15, "value": 37500 },
+        "converted": { "count": 7, "value": 21000 }
+      },
+      "overdue": 2,
+      "actionRequired": 3
+    },
+    "performance": {
+      "revenue": {
+        "total": 125000,
+        "estimated": 150000,
+        "average": 3500
+      },
+      "conversion": {
+        "rate": 65,
+        "completed": 22,
+        "total": 45
+      },
+      "rating": 4.5,
+      "totalJobs": 45
+    },
+    "recent": {
+      "takenLeads": [
+        {
+          "id": "lead_id",
+          "customerName": "Jane Doe",
+          "service": "plumbing",
+          "status": "scheduled",
+          "takenAt": "2024-01-15T11:00:00.000Z",
+          "value": 2500,
+          "address": "123 Main St, Mumbai",
+          "nextDate": "2024-01-20T10:00:00.000Z"
+        }
+      ],
+      "availableLeads": [
+        {
+          "id": "lead_id",
+          "customerName": "Bob Smith",
+          "service": "electrical",
+          "price": 3000,
+          "address": "456 Oak Ave, Delhi",
+          "createdAt": "2024-01-16T09:00:00.000Z",
+          "urgency": "normal"
+        }
+      ]
+    },
+    "notifications": [
+      {
+        "type": "urgent",
+        "title": "Overdue Leads",
+        "message": "2 leads need immediate attention",
+        "action": "view_overdue",
+        "count": 2
+      },
+      {
+        "type": "action",
+        "title": "Action Required",
+        "message": "3 leads waiting for response",
+        "action": "view_action_required",
+        "count": 3
+      },
+      {
+        "type": "info",
+        "title": "New Leads Available",
+        "message": "5 new leads match your services",
+        "action": "view_available",
+        "count": 5
+      }
+    ],
+    "alerts": [
+      {
+        "type": "info",
+        "title": "Running Low on Leads",
+        "message": "Only 5 leads remaining",
+        "action": "upgrade",
+        "priority": "medium"
+      }
+    ],
+    "quickActions": [
+      {
+        "title": "Browse Available Leads",
+        "description": "15 leads available",
+        "action": "browse_leads",
+        "icon": "search",
+        "color": "primary",
+        "badge": 15
+      },
+      {
+        "title": "Action Required",
+        "description": "3 leads need response",
+        "action": "action_required",
+        "icon": "alert-circle",
+        "color": "warning",
+        "badge": 3
+      },
+      {
+        "title": "My Leads",
+        "description": "45 total leads",
+        "action": "my_leads",
+        "icon": "list",
+        "color": "secondary"
+      }
+    ],
+    "todaySummary": {
+      "leadsReceived": 2,
+      "revenue": 0,
+      "completedJobs": 1,
+      "scheduledJobs": 3
+    }
+  }
+}
+```
+
 ---
 
 ## Error Handling
