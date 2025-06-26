@@ -279,7 +279,7 @@ export async function POST(request) {
     // Get the lead
     const lead = await leadsCollection.findOne({
       _id: new ObjectId(leadId),
-      'availableToVendors.vendor': new ObjectId(vendorId),
+      'availableToVendors.vendor': new ObjectId(userId),
       status: { $in: ['available', 'assigned'] },
       takenBy: { $exists: false }
     });
