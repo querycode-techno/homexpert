@@ -73,18 +73,16 @@ export async function GET(request) {
 
     // Build query for available leads
     const query = {
-      'availableToVendors.vendor': new ObjectId(vendorId),
+      'availableToVendors.vendor': new ObjectId(userId),
       status: { $in: ['available', 'assigned'] },
       takenBy: { $exists: false }
     };
 
-    // Add service filter (match vendor's services if not specified)
+    // Add service filter (only if explicitly specified)
     if (service) {
       query.service = new RegExp(service, 'i');
-    } else {
-      // Filter by vendor's services
-      query.service = { $in: vendor.services.map(s => new RegExp(s, 'i')) };
     }
+    // Note: Removed automatic service filtering - vendors can see all available leads
 
     // Add location filter
     if (location) {
@@ -185,7 +183,7 @@ export async function GET(request) {
     const leadStats = await leadsCollection.aggregate([
       {
         $match: {
-          'availableToVendors.vendor': new ObjectId(vendorId)
+          'availableToVendors.vendor': new ObjectId(userId)
         }
       },
       {
@@ -207,13 +205,13 @@ export async function GET(request) {
           },
           totalTaken: {
             $sum: {
-              $cond: [{ $eq: ['$takenBy', new ObjectId(vendorId)] }, 1, 0]
+              $cond: [{ $eq: ['$takenBy', new ObjectId(userId)] }, 1, 0]
             }
           },
           totalValue: {
             $sum: {
               $cond: [
-                { $and: [{ $ne: ['$price', null] }, { $eq: ['$takenBy', new ObjectId(vendorId)] }] },
+                { $and: [{ $ne: ['$price', null] }, { $eq: ['$takenBy', new ObjectId(userId)] }] },
                 '$price',
                 0
               ]
