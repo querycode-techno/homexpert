@@ -35,6 +35,7 @@ import {
   Cell,
   Legend,
 } from "recharts"
+import { formatDate } from "@/lib/dateFormateUtils"
 
 export function PaymentOverviewPage() {
   const { bookings, vendors, exportToCSV } = useData()
@@ -59,59 +60,99 @@ export function PaymentOverviewPage() {
     completedPayments: 0,
     failedPayments: 0,
   })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   // Generate mock transaction data based on bookings
+  // useEffect(() => {
+  //   const mockTransactions = bookings.map((booking) => {
+  //     const amount = Math.floor(Math.random() * 5000) + 500
+  //     const commission = Math.floor(amount * 0.15)
+  //     const vendorPayout = amount - commission
+
+  //     return {
+  //       id: `TXN-${booking.id.split("-")[1]}`,
+  //       bookingId: booking.id,
+  //       customer: booking.customer,
+  //       vendor: booking.vendor,
+  //       date: booking.date,
+  //       amount: `₹${amount}`,
+  //       amountValue: amount,
+  //       commission: `₹${commission}`,
+  //       commissionValue: commission,
+  //       vendorPayout: `₹${vendorPayout}`,
+  //       vendorPayoutValue: vendorPayout,
+  //       paymentMethod: ["UPI", "Credit Card", "Debit Card", "Net Banking"][Math.floor(Math.random() * 4)],
+  //       paymentStatus: ["Completed", "Pending", "Failed"][
+  //         booking.status === "Completed" ? 0 : booking.status === "Cancelled" ? 2 : 1
+  //       ],
+  //     }
+  //   })
+
+  //   setTransactions(mockTransactions)
+
+  //   // Calculate statistics
+  //   const totalRevenue = mockTransactions.reduce((sum, txn) => sum + txn.amountValue, 0)
+  //   const pendingAmount = mockTransactions
+  //     .filter((txn) => txn.paymentStatus === "Pending")
+  //     .reduce((sum, txn) => sum + txn.amountValue, 0)
+  //   const completedPayments = mockTransactions.filter((txn) => txn.paymentStatus === "Completed").length
+  //   const failedPayments = mockTransactions.filter((txn) => txn.paymentStatus === "Failed").length
+
+  //   setStatistics({
+  //     totalRevenue,
+  //     pendingAmount,
+  //     completedPayments,
+  //     failedPayments,
+  //   })
+  // }, [bookings])
+
+  // Api fethch transactions history from database for showing payment transactions table
+  async function fetchTransactions() {
+    const res = await fetch('/api/admin/payments');
+    if (!res.ok) throw new Error('Failed to fetch transactions');
+    const data = await res.json();
+    return data.transactions || [];
+  }
+  
+  // call fetchTransactions function when component mounts and filter transactions based on search term and active tab
   useEffect(() => {
-    const mockTransactions = bookings.map((booking) => {
-      const amount = Math.floor(Math.random() * 5000) + 500
-      const commission = Math.floor(amount * 0.15)
-      const vendorPayout = amount - commission
-
-      return {
-        id: `TXN-${booking.id.split("-")[1]}`,
-        bookingId: booking.id,
-        customer: booking.customer,
-        vendor: booking.vendor,
-        date: booking.date,
-        amount: `₹${amount}`,
-        amountValue: amount,
-        commission: `₹${commission}`,
-        commissionValue: commission,
-        vendorPayout: `₹${vendorPayout}`,
-        vendorPayoutValue: vendorPayout,
-        paymentMethod: ["UPI", "Credit Card", "Debit Card", "Net Banking"][Math.floor(Math.random() * 4)],
-        paymentStatus: ["Completed", "Pending", "Failed"][
-          booking.status === "Completed" ? 0 : booking.status === "Cancelled" ? 2 : 1
-        ],
-      }
-    })
-
-    setTransactions(mockTransactions)
-
-    // Calculate statistics
-    const totalRevenue = mockTransactions.reduce((sum, txn) => sum + txn.amountValue, 0)
-    const pendingAmount = mockTransactions
-      .filter((txn) => txn.paymentStatus === "Pending")
-      .reduce((sum, txn) => sum + txn.amountValue, 0)
-    const completedPayments = mockTransactions.filter((txn) => txn.paymentStatus === "Completed").length
-    const failedPayments = mockTransactions.filter((txn) => txn.paymentStatus === "Failed").length
-
-    setStatistics({
-      totalRevenue,
-      pendingAmount,
-      completedPayments,
-      failedPayments,
-    })
-  }, [bookings])
+    setLoading(true)
+    fetchTransactions()
+      .then((transactions) => {
+        setTransactions(transactions);
+  
+        // Calculate statistics
+        const totalRevenue = transactions.reduce((sum, txn) => sum + (txn.amount || 0), 0);
+        const pendingAmount = transactions
+          .filter((txn) => txn.paymentStatus === "pending" || txn.paymentStatus === "Pending")
+          .reduce((sum, txn) => sum + (txn.amount || 0), 0);
+        const completedPayments = transactions.filter((txn) => txn.paymentStatus === "completed" || txn.paymentStatus === "Completed").length;
+        const failedPayments = transactions.filter((txn) => txn.paymentStatus === "failed" || txn.paymentStatus  === "Failed").length;
+  
+        setStatistics({
+          totalRevenue,
+          pendingAmount,
+          completedPayments,
+          failedPayments,
+        });
+      })
+      .catch((err) => {
+        // Optionally show a toast or error
+        console.error(err);
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, []);
 
   // Filter transactions based on search term and active tab
   useEffect(() => {
     let filtered = transactions.filter(
       (txn) =>
         txn.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        txn.bookingId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        txn.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        txn.vendor.toLowerCase().includes(searchTerm.toLowerCase()),
+        txn.subscriptionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        txn.vendor.toLowerCase().includes(searchTerm.toLowerCase()) 
     )
 
     // Filter by tab
@@ -260,7 +301,7 @@ export function PaymentOverviewPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+       {/* <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Revenue Overview</CardTitle>
@@ -281,6 +322,7 @@ export function PaymentOverviewPage() {
             </div>
           </CardContent>
         </Card>
+
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Payment Methods</CardTitle>
@@ -312,7 +354,7 @@ export function PaymentOverviewPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* Transactions Table */}
       <Tabs defaultValue="all" className="space-y-6" onValueChange={setActiveTab}>
@@ -432,10 +474,10 @@ export function PaymentOverviewPage() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" size="sm" className="h-8 gap-1" onClick={handleExport}>
-                  <Download className="h-4 w-4" />
-                  <span>Export</span>
-                </Button>
+                {/* <Button variant="outline" size="sm" className="h-8 gap-1" onClick={handleExport}>
+                   <Download className="h-4 w-4" />
+                  <span>Export</span> 
+                </Button> */}
                 <Select value={dateRange} onValueChange={setDateRange}>
                   <SelectTrigger className="w-[150px] h-8">
                     <SelectValue placeholder="Select range" />
@@ -469,31 +511,41 @@ export function PaymentOverviewPage() {
                       <thead>
                         <tr className="border-b bg-muted/50">
                           <th className="text-left font-medium p-2">Transaction ID</th>
-                          <th className="text-left font-medium p-2">Booking ID</th>
-                          <th className="text-left font-medium p-2">Customer</th>
+                          <th className="text-left font-medium p-2">Subscription Name</th>
                           <th className="text-left font-medium p-2">Vendor</th>
                           <th className="text-left font-medium p-2">Date</th>
                           <th className="text-left font-medium p-2">Amount</th>
-                          <th className="text-left font-medium p-2">Commission</th>
-                          <th className="text-left font-medium p-2">Vendor Payout</th>
                           <th className="text-left font-medium p-2">Method</th>
                           <th className="text-left font-medium p-2">Status</th>
                           <th className="text-right font-medium p-2">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredTransactions.length > 0 ? (
+                        {loading ? (
+                          <tr>
+                            <td colSpan={11} className="p-4 text-center text-muted-foreground">
+                              <div className="flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                                <span className="ml-2">Loading transactions...</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : error ? (
+                          <tr>
+                            <td colSpan={11} className="p-4 text-center text-red-500">
+                              Error: {error}
+                            </td>
+                          </tr>
+                        ) : filteredTransactions.length > 0 ? (
                           filteredTransactions.map((transaction) => (
                             <tr key={transaction.id} className="border-b">
                               <td className="p-2">{transaction.id}</td>
-                              <td className="p-2">{transaction.bookingId}</td>
-                              <td className="p-2">{transaction.customer}</td>
+                              <td className="p-2">{transaction.subscriptionName}</td>
                               <td className="p-2">{transaction.vendor}</td>
-                              <td className="p-2">{transaction.date}</td>
+                              <td className="p-2">{formatDate(transaction.date)}</td>
                               <td className="p-2">{transaction.amount}</td>
-                              <td className="p-2">{transaction.commission}</td>
-                              <td className="p-2">{transaction.vendorPayout}</td>
                               <td className="p-2">{transaction.paymentMethod}</td>
+                              
                               <td className="p-2">
                                 <Badge variant="default" className={getStatusColor(transaction.paymentStatus)}>
                                   {transaction.paymentStatus}

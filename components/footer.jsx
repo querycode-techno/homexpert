@@ -10,10 +10,8 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.png" alt="HomeXpert Logo" width={40} height={40} className="h-10 w-auto" />
+              <Image src="/hx-logo.png" alt="HomeXpert Logo" width={40} height={40} className="h-10 w-auto" />
               <span className="text-xl font-bold">
-                <span className="text-primary">Homes</span>
-                <span className="text-secondary">Xpert</span>
               </span>
             </Link>
             <p className="text-sm text-text-secondary">

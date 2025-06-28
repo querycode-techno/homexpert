@@ -114,7 +114,6 @@ export async function GET(request) {
         );
         plan.lastModifiedBy = modifier;
       }
-
       // Add virtual fields (equivalent to Mongoose virtuals)
       addVirtualFields(plan);
     }

@@ -25,6 +25,7 @@ export function BookingsChart() {
     { name: "Jan 12", bookings: 20, completed: 18 },
     { name: "Jan 13", bookings: 15, completed: 12 },
     { name: "Jan 14", bookings: 25, completed: 20 },
+    { name: "Jan 15", bookings: 25, completed: 20 },
   ]
 
   if (!mounted) {

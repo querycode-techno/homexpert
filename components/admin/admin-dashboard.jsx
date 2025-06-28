@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardStats } from "@/components/admin/dashboard/dashboard-stats"
 import { BookingsChart } from "@/components/admin/dashboard/bookings-chart"
-import { RecentBookings } from "@/components/admin/dashboard/recent-bookings"
+import { RecentLeads } from "@/components/admin/dashboard/recent-leads"
 import { RecentVendors } from "@/components/admin/dashboard/recent-vendors"
 import { PaymentOverview } from "@/components/admin/dashboard/payment-overview"
 
@@ -47,11 +47,11 @@ export function AdminDashboard() {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Recent Bookings</CardTitle>
-                <CardDescription>Latest bookings across the platform</CardDescription>
+                <CardTitle>Recent Leads</CardTitle>
+                <CardDescription>Latest leads across the platform</CardDescription>
               </CardHeader>
               <CardContent>
-                <RecentBookings />
+                <RecentLeads />
               </CardContent>
             </Card>
             <Card>

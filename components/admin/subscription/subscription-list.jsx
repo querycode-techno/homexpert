@@ -143,10 +143,10 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
           <CardDescription>Manage available subscription plans for vendors.</CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 gap-1" onClick={handleImport}>
+          {/* <Button variant="outline" size="sm" className="h-8 gap-1" onClick={handleImport}>
             <Upload className="h-4 w-4" />
             <span>Import</span>
-          </Button>
+          </Button> */}
           <Button variant="outline" size="sm" className="h-8 gap-1" onClick={handleExport}>
             <Download className="h-4 w-4" />
             <span>Export</span>
@@ -320,7 +320,7 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
                             >
                               {plan.isActive ? (
                                 <>
-                                  <span className="h-4 w-4">⏸</span>
+                                  <span className="h-5 w-4">⏸</span>
                                   <span>Deactivate</span>
                                 </>
                               ) : (

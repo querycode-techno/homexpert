@@ -128,11 +128,8 @@ export function BookingManagement() {
       !formData.date ||
       !formData.time
     ) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      })
+      
+      toast.error("Please fill in all required fields.")
       return
     }
 
@@ -140,10 +137,7 @@ export function BookingManagement() {
     const newBooking = addBooking(formData)
 
     // Show success message
-    toast({
-      title: "Booking Added",
-      description: `Booking for ${newBooking.customer} has been added successfully.`,
-    })
+    toast.success(`Booking for ${newBooking.customer} has been added successfully.`)
 
     // Close dialog and reset form
     setIsAddBookingOpen(false)
@@ -176,11 +170,7 @@ export function BookingManagement() {
       !formData.date ||
       !formData.time
     ) {
-      toast({
-        title: "Missing Fields",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields.")
       return
     }
 
@@ -188,10 +178,8 @@ export function BookingManagement() {
     updateBooking(currentBooking.id, formData)
 
     // Show success message
-    toast({
-      title: "Booking Updated",
-      description: `Booking for ${formData.customer} has been updated successfully.`,
-    })
+    
+    toast.success(`Booking for ${formData.customer} has been updated successfully.`)
 
     // Close dialog and reset
     setIsEditBookingOpen(false)
@@ -209,10 +197,7 @@ export function BookingManagement() {
     deleteBooking(currentBooking.id)
 
     // Show success message
-    toast({
-      title: "Booking Deleted",
-      description: `Booking for ${currentBooking.customer} has been deleted successfully.`,
-    })
+    toast.success(`Booking for ${currentBooking.customer} has been deleted successfully.`)
 
     // Close dialog and reset
     setIsDeleteDialogOpen(false)
@@ -220,11 +205,8 @@ export function BookingManagement() {
   }
 
   const handleExport = () => {
-    exportToCSV(bookings, "bookings")
-    toast({
-      title: "Export Successful",
-      description: "Bookings data has been exported to CSV.",
-    })
+    exportToCSV(filteredBookings, "bookings")
+    toast.success("Bookings data has been exported to CSV.")
   }
 
   const handleImportClick = () => {
@@ -235,10 +217,7 @@ export function BookingManagement() {
     const file = e.target.files[0]
     if (file) {
       importFromCSV(file, "bookings", (data) => {
-        toast({
-          title: "Import Successful",
-          description: `${data.length} bookings have been imported.`,
-        })
+        toast.success(`${data.length} bookings have been imported.`)
       })
     }
   }
@@ -259,6 +238,8 @@ export function BookingManagement() {
         return "bg-gray-500 hover:bg-gray-500/80"
     }
   }
+//   console.log("All services:", serviceUtils.getAllServices())
+// console.log("Service utils:", serviceUtils)
 
   return (
     <div className="flex flex-col gap-6">
@@ -277,7 +258,263 @@ export function BookingManagement() {
           <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all">
+        <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>
+              {activeTab === "all" ? "All Bookings" : 
+               activeTab === "pending" ? "Pending Bookings" :
+               activeTab === "confirmed" ? "Confirmed Bookings" :
+               activeTab === "in-progress" ? "In Progress Bookings" :
+               activeTab === "completed" ? "Completed Bookings" :
+               "Cancelled Bookings"}
+            </CardTitle>
+            <CardDescription>
+              {activeTab === "all" ? "View and manage all service bookings." :
+               `View and manage ${activeTab} service bookings.`}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
+            <Button variant="outline" size="sm" className="h-8 gap-1" onClick={handleImportClick}>
+              <Upload className="h-4 w-4" />
+              <span>Import</span>
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 gap-1" onClick={handleExport}>
+              <Download className="h-4 w-4" />
+              <span>Export</span>
+            </Button>
+            <Dialog open={isAddBookingOpen} onOpenChange={setIsAddBookingOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="h-8 gap-1">
+                  <Plus className="h-4 w-4" />
+                  <span>Add Booking</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Booking</DialogTitle>
+                  <DialogDescription>Create a new service booking for a customer.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="customer">Customer Name</Label>
+                      <Input
+                        id="customer"
+                        name="customer"
+                        value={formData.customer}
+                        onChange={handleInputChange}
+                        placeholder="Enter customer name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder="Enter phone number"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="service">Service</Label>
+                      <Select
+                        value={formData.service}
+                        onValueChange={(value) => handleSelectChange("service", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {serviceUtils.getAllServices().map((service, index) => (
+                            
+                            <SelectItem key={index} value={service} >{service}</SelectItem>
+                            
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        name="location"
+                        value={formData.location}
+                        onChange={handleInputChange}
+                        placeholder="Enter location"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date</Label>
+                      <Input id="date" name="date" type="date" value={formData.date} onChange={handleInputChange} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="time">Time</Label>
+                      <Input id="time" name="time" type="time" value={formData.time} onChange={handleInputChange} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value) => handleSelectChange("status", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pending">Pending</SelectItem>
+                          <SelectItem value="Confirmed">Confirmed</SelectItem>
+                          <SelectItem value="In Progress">In Progress</SelectItem>
+                          <SelectItem value="Completed">Completed</SelectItem>
+                          <SelectItem value="Cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="vendor">Assign to Vendor</Label>
+                      <Select
+                        value={formData.vendor}
+                        onValueChange={(value) => handleSelectChange("vendor", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vendor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Unassigned">Unassigned</SelectItem>
+                          {vendors.map((vendor) => (
+                            <SelectItem key={vendor.id} value={vendor.name}>
+                              {vendor.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="details">Details</Label>
+                    <Textarea
+                      id="details"
+                      name="details"
+                      value={formData.details}
+                      onChange={handleInputChange}
+                      placeholder="Enter booking details"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsAddBookingOpen(false)
+                      resetForm()
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddBooking}>Create Booking</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={`Search ${activeTab === "all" ? "" : activeTab} bookings...`}
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-md border">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left font-medium p-2">ID</th>
+                      <th className="text-left font-medium p-2">Customer</th>
+                      <th className="text-left font-medium p-2">Service</th>
+                      <th className="text-left font-medium p-2">Location</th>
+                      <th className="text-left font-medium p-2">Date & Time</th>
+                      <th className="text-left font-medium p-2">Status</th>
+                      <th className="text-left font-medium p-2">Vendor</th>
+                      <th className="text-right font-medium p-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBookings.length > 0 ? (
+                      filteredBookings.map((booking) => (
+                        <tr key={booking.id} className="border-b">
+                          <td className="p-2">{booking.id}</td>
+                          <td className="p-2">{booking.customer}</td>
+                          <td className="p-2">{booking.service}</td>
+                          <td className="p-2">{booking.location}</td>
+                          <td className="p-2">{`${booking.date}, ${booking.time}`}</td>
+                          <td className="p-2">
+                            <Badge variant="default" className={getStatusColor(booking.status)}>
+                              {booking.status}
+                            </Badge>
+                          </td>
+                          <td className="p-2">{booking.vendor}</td>
+                          <td className="p-2 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  className="flex items-center gap-2"
+                                  onClick={() => handleEditClick(booking)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span>Edit</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="flex items-center gap-2 text-red-500"
+                                  onClick={() => handleDeleteClick(booking)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  <span>Delete</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="p-4 text-center text-muted-foreground">
+                          {activeTab === "all" 
+                            ? "No bookings found. Try a different search term or add a new booking."
+                            : `No ${activeTab} bookings found.`
+                          }
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+        {/* <TabsContent value="all">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -518,10 +755,10 @@ export function BookingManagement() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Other tab contents with the same structure but filtered by status */}
-        <TabsContent value="pending">
+        {/* <TabsContent value="pending">
           <Card>
             <CardHeader>
               <CardTitle>Pending Bookings</CardTitle>
@@ -606,10 +843,10 @@ export function BookingManagement() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Similar structure for other tabs */}
-        <TabsContent value="confirmed">
+        {/* <TabsContent value="confirmed">
           <Card>
             <CardHeader>
               <CardTitle>Confirmed Bookings</CardTitle>
@@ -694,7 +931,7 @@ export function BookingManagement() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent>  */}
 
         {/* Edit Booking Dialog */}
         <Dialog open={isEditBookingOpen} onOpenChange={setIsEditBookingOpen}>
@@ -735,7 +972,7 @@ export function BookingManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       {serviceUtils.getAllServices().map((service) => (
-                        <SelectItem key={service} value={service}>{service}</SelectItem>
+                        <SelectItem key={service.id} value={service}>{service}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

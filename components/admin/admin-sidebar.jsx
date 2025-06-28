@@ -148,13 +148,8 @@ export function AdminSidebar() {
         {/* Sidebar header */}
         <div className="flex h-16 items-center justify-between border-b px-4">
           <Link href="/admin" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="HomeXpert Logo" width={32} height={32} className="h-8 w-auto" />
-            {!collapsed && (
-              <span className="text-lg font-bold">
-                <span className="text-primary">Homes</span>
-                <span className="text-secondary">Xpert</span>
-              </span>
-            )}
+            <Image src="/hx-logo.png" alt="HomeXpert Logo" width={32} height={32} className="h-8 w-auto" />
+            
           </Link>
           <Button variant="ghost" size="icon" className="hidden md:flex" onClick={toggleSidebar}>
             <ChevronDown className={cn("h-5 w-5 transition-transform", collapsed ? "rotate-90" : "rotate-0")} />

@@ -101,16 +101,15 @@ export function AdminHeader() {
         </Button>
         
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <DropdownMenuTrigger >
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-primary font-bold">
                   {session?.user?.name?.charAt(0)?.toUpperCase() || 'A'}
                 </span>
               </div>
-            </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuContent className="w-56" align="end"  forceMount>
+        
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">

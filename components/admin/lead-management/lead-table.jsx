@@ -336,9 +336,9 @@ export function LeadTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border">
-        <Table>
+    <div className="space-y-4 w-full" >
+      <div className="rounded-md border max-w-full overflow-x-auto" >
+        <Table >
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">
