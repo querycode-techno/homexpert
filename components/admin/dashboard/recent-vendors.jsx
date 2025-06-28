@@ -5,18 +5,23 @@ import { MoreHorizontal } from "lucide-react"
 import { use } from "react";
 import { useState , useEffect} from "react";
 import dashboardService from "@/lib/services/dashboardService";
+import { LoadingTableSkeleton } from "@/components/loading-skeleton/loading-skeleton";
 
 export function RecentVendors() {
 
   const [vendors, setVendors] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     const fetchVendors = async () => {
       const response = await dashboardService.getRecentVendors();
       setVendors(response.data);
       console.log(response.data)
     };
+
     fetchVendors();
+    setLoading(false);
   }, []);
 
   
@@ -47,7 +52,10 @@ export function RecentVendors() {
             </tr>
           </thead>
           <tbody>
-            {vendors.map((vendor) => (
+            {loading ? (
+              <LoadingTableSkeleton row={5} col={5}/>
+            ) : (
+            vendors.length > 0 ? vendors.map((vendor) => (
               <tr key={vendor._id} className="border-b">
                 <td className="p-2">{vendor._id.slice(0,10)}...</td>
                 <td className="p-2">{vendor.businessName}</td>
@@ -64,7 +72,13 @@ export function RecentVendors() {
                   </Button>
                 </td>
               </tr>
-            ))}
+              )
+            ) : (
+              <tr>
+                <td colSpan={5} className="text-center">No vendors found</td>
+              </tr>
+            ))
+            }
           </tbody>
         </table>
       </div>

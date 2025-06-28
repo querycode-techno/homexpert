@@ -36,6 +36,7 @@ import {
   Legend,
 } from "recharts"
 import { formatDate } from "@/lib/dateFormateUtils"
+import { LoadingTableSkeleton } from "../loading-skeleton/loading-skeleton"
 
 export function PaymentOverviewPage() {
   const { bookings, vendors, exportToCSV } = useData()
@@ -522,14 +523,7 @@ export function PaymentOverviewPage() {
                       </thead>
                       <tbody>
                         {loading ? (
-                          <tr>
-                            <td colSpan={11} className="p-4 text-center text-muted-foreground">
-                              <div className="flex items-center justify-center">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
-                                <span className="ml-2">Loading transactions...</span>
-                              </div>
-                            </td>
-                          </tr>
+                          <LoadingTableSkeleton row={5} col={8}/>
                         ) : error ? (
                           <tr>
                             <td colSpan={11} className="p-4 text-center text-red-500">

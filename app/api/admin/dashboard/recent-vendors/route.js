@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import vendor from '@/lib/models/vendor';
+import connectDB from '@/lib/connnectDB';
 
 export async function GET(req) {
     try {
+        await connectDB();
+
         // Get all vendors with only the specified fields
         const vendors = await vendor.find()
             .select('_id businessName services status')

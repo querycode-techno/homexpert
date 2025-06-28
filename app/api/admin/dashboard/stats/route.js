@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import lead from '@/lib/models/lead';
 import subscriptionHistory from '@/lib/models/SubscriptionHistory';
 import vendor from '@/lib/models/vendor';
+import connectDB from '@/lib/connnectDB';
 
 export async function GET(req) {
     try {
+        await connectDB();
         // Get all stats in parallel using Promise.all
         const [leadStats, revenueStats, vendorStats] = await Promise.all([
             // Lead statistics

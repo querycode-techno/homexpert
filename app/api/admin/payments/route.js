@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/dal';
 import { ObjectId } from 'mongodb';
+import connectDB from '@/lib/connnectDB';
 import SubscriptionHistory from '@/lib/models/SubscriptionHistory';
 
 
@@ -8,6 +9,7 @@ import SubscriptionHistory from '@/lib/models/SubscriptionHistory';
 export async function GET(req ) {
 
   try {
+    await connectDB();
     const transactions = await SubscriptionHistory.aggregate([
       {
         $lookup: {

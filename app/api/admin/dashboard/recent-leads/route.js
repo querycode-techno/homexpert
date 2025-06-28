@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import lead from '@/lib/models/lead';
+import { requireAdmin } from '@/lib/dal';
+import connectDB from '@/lib/connnectDB';
 
 export async function GET(req) {
     try {
+        await connectDB();
         // Get all leads with specified fields including timestamps
         const leads = await lead.find()
             .select('_id customerName service price status ')
