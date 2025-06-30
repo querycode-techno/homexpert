@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardStats } from "@/components/admin/dashboard/dashboard-stats"
-import { BookingsChart } from "@/components/admin/dashboard/bookings-chart"
+import { LeadsChart } from "@/components/admin/dashboard/leads-chart"
 import { RecentLeads } from "@/components/admin/dashboard/recent-leads"
 import { RecentVendors } from "@/components/admin/dashboard/recent-vendors"
 import { PaymentOverview } from "@/components/admin/dashboard/payment-overview"
@@ -26,11 +26,11 @@ export function AdminDashboard() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
             <Card className="lg:col-span-4">
               <CardHeader>
-                <CardTitle>Bookings Overview</CardTitle>
+                <CardTitle>Leads Overview</CardTitle>
                 <CardDescription>Booking trends over the last 30 days</CardDescription>
               </CardHeader>
               <CardContent>
-                <BookingsChart />
+                <LeadsChart />
               </CardContent>
             </Card>
             <Card className="lg:col-span-3">

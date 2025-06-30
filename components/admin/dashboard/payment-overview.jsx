@@ -1,22 +1,63 @@
 "use client"
 
+import dashboardService from "@/lib/services/dashboardService"
+import { set } from "mongoose"
 import { useEffect, useState } from "react"
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts"
 
 export function PaymentOverview() {
   const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState([])
 
   useEffect(() => {
+    setLoading(true)
+    const fetchData = async () => {
+      const response = await dashboardService.getRevenueChartData()
+      if (response.data && response.data.revenueByService) {
+        // Transform the data to match the chart format
+        let chartData = response.data.revenueByService.map((item, index) => ({
+          name: item.service,
+          value: parseFloat(item.percentage),
+          revenue: item.revenue,
+          count: item.count
+        }))
+
+        // If more than 4 services, show top 4 and group rest as "Other"
+        if (chartData.length > 4) {
+          // Sort by percentage (descending)
+          chartData.sort((a, b) => b.value - a.value)
+          
+          // Get top 4
+          const top4 = chartData.slice(0, 4)
+          
+          // Calculate sum of remaining percentages
+          const otherPercentage = chartData.slice(4).reduce((sum, item) => sum + item.value, 0)
+          
+          // Create "Other" entry if there are remaining items
+          if (otherPercentage > 0) {
+            const otherEntry = {
+              name: "Other",
+              value: parseFloat(otherPercentage.toFixed(2)),
+              revenue: chartData.slice(4).reduce((sum, item) => sum + item.revenue, 0),
+              count: chartData.slice(4).reduce((sum, item) => sum + item.count, 0)
+            }
+            chartData = [...top4, otherEntry]
+          } else {
+            chartData = top4
+          }
+        }
+        
+        setData(chartData)
+      }
+      console.log(response.data)
+    }
+    fetchData()
+    setLoading(false)
     setMounted(true)
   }, [])
 
-  const data = [
-    { name: "Plumbing", value: 35, color: "#0959AF" },
-    { name: "Electrical", value: 25, color: "#43B02A" },
-    { name: "Cleaning", value: 20, color: "#FF6B6B" },
-    { name: "Painting", value: 15, color: "#FFD166" },
-    { name: "Other", value: 5, color: "#06D6A0" },
-  ]
+  const color = ["#0959AF", "#43B02A", "#FF6B6B", "#FFD166", "#06D6A0"]
 
   if (!mounted) {
     return (
@@ -42,7 +83,7 @@ export function PaymentOverview() {
             labelLine={false}
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+              <Cell key={`cell-${index}`} fill={color[index % color.length]} />
             ))}
           </Pie>
           <Tooltip formatter={(value) => `${value}%`} />

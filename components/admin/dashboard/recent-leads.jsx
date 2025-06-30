@@ -16,13 +16,10 @@ export function RecentLeads() {
     const fetchLeads = async () => {
       const response = await dashboardService.getRecentLeads();
       setLeads(response.data);
-      console.log(response.data)
     };
     fetchLeads();
     setLoading(false);
   }, []);
-
-  
 
   const getStatusColor = (status) => {
     switch (status) {
