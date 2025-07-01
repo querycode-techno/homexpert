@@ -6,9 +6,15 @@ import { AdminHeader } from "@/components/admin/admin-header"
 import { DataProvider } from "@/lib/data-context"
 import { SidebarProvider, useSidebar } from "@/lib/sidebar-context"
 import { Toaster } from "sonner"
+import FCMTokenUpdater from '@/components/firebase/fcm-token-updater';
 
-function AdminLayoutContent({ children }) {
+
+
+
+ function AdminLayoutContent({ children }) {
   const { collapsed } = useSidebar()
+
+ 
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -30,6 +36,7 @@ function AdminLayoutContent({ children }) {
 export default function AdminLayout({ children }) {
   return (
     <SessionProvider>
+      <FCMTokenUpdater />
       <DataProvider>
         <SidebarProvider>
           <AdminLayoutContent>

@@ -11,13 +11,13 @@ export function HeroSection() {
   ]
 
   return (
-    <section className="hero-pattern py-12 md:py-16 lg:py-20">
+    <section className="hero-pattern py-10 md:py-12 lg:py-10">
       <div className="container px-4 md:px-6">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center min-h-[calc(100vh-8rem)]">
           <div className="flex flex-col justify-center space-y-6">
             <div className="space-y-4">
-              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
-                Your Home Services <span className="gradient-text">Expert</span>
+              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl text-blue-800">
+                Your Home Services <span className="text-green-500">Expert</span>
               </h1>
               <p className="max-w-[600px] text-text-secondary text-lg md:text-xl leading-relaxed">
                 Connect with trusted professionals for all your home service needs. Quality service, guaranteed
@@ -25,7 +25,7 @@ export function HeroSection() {
               </p>
             </div>
             <div className="flex flex-col gap-3 min-[400px]:flex-row">
-              <Button size="lg" asChild className="text-white hover:bg-primary/90 px-6 py-3 text-base font-semibold">
+              <Button size="lg" asChild className=" px-6 py-3 text-base font-semibold text-white bg-blue-500 hover:bg-blue-600">
                 <Link href="/contact">Contact Us</Link>
               </Button>
               <Button size="lg" variant="outline" className="text-black hover:text-white hover:bg-secondary/90 px-6 py-3 text-base font-semibold" asChild>

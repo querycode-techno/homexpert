@@ -33,6 +33,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { createNotification, deleteNotification, fetchNotifications, markAsRead } from "@/lib/services/notificationService"
+import { useSession } from "next-auth/react"
 
 export function NotificationsSupport() {
 
@@ -49,6 +51,8 @@ export function NotificationsSupport() {
   const [currentNotification, setCurrentNotification] = useState(null)
   const [isDeleteNotificationOpen, setIsDeleteNotificationOpen] = useState(false)
   const [isCreateNotificationOpen, setIsCreateNotificationOpen] = useState(false)
+
+  const [notis, setNotis] = useState([])
 
   // Form states
   const [ticketForm, setTicketForm] = useState({
@@ -67,62 +71,22 @@ export function NotificationsSupport() {
   })
 
   const [replyForm, setReplyForm] = useState("")
+  const { data: session } = useSession()
+  const userId = session?.user?.id;
+
+
+  useEffect(() => {
+      const fetchNotis = async () => {
+        const notis = await fetchNotifications()
+        setNotifications(notis)
+      }
+      console.log("notis", notis)
+      fetchNotis()
+  }, [])
 
   // Initialize mock data
   useEffect(() => {
     // Mock notifications
-    const mockNotifications = [
-      {
-        id: "N-001",
-        title: "New Vendor Registration",
-        message: "A new vendor has registered on the platform",
-        date: "2023-05-12",
-        time: "10:30 AM",
-        type: "Info",
-        read: false,
-        target: "Admin",
-      },
-      {
-        id: "N-002",
-        title: "Subscription Payment",
-        message: "Vendor #1234 has purchased a 3-month subscription",
-        date: "2023-05-12",
-        time: "02:15 PM",
-        type: "Success",
-        read: false,
-        target: "Admin",
-      },
-      {
-        id: "N-003",
-        title: "Support Request",
-        message: "A vendor has requested support for booking issues",
-        date: "2023-05-11",
-        time: "11:45 AM",
-        type: "Warning",
-        read: true,
-        target: "Support Team",
-      },
-      {
-        id: "N-004",
-        title: "System Maintenance",
-        message: "System will be down for maintenance on May 15th from 2 AM to 4 AM",
-        date: "2023-05-10",
-        time: "09:00 AM",
-        type: "Alert",
-        read: true,
-        target: "All Users",
-      },
-      {
-        id: "N-005",
-        title: "New Feature Released",
-        message: "Check out our new booking management features",
-        date: "2023-05-09",
-        time: "03:30 PM",
-        type: "Info",
-        read: false,
-        target: "All Users",
-      },
-    ]
 
     // Mock support tickets
     const mockTickets = [
@@ -290,7 +254,7 @@ export function NotificationsSupport() {
       },
     ]
 
-    setNotifications(mockNotifications)
+    // setNotifications(mockNotifications)
     setSupportTickets(mockTickets)
   }, [])
 
@@ -386,7 +350,7 @@ export function NotificationsSupport() {
     resetTicketForm()
   }
 
-  const handleCreateNotification = () => {
+  const handleCreateNotification = async () => {
     // Validate form
     if (!notificationForm.title || !notificationForm.message) {
       toast.error("Please fill in all required fields.")
@@ -404,8 +368,30 @@ export function NotificationsSupport() {
       read: false,
       target: notificationForm.target,
     }
+    const titlemap = {
+      "All Users": "user",
+      "Vendors": "vendor",
+      "Customers": "customer",
+      "Support Team": "support_team",
+      "Admin": "admin",
+    }
 
-    setNotifications([...notifications, newNotification])
+    const res = await createNotification({
+      title: notificationForm.title,
+      message: notificationForm.message,
+      type: notificationForm.type,
+      target: titlemap[notificationForm.target],
+      isBulkNotification: false,
+      createdBy: userId,
+      date: new Date().toISOString().split("T")[0],
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    })
+    console.log("res", res)
+
+    newNotification._id = res._id;
+    newNotification.read = true;
+
+    setNotifications([newNotification, ...notifications])
 
     // Show success message
     toast.success(`Notification has been created and sent to ${notificationForm.target}.`)
@@ -432,9 +418,11 @@ export function NotificationsSupport() {
     setCurrentTicket(null)
   }
 
-  const handleDeleteNotification = () => {
+  const handleDeleteNotification = async () => {
     // Delete notification
-    setNotifications(notifications.filter((notification) => notification.id !== currentNotification.id))
+    setNotifications(notifications.filter((notification) => notification._id !== currentNotification._id))
+    const res = await deleteNotification(currentNotification._id)
+    console.log("res", res)
 
     // Show success message
     toast.success("Notification has been deleted successfully.")
@@ -444,9 +432,11 @@ export function NotificationsSupport() {
     setCurrentNotification(null)
   }
 
-  const handleMarkAsRead = (notification) => {
+  const handleMarkAsRead = async (notification) => {
     // Mark notification as read
-    setNotifications(notifications.map((n) => (n.id === notification.id ? { ...n, read: true } : n)))
+    const res = await markAsRead(notification._id)
+    console.log("res", res)
+    setNotifications(notifications.map((n) => (n._id === notification._id ? { ...n, read: true } : n)))
 
     // Show success message
     toast.success("Notification has been marked as read.")
@@ -578,6 +568,8 @@ export function NotificationsSupport() {
     }
   }
 
+  
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -671,7 +663,7 @@ export function NotificationsSupport() {
                               <SelectItem value="All Users">All Users</SelectItem>
                               <SelectItem value="Vendors">Vendors</SelectItem>
                               <SelectItem value="Customers">Customers</SelectItem>
-                              <SelectItem value="Admin">Admin</SelectItem>
+                              {/* <SelectItem value="Admin">Admin</SelectItem> */}
                               <SelectItem value="Support Team">Support Team</SelectItem>
                             </SelectContent>
                           </Select>
@@ -726,8 +718,8 @@ export function NotificationsSupport() {
                       <tbody>
                         {filteredNotifications.length > 0 ? (
                           filteredNotifications.map((notification) => (
-                            <tr key={notification.id} className="border-b">
-                              <td className="p-2">{notification.id}</td>
+                            <tr key={notification._id} className="border-b">
+                              <td className="p-2">{notification._id.slice(0, 8)}...</td>
                               <td className="p-2">{notification.title}</td>
                               <td className="p-2 max-w-[200px] truncate">{notification.message}</td>
                               <td className="p-2">{`${notification.date}, ${notification.time}`}</td>

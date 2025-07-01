@@ -10,35 +10,35 @@ export function ServicesSection() {
     {
       title: "Home & Kitchen Appliances",
       description: "AC, washing machine, refrigerator, geyser repair & installation services.",
-      image: "/appliance-repair.png",
+      image: "/image1.png",
       icon: "🏠",
       categories: ["home-appliances", "kitchen-appliances"]
     },
     {
       title: "Cleaning & Maintenance",
       description: "Deep cleaning, pest control, car wash, and maintenance services.",
-      image: "/home-cleaning-service.png",
+      image: "/image5.png",
       icon: "🧽",
       categories: ["cleaning-pest"]
     },
     {
       title: "Handyman Services",
       description: "Electrical, plumbing, carpentry, and general repair services.",
-      image: "/electrical-service.png",
+      image: "/image4.png",
       icon: "🔧",
       categories: ["handyman"]
     },
     {
       title: "Packers and Movers",
       description: "Professional moving, packing, and relocation services.",
-      image: "/service-provider-tools.png",
+      image: "/image2.png",
       icon: "📦",
       categories: [] // Not in current services.json, can be added later
     },
     {
       title: "Beauty & Salon",
       description: "Professional beauty services for men and women at your doorstep.",
-      image: "/home-service-professionals.png",
+      image: "/image3.png",
       icon: "💅",
       categories: ["salon-women", "salon-men"]
     },
@@ -49,8 +49,8 @@ export function ServicesSection() {
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
-            <div className="inline-block rounded-lg bg-primary px-3 py-1 text-sm text-white">Our Services</div>
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Professional Home Services</h2>
+            {/* <div className="inline-block rounded-lg bg-primary px-3 py-1 text-sm text-white">Our Services</div> */}
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-blue-500">Our Professional Home Services</h2>
             <p className="max-w-[900px] text-text-secondary md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
               Discover our primary home services designed to meet your everyday needs.
             </p>
@@ -109,12 +109,12 @@ export function ServicesSection() {
         {/* Explore More Services Section */}
         <div className="mt-16 text-center">
           <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-8 border">
-            <h3 className="text-2xl font-bold mb-4">Need Something Else?</h3>
+            <h3 className="text-2xl font-bold mb-4 text-green-500">Need Something Else?</h3>
             <p className="text-text-secondary mb-6 max-w-2xl mx-auto">
               We offer {serviceUtils.getAllServices().length}+ specialized services including {serviceUtils.getCategories().map(cat => cat.name.toLowerCase()).slice(0, 3).join(', ')}, 
               and much more.
             </p>
-            <Button asChild size="lg" className="min-w-[200px]">
+            <Button asChild size="lg" className="min-w-[200px] bg-blue-500 text-white hover:bg-blue-600">
               <Link href="/services" className="flex items-center gap-2">
                 Explore All Services
                 <ArrowRight className="h-4 w-4" />
