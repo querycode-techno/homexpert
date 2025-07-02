@@ -39,7 +39,7 @@ export function FeaturesSection() {
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
-            <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-xl font-bold text-yellow-500">Why Choose Us</div>
+            {/* <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-xl font-bold text-yellow-500">Why Choose Us</div> */}
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-blue-500">Features that Make Us Different</h2>
             <p className="max-w-[900px] text-text-secondary md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
             With over 5 years of experience, presence in 50+ cities across India, and a network of thousands of verified Xperts, HomesXpert makes finding the right home service professional easy and reliable.

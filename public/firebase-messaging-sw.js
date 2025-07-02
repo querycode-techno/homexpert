@@ -4,13 +4,14 @@ importScripts('https://www.gstatic.com/firebasejs/9.1.1/firebase-messaging-compa
 
 // This config should be public
 const firebaseConfig = {
-    apiKey: "AIzaSyB389Ys6c8FpQJESq7COas3MIYwd6yFi3Y",
-    authDomain: "testing-b8899.firebaseapp.com",
-    projectId: "testing-b8899",
-    storageBucket: "testing-b8899.firebasestorage.app",
-    messagingSenderId: "977931125347",
-    appId: "1:977931125347:web:9d9d653ab1265fc26e6e56",
-  };
+  apiKey: "AIzaSyBui0DiZMxTDw5CBHYrUZw7jamP3aQrmCA",
+  authDomain: "home-expert-3ef6e.firebaseapp.com",
+  projectId: "home-expert-3ef6e",
+  storageBucket: "home-expert-3ef6e.firebasestorage.app",
+  messagingSenderId: "771855502285",
+  appId: "1:771855502285:web:418f34a9608ff1ad6e1284",
+  measurementId: "G-6LTMNNW4TV"
+};
 
 // Initialize the Firebase app in the service worker
 firebase.initializeApp(firebaseConfig);
@@ -33,7 +34,7 @@ messaging.onBackgroundMessage((payload) => {
     icon: '/hx-logo.png', // Add an icon
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // IMPORTANT: Your VAPID key needs to be configured in your Firebase project settings

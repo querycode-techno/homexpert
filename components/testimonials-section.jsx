@@ -1,422 +1,131 @@
-// "use client"
+"use client";
 
-// import { useState, useEffect } from "react"
-// import { Card, CardContent } from "@/components/ui/card"
-// import { Button } from "@/components/ui/button"
-// import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react"
-// import Image from "next/image"
+import { useRef, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Star, Quote } from "lucide-react";
+import Image from "next/image";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
-// export function TestimonialsSection() {
-//   const [currentSlide, setCurrentSlide] = useState(0)
-//   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
-
-//   const testimonials = [
-//     {
-//       name: "Rahul Sharma",
-//       role: "Homeowner",
-//       content:
-//         "HomeXpert connected me with a fantastic plumber who fixed my leaking pipes in no time. The service was prompt and professional.",
-//       rating: 5,
-//       image: "/customers/customer-1.svg",
-//       location: "Mumbai"
-//     },
-//     {
-//       name: "Priya Patel",
-//       role: "Apartment Resident",
-//       content:
-//         "I've used HomeXpert for electrical work and painting. Both times, the professionals were skilled and courteous. Highly recommend!",
-//       rating: 5,
-//       image: "/customers/customer-2.svg",
-//       location: "Delhi"
-//     },
-//     {
-//       name: "Amit Kumar",
-//       role: "Villa Owner",
-//       content:
-//         "The home cleaning service I booked through HomeXpert exceeded my expectations. My house has never looked better!",
-//       rating: 4,
-//       image: "/customers/customer-3.svg",
-//       location: "Bangalore"
-//     },
-//     {
-//       name: "Sneha Reddy",
-//       role: "Property Manager",
-//       content:
-//         "Professional service with transparent pricing. The electrical repairs were completed efficiently and safely.",
-//       rating: 5,
-//       image: "/customers/customer-4.svg",
-//       location: "Hyderabad"
-//     },
-//     {
-//       name: "Vikram Singh",
-//       role: "Homeowner",
-//       content:
-//         "Excellent carpentry work! The team was punctual, skilled, and cleaned up after themselves. Will definitely use again.",
-//       rating: 5,
-//       image: "/customers/customer-5.svg",
-//       location: "Chennai"
-//     }
-//   ]
-
-//   // Auto-play functionality
-//   useEffect(() => {
-//     if (!isAutoPlaying) return
-
-//     const interval = setInterval(() => {
-//       setCurrentSlide((prev) => (prev + 1) % testimonials.length)
-//     }, 5000)
-
-//     return () => clearInterval(interval)
-//   }, [isAutoPlaying, testimonials.length])
-
-//   const goToSlide = (index) => {
-//     setCurrentSlide(index)
-//     setIsAutoPlaying(false)
-//     setTimeout(() => setIsAutoPlaying(true), 10000) // Resume auto-play after 10 seconds
-//   }
-
-//   const goToPrevious = () => {
-//     setCurrentSlide((prev) => (prev - 1 + testimonials.length) % testimonials.length)
-//     setIsAutoPlaying(false)
-//     setTimeout(() => setIsAutoPlaying(true), 10000)
-//   }
-
-//   const goToNext = () => {
-//     setCurrentSlide((prev) => (prev + 1) % testimonials.length)
-//     setIsAutoPlaying(false)
-//     setTimeout(() => setIsAutoPlaying(true), 10000)
-//   }
-
-//   return (
-//     <section className="py-20 bg-gradient-to-br from-background via-muted/30 to-background relative overflow-hidden">
-//       {/* Background decoration */}
-//       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-//       <div className="absolute top-20 right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-//       <div className="absolute bottom-20 left-20 w-72 h-72 bg-secondary/10 rounded-full blur-3xl" />
-      
-//       <div className="container px-4 md:px-6 relative">
-//         <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
-//           <div className="space-y-2">
-//             <div className="inline-block rounded-lg  px-4 py-2 text-sm text-yellow-500 font-bold text-xl">
-//               Testimonials
-//             </div>
-//             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-blue-500">
-//               What Our Customers Say
-//             </h2>
-//             <p className="max-w-[900px] text-text-secondary md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-//               Don't just take our word for it. Here's what our satisfied customers have to say about our services.
-//             </p>
-//           </div>
-//         </div>
-
-//         {/* Desktop Slider */}
-//         <div className="hidden md:block">
-//           <div className="max-w-6xl mx-auto relative">
-//             <div className="overflow-hidden rounded-2xl">
-//               <div 
-//                 className="flex transition-transform duration-500 ease-in-out"
-//                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-//               >
-//                 {testimonials.map((testimonial, index) => (
-//                   <div key={index} className="w-full flex-shrink-0 px-4">
-//                     <Card className="border-none shadow-2xl bg-white/80 backdrop-blur-sm">
-//                       <CardContent className="p-8 md:p-12">
-//                         <div className="grid md:grid-cols-2 gap-8 items-center">
-//                           <div className="order-2 md:order-1">
-//                             <Quote className="h-8 w-8 text-primary mb-4" />
-//                             <div className="flex space-x-1 mb-4">
-//                               {Array(testimonial.rating)
-//                                 .fill(0)
-//                                 .map((_, i) => (
-//                                   <Star key={i} className="h-5 w-5 fill-secondary text-secondary" />
-//                                 ))}
-//                               {Array(5 - testimonial.rating)
-//                                 .fill(0)
-//                                 .map((_, i) => (
-//                                   <Star key={i} className="h-5 w-5 text-muted-foreground" />
-//                                 ))}
-//                             </div>
-//                             <p className="text-lg text-text-secondary mb-6 italic leading-relaxed">
-//                               "{testimonial.content}"
-//                             </p>
-//                             <div className="flex items-center gap-4">
-//                               <div className="relative">
-//                                 <Image
-//                                   src={testimonial.image}
-//                                   alt={testimonial.name}
-//                                   width={60}
-//                                   height={60}
-//                                   className="rounded-full object-cover ring-4 ring-primary/20"
-//                                 />
-//                               </div>
-//                               <div>
-//                                 <p className="font-semibold text-lg">{testimonial.name}</p>
-//                                 <p className="text-sm text-text-secondary">{testimonial.role}</p>
-//                                 <p className="text-xs text-primary font-medium">{testimonial.location}</p>
-//                               </div>
-//                             </div>
-//                           </div>
-//                           <div className="order-1 md:order-2 flex justify-center">
-//                             <div className="relative">
-//                               <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full blur-2xl scale-110" />
-//                               <Image
-//                                 src={testimonial.image}
-//                                 alt={testimonial.name}
-//                                 width={280}
-//                                 height={280}
-//                                 className="relative rounded-full object-cover shadow-2xl"
-//                               />
-//                             </div>
-//                           </div>
-//                         </div>
-//                       </CardContent>
-//                     </Card>
-//                   </div>
-//                 ))}
-//               </div>
-//             </div>
-
-//             {/* Navigation Controls */}
-//             <div className="flex items-center justify-center mt-8 gap-4">
-//               <Button
-//                 variant="outline"
-//                 size="icon"
-//                 onClick={goToPrevious}
-//                 className="rounded-full shadow-lg hover:shadow-xl transition-all"
-//               >
-//                 <ChevronLeft className="h-4 w-4" />
-//               </Button>
-              
-//               <div className="flex gap-2">
-//                 {testimonials.map((_, index) => (
-//                   <button
-//                     key={index}
-//                     onClick={() => goToSlide(index)}
-//                     className={`w-3 h-3 rounded-full transition-all ${
-//                       index === currentSlide ? 'bg-primary scale-125' : 'bg-muted-foreground/30'
-//                     }`}
-//                   />
-//                 ))}
-//               </div>
-
-//               <Button
-//                 variant="outline"
-//                 size="icon"
-//                 onClick={goToNext}
-//                 className="rounded-full shadow-lg hover:shadow-xl transition-all"
-//               >
-//                 <ChevronRight className="h-4 w-4" />
-//               </Button>
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Mobile Grid */}
-//         <div className="md:hidden">
-//           <div className="grid gap-6">
-//             {testimonials.slice(0, 3).map((testimonial, index) => (
-//               <Card key={index} className="border-none shadow-lg bg-white/80 backdrop-blur-sm">
-//                 <CardContent className="p-6">
-//                   <div className="flex items-start gap-4 mb-4">
-//                     <Image
-//                       src={testimonial.image}
-//                       alt={testimonial.name}
-//                       width={50}
-//                       height={50}
-//                       className="rounded-full object-cover ring-2 ring-primary/20"
-//                     />
-//                     <div className="flex-1">
-//                       <p className="font-semibold">{testimonial.name}</p>
-//                       <p className="text-sm text-text-secondary">{testimonial.role}</p>
-//                       <p className="text-xs text-primary font-medium">{testimonial.location}</p>
-//                     </div>
-//                   </div>
-//                   <div className="flex space-x-1 mb-3">
-//                     {Array(testimonial.rating)
-//                       .fill(0)
-//                       .map((_, i) => (
-//                         <Star key={i} className="h-4 w-4 fill-secondary text-secondary" />
-//                       ))}
-//                     {Array(5 - testimonial.rating)
-//                       .fill(0)
-//                       .map((_, i) => (
-//                         <Star key={i} className="h-4 w-4 text-muted-foreground" />
-//                       ))}
-//                   </div>
-//                   <p className="text-text-secondary italic">"{testimonial.content}"</p>
-//                 </CardContent>
-//               </Card>
-//             ))}
-//           </div>
-//         </div>
-//       </div>
-//     </section>
-//   )
-// }
-
-
-"use client"
-
-import { useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react"
-import Image from "next/image"
-
-// Responsive cards per view hook
-function useCardsPerView() {
-  const [cardsPerView, setCardsPerView] = useState(1)
-  useEffect(() => {
-    function handleResize() {
-      if (window.innerWidth >= 1024) {
-        setCardsPerView(3) // 3 on large screens
-      } else if (window.innerWidth >= 768) {
-        setCardsPerView(2)
-      } else {
-        setCardsPerView(1)
-      }
-    }
-    handleResize()
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
-  return cardsPerView
-}
+const testimonials = [
+  {
+    name: "Rahul Sharma",
+    role: "Homeowner",
+    content:
+      "HomeXpert connected me with a fantastic plumber who fixed my leaking pipes in no time. The service was prompt and professional.",
+    rating: 5,
+    image: "/chat-image1.png",
+    location: "Mumbai",
+  },
+  {
+    name: "Priya Patel",
+    role: "Apartment Resident",
+    content:
+      "I've used HomeXpert for electrical work and painting. Both times, the professionals were skilled and courteous. Highly recommend!",
+    rating: 5,
+    image: "/chat-image1.png",
+    location: "Delhi",
+  },
+  {
+    name: "Amit Kumar",
+    role: "Villa Owner",
+    content:
+      "The home cleaning service I booked through HomeXpert exceeded my expectations. My house has never looked better!",
+    rating: 4,
+    image: "/chat-image1.png",
+    location: "Bangalore",
+  },
+  {
+    name: "Sneha Reddy",
+    role: "Property Manager",
+    content:
+      "Professional service with transparent pricing. The electrical repairs were completed efficiently and safely.",
+    rating: 5,
+    image: "/chat-image1.png",
+    location: "Hyderabad",
+  },
+  {
+    name: "Vikram Singh",
+    role: "Homeowner",
+    content:
+      "Excellent carpentry work! The team was punctual, skilled, and cleaned up after themselves. Will definitely use again.",
+    rating: 5,
+    image: "/chat-image1.png",
+    location: "Chennai",
+  },
+];
 
 export function TestimonialsSection() {
-  const testimonials = [
-    {
-      name: "Rahul Sharma",
-      role: "Homeowner",
-      content:
-        "HomeXpert connected me with a fantastic plumber who fixed my leaking pipes in no time. The service was prompt and professional.",
-      rating: 5,
-      image: "/customers/customer-1.svg",
-      location: "Mumbai"
-    },
-    {
-      name: "Priya Patel",
-      role: "Apartment Resident",
-      content:
-        "I've used HomeXpert for electrical work and painting. Both times, the professionals were skilled and courteous. Highly recommend!",
-      rating: 5,
-      image: "/customers/customer-2.svg",
-      location: "Delhi"
-    },
-    {
-      name: "Amit Kumar",
-      role: "Villa Owner",
-      content:
-        "The home cleaning service I booked through HomeXpert exceeded my expectations. My house has never looked better!",
-      rating: 4,
-      image: "/customers/customer-3.svg",
-      location: "Bangalore"
-    },
-    {
-      name: "Sneha Reddy",
-      role: "Property Manager",
-      content:
-        "Professional service with transparent pricing. The electrical repairs were completed efficiently and safely.",
-      rating: 5,
-      image: "/customers/customer-4.svg",
-      location: "Hyderabad"
-    },
-    {
-      name: "Vikram Singh",
-      role: "Homeowner",
-      content:
-        "Excellent carpentry work! The team was punctual, skilled, and cleaned up after themselves. Will definitely use again.",
-      rating: 5,
-      image: "/customers/customer-5.svg",
-      location: "Chennai"
-    }
-  ]
+  const carouselRef = useRef(null);
 
-  const cardsPerView = useCardsPerView()
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true)
-
-  // Auto-play functionality
+  // Auto-slide effect
   useEffect(() => {
-    if (!isAutoPlaying) return
     const interval = setInterval(() => {
-      goToNext()
-    }, 5000)
-    return () => clearInterval(interval)
-    // eslint-disable-next-line
-  }, [isAutoPlaying, cardsPerView, currentIndex])
-
-  const goToPrevious = () => {
-    setCurrentIndex((prev) =>
-      (prev - 1 + testimonials.length) % testimonials.length
-    )
-    setIsAutoPlaying(false)
-    setTimeout(() => setIsAutoPlaying(true), 10000)
-  }
-
-  const goToNext = () => {
-    setCurrentIndex((prev) =>
-      (prev + 1) % testimonials.length
-    )
-    setIsAutoPlaying(false)
-    setTimeout(() => setIsAutoPlaying(true), 10000)
-  }
-
-  // Calculate the translateX percentage
-  const getTranslateX = () => {
-    return `-${(currentIndex * (100 / cardsPerView))}%`
-  }
+      // Find the next button and click it
+      const nextBtn = carouselRef.current?.querySelector(
+        "[data-carousel-next]"
+      );
+      if (nextBtn) nextBtn.click();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <section className="py-20 bg-gradient-to-br from-background via-muted/30 to-background relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none" />
-      <div className="absolute top-20 right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-20 left-20 w-72 h-72 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
-
+    <section className="py-20 bg-white relative">
       <div className="container px-4 md:px-6 relative">
         <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16">
           <div className="space-y-2">
-            <div className="inline-block rounded-lg px-4 py-2 text-sm text-yellow-500 font-bold text-xl">
+            {/* <div className="inline-block rounded-lg px-4 py-2 text-sm text-yellow-500 font-bold text-xl">
               Testimonials
-            </div>
+            </div> */}
             <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-blue-500">
               What Our Customers Say
             </h2>
             <p className="max-w-[900px] text-text-secondary md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Don't just take our word for it. Here's what our satisfied customers have to say about our services.
+              Don't just take our word for it. Here's what our satisfied
+              customers have to say about our services.
             </p>
           </div>
         </div>
 
-        {/* Slider */}
-        <div className="max-w-6xl mx-auto relative">
-          <div className="overflow-hidden rounded-2xl">
-            <div
-              className="flex transition-transform duration-500 ease-in-out"
-              style={{
-                width: `${(testimonials.length) * (100 / cardsPerView)}%`,
-                transform: `translateX(${getTranslateX()})`
-              }}
-            >
+        <div className="max-w-6xl mx-auto relative bg-white px-4" ref={carouselRef}>
+          <Carousel
+            opts={{
+              align: "start",
+              loop: true,
+              slidesPerView: 1,
+              dragFree: false,
+            }}
+            className="w-full bg-white z-10"
+          >
+            <CarouselContent>
               {testimonials.map((testimonial, index) => (
-                <div
+                <CarouselItem
                   key={index}
-                  className="w-full md:w-1/2 lg:w-1/3 flex-shrink-0 px-4"
-                  style={{ flex: `0 0 ${100 / cardsPerView}%` }}
+                  className="px-4 md:basis-1/2 lg:basis-1/3 py-4"
                 >
-                  <Card className="border-none shadow-2xl bg-white/90 backdrop-blur-lg h-full flex flex-col justify-between hover:scale-105 transition-transform duration-300">
+                  <Card className="border shadow-lg h-full flex flex-col justify-between hover:scale-105 transition-transform duration-300 ">
                     <CardContent className="p-8 md:p-10 flex flex-col h-full">
                       <div className="flex-1 flex flex-col">
                         <div className="flex items-center mb-4">
                           <Quote className="h-8 w-8 text-primary mr-2" />
-                          <span className="text-lg font-semibold text-primary">Verified Customer</span>
+                          <span className="text-lg font-semibold text-primary">
+                            Verified Customer
+                          </span>
                         </div>
                         <div className="flex space-x-1 mb-4">
                           {Array(testimonial.rating)
                             .fill(0)
                             .map((_, i) => (
-                              <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                              <Star
+                                key={i}
+                                className="h-5 w-5 fill-yellow-400 text-yellow-400"
+                              />
                             ))}
                           {Array(5 - testimonial.rating)
                             .fill(0)
@@ -435,56 +144,31 @@ export function TestimonialsSection() {
                             alt={testimonial.name}
                             width={60}
                             height={60}
-                            className="rounded-full object-cover ring-4 ring-primary/30 shadow-lg"
+                            className="rounded-full object-cover ring-1 ring-primary/30 shadow-lg"
                           />
                         </div>
                         <div>
-                          <p className="font-semibold text-lg text-gray-900">{testimonial.name}</p>
-                          <p className="text-sm text-gray-500">{testimonial.role}</p>
-                          <p className="text-xs text-primary font-medium">{testimonial.location}</p>
+                          <p className="font-semibold text-lg text-gray-900">
+                            {testimonial.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {testimonial.role}
+                          </p>
+                          <p className="text-xs text-primary font-medium">
+                            {testimonial.location}
+                          </p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                </div>
+                </CarouselItem>
               ))}
-            </div>
-          </div>
-
-          {/* Navigation Controls */}
-          <div className="flex items-center justify-center mt-8 gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToPrevious}
-              className="rounded-full shadow-lg hover:shadow-xl transition-all"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            <div className="flex gap-2">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  className={`w-3 h-3 rounded-full transition-all ${
-                    index === currentIndex ? 'bg-primary scale-125' : 'bg-muted-foreground/30'
-                  }`}
-                />
-              ))}
-            </div>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToNext}
-              className="rounded-full shadow-lg hover:shadow-xl transition-all"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+            </CarouselContent>
+            <CarouselPrevious data-carousel-prev />
+            <CarouselNext data-carousel-next />
+          </Carousel>
         </div>
       </div>
     </section>
-  )
+  );
 }

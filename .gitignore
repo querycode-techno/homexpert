@@ -18,7 +18,6 @@ yarn-error.log*
 
 # env files
 .env*
-service_key.json
 
 # vercel
 .vercel

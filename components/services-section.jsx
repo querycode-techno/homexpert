@@ -83,9 +83,7 @@ export function ServicesSection() {
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-110"
                 />
-                <div className="absolute top-4 left-4 text-2xl bg-white/90 backdrop-blur-sm rounded-full w-12 h-12 flex items-center justify-center">
-                  {service.icon}
-                </div>
+                
               </div>
               <div className="p-4">
                 <h3 className="text-lg font-bold group-hover:text-primary transition-colors">
@@ -96,7 +94,7 @@ export function ServicesSection() {
                     ? `${service.description.substring(0, 60)}...` 
                     : service.description}
                 </p>
-                <div className="flex items-center mt-3 text-primary text-sm font-medium">
+                <div className="flex items-center mt-3  text-sm font-medium text-blue-500 hover:text-blue-600">
                   View Services
                   <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
                 </div>
@@ -109,14 +107,13 @@ export function ServicesSection() {
         {/* Explore More Services Section */}
         <div className="mt-16 text-center">
           <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-8 border">
-            <h3 className="text-2xl font-bold mb-4 text-green-500">Need Something Else?</h3>
+            <h3 className="text-2xl font-bold mb-4 text-green-500">Need Another Home Service?</h3>
             <p className="text-text-secondary mb-6 max-w-2xl mx-auto">
-              We offer {serviceUtils.getAllServices().length}+ specialized services including {serviceUtils.getCategories().map(cat => cat.name.toLowerCase()).slice(0, 3).join(', ')}, 
-              and much more.
+            HomesXpert offers {serviceUtils.getAllServices().length}+ reliable solutions - from furniture assembly and professional painting to pest control and RO purifier servicing - all under one roof.
             </p>
             <Button asChild size="lg" className="min-w-[200px] bg-blue-500 text-white hover:bg-blue-600">
               <Link href="/services" className="flex items-center gap-2">
-                Explore All Services
+              Keep Exploring All Services
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
