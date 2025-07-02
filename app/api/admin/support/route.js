@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/dal';
 import SupportTicket from '@/lib/models/supportTicket';
+import Vendor from '@/lib/models/vendor';
+import User from '@/lib/models/user';
+import Lead from '@/lib/models/lead';
+import Subscription from '@/lib/models/subscription';
 import connectDB from '@/lib/connnectDB';
 import { ObjectId } from 'mongodb';
 
