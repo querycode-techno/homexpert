@@ -58,11 +58,14 @@ export default function AdminSupportTicketDetailsPage({ params }) {
   const [sendingMessage, setSendingMessage] = useState(false)
   const [newMessage, setNewMessage] = useState("")
   const [updatingTicket, setUpdatingTicket] = useState(false)
+  const [assigneeUsers, setAssigneeUsers] = useState([])
+  const [loadingAssignees, setLoadingAssignees] = useState(false)
 
   // Load ticket details
   useEffect(() => {
     if (id) {
       loadTicketDetails()
+      loadAssigneeUsers()
     }
   }, [id])
 
@@ -84,6 +87,24 @@ export default function AdminSupportTicketDetailsPage({ params }) {
       router.push('/admin/support')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadAssigneeUsers = async () => {
+    try {
+      setLoadingAssignees(true)
+      const response = await fetch('/api/admin/users/by-role?roles=helpline,telecaller,admin')
+      const data = await response.json()
+
+      if (data.success) {
+        setAssigneeUsers(data.users)
+      } else {
+        console.error('Failed to load assignee users:', data.error)
+      }
+    } catch (error) {
+      console.error('Error loading assignee users:', error)
+    } finally {
+      setLoadingAssignees(false)
     }
   }
 
@@ -178,6 +199,39 @@ export default function AdminSupportTicketDetailsPage({ params }) {
     } catch (error) {
       console.error("Error updating ticket:", error)
       toast.error("Failed to update ticket priority")
+    } finally {
+      setUpdatingTicket(false)
+    }
+  }
+
+  const updateTicketAssignment = async (assignedToId) => {
+    try {
+      setUpdatingTicket(true)
+      const response = await fetch(`/api/admin/support/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "assign",
+          assignedTo: assignedToId === "unassigned" ? null : assignedToId
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        loadTicketDetails() // Reload to get updated ticket
+        const assigneeName = assignedToId === "unassigned" 
+          ? "unassigned" 
+          : assigneeUsers.find(u => u._id === assignedToId)?.name || "selected user"
+        toast.success(`Ticket assigned to ${assigneeName}`)
+      } else {
+        toast.error(data.error || "Failed to update ticket assignment")
+      }
+    } catch (error) {
+      console.error("Error updating ticket assignment:", error)
+      toast.error("Failed to update ticket assignment")
     } finally {
       setUpdatingTicket(false)
     }
@@ -412,6 +466,40 @@ export default function AdminSupportTicketDetailsPage({ params }) {
                         <div className="flex items-center gap-2">
                           <div className={`h-2 w-2 rounded-full ${config.color}`} />
                           {config.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Assign To</Label>
+                <Select
+                  value={ticket.assignedTo?._id || "unassigned"}
+                  onValueChange={updateTicketAssignment}
+                  disabled={updatingTicket || loadingAssignees}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingAssignees ? "Loading..." : "Select assignee"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        Unassigned
+                      </div>
+                    </SelectItem>
+                    {assigneeUsers.map((user) => (
+                      <SelectItem key={user._id} value={user._id}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">{user.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {user.role.name} • {user.email}
+                            </span>
+                          </div>
                         </div>
                       </SelectItem>
                     ))}
