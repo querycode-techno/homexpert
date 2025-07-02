@@ -112,7 +112,7 @@ export async function POST(request) {
 
   try {
     const { vendorId, userId } = authResult.user;
-    const { planId, paymentMethod = 'online', discountCode } = await request.json();
+    const { planId, paymentMethod = 'online', discountCode, transactionId } = await request.json();
 
     if (!planId) {
       return NextResponse.json({
@@ -200,7 +200,8 @@ export async function POST(request) {
         currency: plan.currency || 'INR',
         paymentMethod: paymentMethod,
         paymentStatus: 'pending',
-        paymentDate: null
+        paymentDate: now,
+        transactionId: transactionId
       },
       history: [{
         action: 'purchased',
@@ -221,27 +222,30 @@ export async function POST(request) {
 
     const result = await subscriptionHistoryCollection.insertOne(subscriptionData);
 
-    // For demo purposes, auto-activate the subscription (in production, activate after payment)
-    // await subscriptionHistoryCollection.updateOne(
-    //   { _id: result.insertedId },
-    //   {
-    //     $set: {
-    //       status: 'active',
-    //       isActive: true,
-    //       'payment.paymentStatus': 'completed',
-    //       'payment.paymentDate': now,
-    //       'payment.transactionId': `TXN${Date.now()}`,
-    //       updatedAt: now
-    //     },
-    //     $push: {
-    //       history: {
-    //         action: 'activated',
-    //         date: now,
-    //         reason: 'Payment completed successfully'
-    //       }
-    //     }
-    //   }
-    // );
+    // Auto-activate for online payments, keep pending for bank transfers
+    if (paymentMethod === 'online') {
+      await subscriptionHistoryCollection.updateOne(
+        { _id: result.insertedId },
+        {
+          $set: {
+            status: 'active',
+            isActive: true,
+            'payment.paymentStatus': 'completed',
+            'payment.paymentDate': now,
+            'payment.transactionId': transactionId || `TXN${Date.now()}`,
+            updatedAt: now
+          },
+          $push: {
+            history: {
+              action: 'activated',
+              date: now,
+              reason: 'Online payment completed successfully'
+            }
+          }
+        }
+      );
+    }
+    // For bank_transfer, subscription remains pending until admin verification
 
     // Get the created subscription with full details
     const createdSubscription = await subscriptionHistoryCollection.findOne({

@@ -83,6 +83,12 @@ export function AdminSidebar() {
       permission: can.viewSubscriptions,
     },
     {
+      title: "Subscription History",
+      icon: <CreditCard className="h-5 w-5" />,
+      href: "/admin/subscriptions/history",
+      permission: can.viewSubscriptions,
+    },
+    {
       title: "Support & Tickets",
       icon: <Headphones className="h-5 w-5" />,
       href: "/admin/support",
