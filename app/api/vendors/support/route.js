@@ -179,8 +179,14 @@ export async function POST(request) {
     const role = await rolesCollection.findOne({ _id: user.role });
     const userRole = role ? role.name : 'vendor';
 
+    // Generate ticket ID manually to ensure it's set
+    const timestamp = Date.now().toString().slice(-8);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const ticketId = `TKT${timestamp}${random}`;
+
     // Create ticket data
     const ticketData = {
+      ticketId, // Manually set ticketId to ensure it's required
       title: title.trim(),
       description: description.trim(),
       category,
