@@ -108,8 +108,9 @@ export async function GET(request) {
       };
     });
 
-    // Get current active subscription for dashboard
-    const activeSubscription = formattedSubscriptions.find(sub => sub.isActive && sub.status === 'active');
+    // Get current subscription for dashboard (active or pending)
+    const currentSubscription = formattedSubscriptions.find(sub => 
+      sub.status === 'active' || (sub.status === 'pending' && sub.payment.paymentStatus !== 'failed'));
 
     // Calculate summary statistics
     const totalSpent = subscriptions.reduce((sum, sub) => 
@@ -138,13 +139,14 @@ export async function GET(request) {
       success: true,
       data: {
         subscriptions: formattedSubscriptions,
-        activeSubscription,
+        currentSubscription,
         summary: {
           totalSubscriptions: totalCount,
           totalSpent,
           totalLeadsConsumed,
           averageUsageRate: Math.round(averageUsageRate),
-          activeSubscription: !!activeSubscription
+          hasActiveSubscription: !!currentSubscription && currentSubscription.status === 'active',
+          hasPendingSubscription: !!currentSubscription && currentSubscription.status === 'pending'
         },
         pagination
       }

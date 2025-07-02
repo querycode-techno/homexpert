@@ -3,6 +3,103 @@ import { database } from '@/lib/db';
 import { verifyVendorToken, createAuthErrorResponse } from '@/lib/middleware/vendorAuth';
 import { ObjectId } from 'mongodb';
 
+// Helper function to handle payment submission for bank transfers
+async function handlePaymentSubmission(subscriptionId, userId, paymentDetails) {
+  try {
+    const { transactionId } = paymentDetails;
+
+    if (!transactionId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Transaction ID is required'
+      }, { status: 400 });
+    }
+
+    const subscriptionHistoryCollection = await database.getSubscriptionHistoryCollection();
+
+    // Get the subscription
+    const subscription = await subscriptionHistoryCollection.findOne({
+      _id: new ObjectId(subscriptionId),
+      user: new ObjectId(userId)
+    });
+
+    if (!subscription) {
+      return NextResponse.json({
+        success: false,
+        error: 'Subscription not found'
+      }, { status: 404 });
+    }
+
+    // Check if subscription is valid for payment submission
+    if (subscription.status !== 'pending' || subscription.payment.paymentMethod !== 'bank_transfer') {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid subscription state for payment submission'
+      }, { status: 400 });
+    }
+
+    // Check if payment details have already been submitted
+    if (subscription.payment.paymentStatus === 'submitted' || subscription.payment.transactionId) {
+      return NextResponse.json({
+        success: false,
+        error: 'Payment details have already been submitted for this subscription'
+      }, { status: 400 });
+    }
+
+    const now = new Date();
+
+    // Update subscription with payment submission details
+    const updateResult = await subscriptionHistoryCollection.updateOne(
+      { _id: new ObjectId(subscriptionId) },
+      {
+        $set: {
+          'payment.transactionId': transactionId.trim(),
+          'payment.paymentStatus': 'submitted',
+          updatedAt: now
+        },
+        $push: {
+          history: {
+            action: 'purchased',
+            date: now,
+            reason: `Payment details submitted by vendor. TXN: ${transactionId}`,
+            performedBy: new ObjectId(userId)
+          }
+        }
+      }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to update subscription'
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Payment details submitted successfully!',
+      data: {
+        subscriptionId: subscriptionId,
+        transactionId: transactionId,
+        status: 'submitted',
+        nextSteps: [
+          'Your payment details have been submitted for verification',
+          'Admin will verify the payment within 24 hours',
+          'You will receive a notification once verified',
+          'Subscription will be activated upon verification'
+        ]
+      }
+    });
+
+  } catch (error) {
+    console.error('Error submitting payment details:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to submit payment details'
+    }, { status: 500 });
+  }
+}
+
 // GET /api/vendors/subscriptions/[id] - Get specific subscription details
 export async function GET(request, { params }) {
   // Verify authentication
@@ -130,7 +227,7 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT /api/vendors/subscriptions/[id] - Upgrade/downgrade subscription
+// PUT /api/vendors/subscriptions/[id] - Upgrade/downgrade subscription OR submit payment details
 export async function PUT(request, { params }) {
   // Verify authentication
   const authResult = verifyVendorToken(request);
@@ -141,7 +238,20 @@ export async function PUT(request, { params }) {
   try {
     const { vendorId, userId } = authResult.user;
     const subscriptionId = params.id;
-    const { newPlanId, upgradeType } = await request.json(); // upgradeType: 'upgrade' | 'downgrade'
+    const requestBody = await request.json();
+    const { 
+      newPlanId, 
+      upgradeType, 
+      // Payment submission fields
+      transactionId 
+    } = requestBody;
+
+    // Check if this is a payment submission request
+    if (transactionId && !newPlanId) {
+      return await handlePaymentSubmission(subscriptionId, userId, {
+        transactionId
+      });
+    }
 
     if (!subscriptionId || !newPlanId) {
       return NextResponse.json({

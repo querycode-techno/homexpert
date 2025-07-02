@@ -18,11 +18,12 @@ export async function GET(request) {
     const subscriptionPlansCollection = await database.getSubscriptionPlansCollection();
     const subscriptionHistoryCollection = await database.getSubscriptionHistoryCollection();
 
-    // Get vendor's current active subscription
+    // Get vendor's current subscription (active, pending, or submitted)
     const currentSubscription = await subscriptionHistoryCollection.findOne({
       user: new ObjectId(userId),
-      status: 'active',
-      isActive: true
+      status: { $in: ['active', 'pending'] } // Include pending subscriptions
+    }, {
+      sort: { createdAt: -1 } // Get the most recent one
     });
 
     // Get all active subscription plans
@@ -80,7 +81,14 @@ export async function GET(request) {
           startDate: currentSubscription.startDate,
           endDate: currentSubscription.endDate,
           daysRemaining: Math.max(0, Math.ceil((currentSubscription.endDate - new Date()) / (1000 * 60 * 60 * 24))),
-          usage: currentSubscription.usage
+          usage: currentSubscription.usage,
+          payment: {
+            method: currentSubscription.payment.paymentMethod,
+            status: currentSubscription.payment.paymentStatus,
+            amount: currentSubscription.payment.amount,
+            transactionId: currentSubscription.payment.transactionId
+          },
+          isActive: currentSubscription.isActive
         } : null,
         plans: formattedPlans,
         plansByDuration,
@@ -139,17 +147,20 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
-    // Check if user already has an active subscription
+    // Check if user already has an active or pending subscription
     const existingSubscription = await subscriptionHistoryCollection.findOne({
       user: new ObjectId(userId),
-      status: 'active',
-      isActive: true
+      status: { $in: ['active', 'pending'] }
     });
 
     if (existingSubscription) {
+      const errorMessage = existingSubscription.status === 'active' 
+        ? 'You already have an active subscription. Please upgrade or wait for it to expire.'
+        : 'You already have a pending subscription. Please wait for verification or contact support.';
+      
       return NextResponse.json({
         success: false,
-        error: 'You already have an active subscription. Please upgrade or wait for it to expire.'
+        error: errorMessage
       }, { status: 400 });
     }
 
@@ -167,6 +178,15 @@ export async function POST(request) {
     // Create subscription history record
     const now = new Date();
     const endDate = new Date(now.getTime() + (plan.durationInDays * 24 * 60 * 60 * 1000));
+
+    // Determine payment status based on method and transaction details
+    let paymentStatus = 'pending';
+    let historyReason = `Subscription purchased: ${plan.planName}`;
+
+    if (paymentMethod === 'bank_transfer' && transactionId) {
+      paymentStatus = 'submitted';
+      historyReason = `Subscription purchased with bank transfer. TXN: ${transactionId}`;
+    }
 
     const subscriptionData = {
       user: new ObjectId(userId),
@@ -199,14 +219,15 @@ export async function POST(request) {
         amount: effectivePrice,
         currency: plan.currency || 'INR',
         paymentMethod: paymentMethod,
-        paymentStatus: 'pending',
+        paymentStatus: paymentStatus,
         paymentDate: now,
-        transactionId: transactionId
+        transactionId: transactionId || null
       },
       history: [{
         action: 'purchased',
         date: now,
-        reason: `Subscription purchased: ${plan.planName}`
+        reason: historyReason,
+        performedBy: new ObjectId(userId)
       }],
       discountsApplied: discountsApplied,
       performance: {
@@ -252,9 +273,39 @@ export async function POST(request) {
       _id: result.insertedId
     });
 
+    // Determine response message based on payment status
+    let responseMessage = 'Subscription purchased successfully!';
+    let statusMessage = '';
+    let nextSteps = [];
+
+    if (paymentMethod === 'online') {
+      statusMessage = 'Your subscription is now active! You can start receiving leads.';
+      nextSteps = [
+        'Start browsing available leads'
+      ];
+    } else if (paymentMethod === 'bank_transfer') {
+      if (transactionId) {
+        statusMessage = 'Payment details submitted successfully! Admin will verify within 24 hours.';
+        nextSteps = [
+          'Your payment details have been submitted for verification',
+          'Admin will verify the payment within 24 hours',
+          'You will receive a notification once verified',
+          'Subscription will be activated upon verification'
+        ];
+      } else {
+        statusMessage = 'Subscription created! Please make payment and submit transaction details.';
+        nextSteps = [
+          'Make payment to the provided bank account',
+          'Note down the transaction ID/UTR number',
+          'Submit payment details by updating your subscription',
+          'Admin will verify payment within 24 hours'
+        ];
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Subscription purchased successfully!',
+      message: responseMessage,
       data: {
         subscription: {
           id: createdSubscription._id.toString(),
@@ -268,16 +319,13 @@ export async function POST(request) {
           payment: {
             amount: createdSubscription.payment.amount,
             currency: createdSubscription.payment.currency,
+            method: createdSubscription.payment.paymentMethod,
             status: createdSubscription.payment.paymentStatus,
             transactionId: createdSubscription.payment.transactionId
           }
         },
-        message: 'Your subscription is now active! You can start receiving leads.',
-        nextSteps: [
-          'Complete your profile verification for better lead matching',
-          'Set up your service preferences',
-          'Start browsing available leads'
-        ]
+        message: statusMessage,
+        nextSteps: nextSteps
       }
     });
 
