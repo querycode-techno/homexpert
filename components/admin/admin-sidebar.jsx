@@ -20,6 +20,7 @@ import {
   X,
   Loader2,
   Store,
+  Headphones,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -82,7 +83,13 @@ export function AdminSidebar() {
       permission: can.viewSubscriptions,
     },
     {
-      title: "Notifications & Support",
+      title: "Support & Tickets",
+      icon: <Headphones className="h-5 w-5" />,
+      href: "/admin/support",
+      permission: can.manageSupport,
+    },
+    {
+      title: "Notifications",
       icon: <Bell className="h-5 w-5" />,
       href: "/admin/notifications",
       permission: can.manageSupport,
