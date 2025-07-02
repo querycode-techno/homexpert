@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { verifyVendorToken, createAuthErrorResponse } from '@/lib/middleware/vendorAuth';
 import SupportTicket from '@/lib/models/supportTicket';
+import User from '@/lib/models/user';
 import connectDB from '@/lib/connnectDB';
 import { ObjectId } from 'mongodb';
 
