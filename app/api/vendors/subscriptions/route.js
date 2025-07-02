@@ -222,26 +222,26 @@ export async function POST(request) {
     const result = await subscriptionHistoryCollection.insertOne(subscriptionData);
 
     // For demo purposes, auto-activate the subscription (in production, activate after payment)
-    await subscriptionHistoryCollection.updateOne(
-      { _id: result.insertedId },
-      {
-        $set: {
-          status: 'active',
-          isActive: true,
-          'payment.paymentStatus': 'completed',
-          'payment.paymentDate': now,
-          'payment.transactionId': `TXN${Date.now()}`,
-          updatedAt: now
-        },
-        $push: {
-          history: {
-            action: 'activated',
-            date: now,
-            reason: 'Payment completed successfully'
-          }
-        }
-      }
-    );
+    // await subscriptionHistoryCollection.updateOne(
+    //   { _id: result.insertedId },
+    //   {
+    //     $set: {
+    //       status: 'active',
+    //       isActive: true,
+    //       'payment.paymentStatus': 'completed',
+    //       'payment.paymentDate': now,
+    //       'payment.transactionId': `TXN${Date.now()}`,
+    //       updatedAt: now
+    //     },
+    //     $push: {
+    //       history: {
+    //         action: 'activated',
+    //         date: now,
+    //         reason: 'Payment completed successfully'
+    //       }
+    //     }
+    //   }
+    // );
 
     // Get the created subscription with full details
     const createdSubscription = await subscriptionHistoryCollection.findOne({
