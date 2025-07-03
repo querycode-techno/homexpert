@@ -6,6 +6,7 @@ import { use } from "react";
 import { useState , useEffect} from "react";
 import dashboardService from "@/lib/services/dashboardService";
 import { LoadingTableSkeleton } from "@/components/loading-skeleton/loading-skeleton";
+import Link from "next/link";
 
 export function RecentVendors() {
 
@@ -55,7 +56,7 @@ export function RecentVendors() {
             <LoadingTableSkeleton row={5} col={5}/>
           ) : (
             <tbody>
-              {vendors.length > 0 ? vendors.map((vendor) => (
+              {vendors.length > 0 ? vendors.slice(0,10).map((vendor) => (
                 <tr key={vendor._id} className="border-b">
                   <td className="p-2">{vendor._id.slice(0,10)}...</td>
                   <td className="p-2">{vendor.businessName}</td>
@@ -83,9 +84,11 @@ export function RecentVendors() {
         </table>
       </div>
       <div className="flex justify-center">
-        <Button variant="outline" size="sm">
-          View all vendors
-        </Button>
+        <Link href="/admin/vendors">
+          <Button variant="outline" size="sm">
+            View all vendors in Details
+          </Button>
+        </Link>
       </div>
     </div>
   )

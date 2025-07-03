@@ -2,15 +2,35 @@ import connectDB from '@/lib/connnectDB'
 import User from '@/lib/models/user'
 import Notification from '@/lib/models/notification'
 import admin from '@/lib/firebase/admin'
-import { NextResponse } from 'next/server'
+import NotificationRecipient from '@/lib/models/notificationRecipient'
+
 
 export async function GET(req) {
   await connectDB();
 
+  const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
+  const userId = searchParams.get('userId');
+
+  console.log("userId", userId);
+
+  const userType = "admin"; // as per your requirement
+
   try {
-    const notifications = await Notification.find({})
+    // Find all notificationRecipient docs for this admin
+    const recipientDocs = await NotificationRecipient.find({
+      userId,
+      userType,
+    })
       .sort({ createdAt: -1 })
-      .lean();
+      .populate('notificationId');
+
+    // Extract notifications
+    const notifications = recipientDocs
+    .filter(rec => rec.notificationId)
+    .map(rec => ({
+      ...rec.notificationId.toObject(), // all notification fields
+      read: rec.read,                  // only 'read' from NotificationRecipient
+    }));
 
     return new Response(JSON.stringify({ success: true, notifications }), {
       status: 200,
@@ -25,67 +45,77 @@ export async function GET(req) {
   }
 }
 
+
+
 export async function POST(req) {
   await connectDB();
 
+  const userType = "admin"; // as per your requirement
+
   try {
     const body = await req.json();
-    const { title, message, type, target, isBulkNotification, createdBy , date, time} = body;
+    const { title, message, messageType, target, userId} = body;
 
     // Basic validation
-    if (!title || !message || !type || !target ||  !createdBy) {
+    if (!title || !message || !messageType || !target ) {
       return new Response(
         JSON.stringify({ success: false, message: "Missing required fields." }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
-     // get all admins userId and fcmToken from users collection
-     const admins = await User.find({ type: type }).select("_id fcmToken,type");
+    // Get all users of the target type (e.g., admin)
+    const users = await User.find({ type: target }).select("_id fcmToken type");
 
-
-
+    // Create the notification document
     const notification = new Notification({
       title,
       message,
-      type,
-      target,
-      isBulkNotification:true,
-      bulkRecipients: admins.map(admin => ({
-        userId: admin._id,
-        userType: admin.type,
-        deliveryStatus: "pending",
-      })),
-      createdBy,
-      date,
-      time,
-      read:true,
+      messageType,
+      createdBy: userId,
+      target:target,
     });
-
     await notification.save();
 
-      // send notification to all admins
-      const tokens = admins.map(admin => admin.fcmToken).filter(Boolean);
+    // addd this notification to admin notification collection
+    const adminNotification = new NotificationRecipient({
+      notificationId: notification._id,
+      userId: userId,
+      userType: userType,
+      deliveryStatus: "delivered",
+      deliveryAttempts: 1,
+      read: true,
+    });
+    await adminNotification.save();
 
-     const mesg = {
+    // Create NotificationRecipient documents for each user
+    const recipientDocs = users.map(user => ({
+      notificationId: notification._id,
+      userId: user._id,
+      userType: user.type,
+      deliveryStatus: "pending",
+      deliveryAttempts: 0,
+    }));
+    await NotificationRecipient.insertMany(recipientDocs);
+
+    // Send notification to all users via FCM
+    const tokens = users.map(user => user.fcmToken).filter(Boolean);
+    const mesg = {
       notification: {
-          title,
-          body: message,
+        title,
+        body: message,
       },
-  };
+    };
 
-  let sendResult = null;
-
-  if (tokens.length === 1) {
-      // Send to a Single Token
+    let sendResult = null;
+    if (tokens.length === 1) {
       sendResult = await admin.messaging().send({ ...mesg, token: tokens[0] });
       console.log('Successfully sent message to single token:', sendResult);
-  } else if (tokens.length > 1) {
-      // Send to Multiple Tokens
+    } else if (tokens.length > 1) {
       sendResult = await admin.messaging().sendEachForMulticast({ ...mesg, tokens });
       console.log('Sent messages to multiple tokens. Success count:', sendResult.successCount);
       console.log('Failure count:', sendResult.failureCount);
-  }
+    }
 
     return new Response(
       JSON.stringify({ success: true, notification }),
