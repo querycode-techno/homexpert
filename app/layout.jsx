@@ -1,8 +1,6 @@
-
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-
+import { Providers } from "@/components/providers"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -13,14 +11,12 @@ export const metadata = {
 }
 
 export default async function RootLayout({ children }) {
-  
-
   return (
     <html lang="en" suppressHydrationWarning={true}>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <Providers>
           {children}
-        </ThemeProvider>
+        </Providers>
         <div id="dialog-root" />
       </body>
     </html>

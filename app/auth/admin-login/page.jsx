@@ -67,14 +67,16 @@ export default function AdminLoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="h-14 w-14 bg-primary rounded-lg flex items-center justify-center mb-4">
-            <span className="text-white font-bold text-xl">HX</span>
+          <div className="mb-0">
+            <Image
+              src="/hx-logo.png"
+              alt="HomeXpert Logo"
+              width={250}
+              height={120}
+              className="rounded-lg"
+              priority
+            />
           </div>
-          <h1 className="text-3xl font-bold">
-            <span className="text-primary">Home</span>
-            <span className="text-secondary">Xpert</span>
-            <span className="ml-2">Admin</span>
-          </h1>
           <p className="mt-2 text-muted-foreground">Access the admin dashboard</p>
         </div>
         

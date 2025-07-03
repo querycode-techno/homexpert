@@ -9,7 +9,7 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET || "homexpert-dev-secret-2024",
   session: {
     strategy: "jwt",
-    maxAge: 7 * 24 * 60 * 60, // 7 days (shorter to keep token smaller)
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   },
   providers: [
     CredentialsProvider({
@@ -72,69 +72,18 @@ export const authOptions = {
           }
         } catch (error) {
           console.error("Auth error:", error)
-          return null
+          throw error // Re-throw to show proper error
         }
       }
     })
   ],
   callbacks: {
-    async jwt({ token, user, trigger }) {
-      // Store user data and permissions in JWT during login
+    async jwt({ token, user }) {
+      // Store ONLY essential user data in JWT - NO PERMISSIONS
       if (user) {
         token.userId = user.userId
         token.role = user.role
-        
-        // Fetch permissions ONCE during login and store in JWT
-        if (user.role?.id) {
-          try {
-            await client.connect()
-            const db = client.db('homexpert')
-            const { ObjectId } = await import('mongodb')
-            const role = await db.collection('roles').findOne({ 
-              _id: new ObjectId(user.role.id) 
-            }, { projection: { permissions: 1 } })
-            
-            if (role?.permissions && role.permissions.length > 0) {
-              const permissions = await db.collection('permissions').find({
-                _id: { $in: role.permissions }
-              }, { projection: { module: 1, action: 1, resource: 1 } }).toArray()
-              token.permissions = permissions
-            } else {
-              token.permissions = []
-            }
-          } catch (error) {
-            console.error('Error fetching permissions during login:', error)
-            token.permissions = []
-          }
-        } else {
-          token.permissions = []
-        }
       }
-      
-      // Handle permission refresh trigger
-      if (trigger === 'update' && token.role?.id) {
-        try {
-          await client.connect()
-          const db = client.db('homexpert')
-          const { ObjectId } = await import('mongodb')
-          const role = await db.collection('roles').findOne({ 
-            _id: new ObjectId(token.role.id) 
-          }, { projection: { permissions: 1 } })
-          
-          if (role?.permissions && role.permissions.length > 0) {
-            const permissions = await db.collection('permissions').find({
-              _id: { $in: role.permissions }
-            }, { projection: { module: 1, action: 1, resource: 1 } }).toArray()
-            token.permissions = permissions
-          } else {
-            token.permissions = []
-          }
-        } catch (error) {
-          console.error('Error refreshing permissions:', error)
-          // Keep existing permissions on error
-        }
-      }
-      
       return token
     },
     async session({ session, token }) {
@@ -143,7 +92,7 @@ export const authOptions = {
         session.user.id = token.sub
         session.user.userId = token.userId
         session.user.role = token.role
-        session.user.permissions = token.permissions || []
+        // Permissions will be fetched separately when needed
       }
       return session
     },

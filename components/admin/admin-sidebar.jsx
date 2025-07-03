@@ -112,26 +112,26 @@ export function AdminSidebar() {
       href: "/admin/roles",
       permission: can.manageRoles,
     },
-    {
-      title: "Booking & Lead Assignment",
-      icon: <Calendar className="h-5 w-5" />,
-      href: "/admin/bookings",
-      permission: can.viewBookings,
-    },
+    // {
+    //   title: "Booking & Lead Assignment",
+    //   icon: <Calendar className="h-5 w-5" />,
+    //   href: "/admin/bookings",
+    //   permission: can.viewBookings,
+    // },
     // Debug menu - only show in development
     ...(process.env.NODE_ENV === 'development' ? [
-      {
-        title: "Permission Debug",
-        icon: <Settings className="h-5 w-5" />,
-        href: "/admin/debug/permissions",
-        permission: can.manageRoles, // Only for role managers
-      },
-      {
-        title: "Shimmer Demo",
-        icon: <Loader2 className="h-5 w-5" />,
-        href: "/admin/debug/shimmer",
-        permission: can.manageRoles, // Only for role managers
-      }
+      // {
+      //   title: "Permission Debug",
+      //   icon: <Settings className="h-5 w-5" />,
+      //   href: "/admin/debug/permissions",
+      //   permission: can.manageRoles, // Only for role managers
+      // },
+      // {
+      //   title: "Shimmer Demo",
+      //   icon: <Loader2 className="h-5 w-5" />,
+      //   href: "/admin/debug/shimmer",
+      //   permission: can.manageRoles, // Only for role managers
+      // }
     ] : [])
   ], [can]) // Only recalculate when permissions change
 
