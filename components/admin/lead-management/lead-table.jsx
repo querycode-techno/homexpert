@@ -233,7 +233,7 @@ function LeadTableRow({
             <DropdownMenuSeparator />
             
             {/* Quick Status Changes */}
-            <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
+            {/* <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
               Quick Status
             </div>
             {['contacted', 'completed', 'cancelled'].map((status) => (
@@ -245,7 +245,7 @@ function LeadTableRow({
                 <StatusIcon className="h-4 w-4 mr-2" />
                 Mark as {status.charAt(0).toUpperCase() + status.slice(1)}
               </DropdownMenuItem>
-            ))}
+            ))} */}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -336,54 +336,58 @@ export function LeadTable({
   }
 
   return (
-    <div className="space-y-4 w-full" >
-      <div className="rounded-md border max-w-full overflow-x-auto" >
-        <Table >
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={allSelected}
-                  indeterminate={indeterminate}
-                  onCheckedChange={(checked) => onSelectAll(checked)}
-                />
-              </TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Service</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Assignment</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Age</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leads.length === 0 ? (
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <div className="overflow-x-auto min-w-full ">
+          <Table className=" min-w-full">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <div className="text-muted-foreground">No leads found</div>
-                    <div className="text-sm text-muted-foreground">
-                      Try adjusting your filters or add new leads
-                    </div>
-                  </div>
-                </TableCell>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={allSelected}
+                    indeterminate={indeterminate}
+                    onCheckedChange={(checked) => onSelectAll(checked)}
+                  />
+                </TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Assignment</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Age</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
-            ) : (
-              leads.map((lead) => (
-                <LeadTableRow
-                  key={lead._id}
-                  lead={lead}
-                  isSelected={selectedLeads.includes(lead._id)}
-                  onSelection={onLeadSelection}
-                  onViewLead={onViewLead}
-                  onLeadAction={onLeadAction}
-                />
-              ))
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {leads.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-24 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <div className="text-muted-foreground">No leads found</div>
+                      <div className="text-sm text-muted-foreground">
+                        Try adjusting your filters or add new leads
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                leads.map((lead) => (
+                  <LeadTableRow
+                    key={lead._id}
+                    lead={lead}
+                    isSelected={selectedLeads.includes(lead._id)}
+                    onSelection={onLeadSelection}
+                    onViewLead={onViewLead}
+                    onLeadAction={onLeadAction}
+                  />
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+
       </div>
 
       {pagination && (

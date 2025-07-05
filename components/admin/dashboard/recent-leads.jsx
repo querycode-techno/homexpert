@@ -6,6 +6,7 @@ import { MoreHorizontal } from "lucide-react"
 import { useEffect } from "react";
 import { useState } from "react";
 import { LoadingTableSkeleton } from "@/components/loading-skeleton/loading-skeleton";
+import Link from "next/link";
 
 export function RecentLeads() {
   const [leads, setLeads] = useState([]);
@@ -59,14 +60,13 @@ export function RecentLeads() {
               <th className="text-left font-medium p-2">Service</th>
               <th className="text-left font-medium p-2">Status</th>
               <th className="text-right font-medium p-2">Amount</th>
-              <th className="text-right font-medium p-2"></th>
             </tr>
           </thead>
           {loading ? (
             <LoadingTableSkeleton row={5} col={6}/>
           ) : leads.length > 0 ? (
             <tbody>
-              {leads.map((lead) => ( 
+              {leads.slice(0,10).map((lead) => ( 
                 <tr key={lead._id} className="border-b">
                   <td className="p-2">{lead._id.slice(0,10)}...</td>
                   <td className="p-2">{lead.customerName}</td>
@@ -78,11 +78,6 @@ export function RecentLeads() {
                     </Badge>
                   </td>
                   <td className="p-2 text-right">{lead.price}</td>
-                  <td className="p-2 text-right">
-                    <Button variant="ghost" size="icon">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -96,10 +91,11 @@ export function RecentLeads() {
         </table>
       </div>
       <div className="flex justify-center">
-
-        <Button variant="outline" size="sm" >
-          View all leads
-        </Button>
+        <Link href="/admin/leads">
+          <Button variant="outline" size="sm">
+            View all leads in Details
+          </Button>
+        </Link>
       </div>
     </div>
   )

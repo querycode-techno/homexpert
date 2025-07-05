@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import servicesData from '@/lib/data/services.json'
 import { 
   Dialog,
   DialogContent,
@@ -26,14 +27,21 @@ import {
   X
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { userCreateLeadsNotificationFromUserSide } from '@/lib/services/notificationService'
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+  SelectLabel
+} from '@/components/ui/select'
+import { createNotification } from '@/lib/services/notificationService'
+import { getSession } from 'next-auth/react'
 
-export default function LeadFormPopup({ 
+
+export default function CreateLeadDialog({ 
   isOpen, 
-  onClose, 
-  service = '', 
-  subService = '', 
-  price = '' 
+  onClose,
 }) {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -51,15 +59,15 @@ export default function LeadFormPopup({
     pincode: '',
     
     // Service Details
-    service: service,
-    selectedService: `${service}${subService ? ` - ${subService}` : ''}`,
-    selectedSubService: subService,
+    categoryId: '',
+    serviceId: '',
+    subServiceName: '',
     description: '',
     additionalNotes: '',
     
     // Pricing
-    price: price !== 'Quote' ? price : undefined,
-    getQuote: price === 'Quote',
+    price: '',
+    getQuote: false,
     
     // Scheduling (optional)
     preferredDate: '',
@@ -80,11 +88,11 @@ export default function LeadFormPopup({
 
     try {
       // Client-side validation
-      const requiredFields = ['customerName', 'customerPhone', 'address']
-      const missingFields = requiredFields.filter(field => !formData[field].trim())
+      const requiredFields = ['customerName', 'customerPhone', 'address', 'categoryId', 'serviceId', 'subServiceName']
+      const missingFields = requiredFields.filter(field => !formData[field] || !formData[field].toString().trim())
       
       if (missingFields.length > 0) {
-        toast.error('Please fill in all required fields')
+        toast.error('Please fill in all required fields, including service selection')
         setLoading(false)
         return
       }
@@ -107,17 +115,22 @@ export default function LeadFormPopup({
         }
       }
 
-      // Prepare optimized payload for new API
+      // Look up service and subservice names from IDs
+      const selectedCategory = servicesData.categories.find(cat => cat.id === formData.categoryId);
+      const selectedService = selectedCategory?.services.find(s => s.id === formData.serviceId);
+      const selectedSubService = selectedService?.subServices.find(ss => ss.name === formData.subServiceName);
+
+      // Prepare optimized payload for new API (using names, not IDs)
       const leadPayload = {
         // Customer Information (matching new schema)
         customerName: formData.customerName.trim(),
         customerPhone: formData.customerPhone.trim(),
         customerEmail: formData.customerEmail.trim() || undefined,
         
-        // Service Information
-        service: formData.service || service,
-        selectedService: formData.selectedService || `${service}${subService ? ` - ${subService}` : ''}`,
-        selectedSubService: formData.selectedSubService || subService || undefined,
+        // Service Information (names, not IDs)
+        service: selectedService?.name || '',
+        selectedService: selectedService?.name || '',
+        selectedSubService: selectedSubService?.name || '',
         
         // Address (simplified for new schema)
         address: `${formData.address.trim()}${formData.city ? `, ${formData.city}` : ''}${formData.state ? `, ${formData.state}` : ''}${formData.pincode ? ` - ${formData.pincode}` : ''}`.trim(),
@@ -125,12 +138,12 @@ export default function LeadFormPopup({
         state: formData.state.trim() || undefined,
         
         // Lead Details
-        description: formData.description.trim() || `Service request for ${service}${subService ? ` - ${subService}` : ''}`,
+        description: formData.description.trim() || `Service request for ${selectedService?.name}${selectedSubService ? ` - ${selectedSubService.name}` : ''}`,
         additionalNotes: formData.additionalNotes.trim() || undefined,
         
         // Pricing
-        price: formData.price || (price && price !== 'Quote' ? parseFloat(price) : undefined),
-        getQuote: formData.getQuote || price === 'Quote',
+        price: formData.price || (formData.getQuote ? 'Quote' : undefined),
+        getQuote: formData.getQuote,
         
         // Scheduling
         preferredDate: formData.preferredDate || undefined,
@@ -162,7 +175,7 @@ export default function LeadFormPopup({
         if (typeof gtag !== 'undefined') {
           gtag('event', 'lead_submission', {
             event_category: 'engagement',
-            event_label: service,
+            event_label: selectedSubService?.name || selectedService?.name || selectedCategory?.name,
             value: formData.price || 0
           });
         }
@@ -170,16 +183,18 @@ export default function LeadFormPopup({
         throw new Error(result.error || 'Failed to submit your request')
       }
 
+      const userId = await getSession().then(session => session?.user?.id);
+
       const address = `${formData.address.trim()}${formData.city ? `, ${formData.city}` : ''}${formData.state ? `, ${formData.state}` : ''}${formData.pincode ? ` - ${formData.pincode}` : ''}`.trim();
-      const userId = "";
 
-      const res = await userCreateLeadsNotificationFromUserSide({
-        title:"New Booking is comming",
-        message: `Booking for ${formData.selectedSubService} and address : ${address}`,
+      const res = await createNotification({
+        title:"New Lead Create",
+        message: `New booking is comming for ${selectedSubService?.name} and address : ${address}`,
+        messageType:"Info",
+        target:"vendor",
+        userId:userId,
+        link:"",
       })
-
-      console.log(res);
-
 
     } catch (error) {
       console.error('Error submitting lead:', error)
@@ -212,13 +227,13 @@ export default function LeadFormPopup({
         city: '',
         state: '',
         pincode: '',
-        service: service,
-        selectedService: `${service}${subService ? ` - ${subService}` : ''}`,
-        selectedSubService: subService,
+        categoryId: '',
+        serviceId: '',
+        subServiceName: '',
         description: '',
         additionalNotes: '',
-        price: price !== 'Quote' ? price : undefined,
-        getQuote: price === 'Quote',
+        price: '',
+        getQuote: false,
         preferredDate: '',
         preferredTime: ''
       })
@@ -226,13 +241,13 @@ export default function LeadFormPopup({
     }
   }
 
-  // Success content (improved)
+  // This is show after the admin submit customers leads
   if (submitted) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-transparent shadow-none border-none">
           <DialogHeader>
-            <DialogTitle className="text-center text-green-600">Request Submitted!</DialogTitle>
+            <DialogTitle className="text-center text-green-600">Lead Booked for Customer!</DialogTitle>
           </DialogHeader>
           
           <div className="text-center space-y-4 py-4">
@@ -242,49 +257,19 @@ export default function LeadFormPopup({
             
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
               <p className="text-green-800">
-                Thank you for choosing our services! Your request has been successfully submitted.
+                The lead has been successfully booked for the customer.
               </p>
-              
               <div className="text-sm text-green-700 space-y-1">
-                <p><strong>Service:</strong> {service}{subService ? ` - ${subService}` : ''}</p>
+                <p><strong>Customer Name:</strong> {formData.customerName}</p>
                 <p><strong>Contact:</strong> {formData.customerPhone}</p>
-                {price && price !== 'Quote' && (
-                  <p><strong>Price:</strong> ₹{price}</p>
+                {formData.price && formData.price !== 'Quote' && (
+                  <p><strong>Price:</strong> ₹{formData.price}</p>
                 )}
               </div>
             </div>
-            
-            <div className="text-sm text-gray-600 space-y-3">
-              <p className="font-medium">What happens next?</p>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="flex flex-col items-center space-y-1">
-                  <div className="bg-blue-100 rounded-full p-2">
-                    <Phone className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <p className="font-medium">We'll Call</p>
-                  <p>Within 30 min</p>
-                </div>
-                
-                <div className="flex flex-col items-center space-y-1">
-                  <div className="bg-blue-100 rounded-full p-2">
-                    <Calendar className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <p className="font-medium">Schedule</p>
-                  <p>Convenient time</p>
-                </div>
-                
-                <div className="flex flex-col items-center space-y-1">
-                  <div className="bg-blue-100 rounded-full p-2">
-                    <CheckCircle className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <p className="font-medium">Service</p>
-                  <p>Professional</p>
-                </div>
-              </div>
-            </div>
-            
+
             <Button onClick={handleClose} className="w-full">
-              Book Another Service
+              Book Another Lead
             </Button>
           </div>
         </DialogContent>
@@ -294,69 +279,146 @@ export default function LeadFormPopup({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto ">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-blue-600 font-bold text-xl">
             <User className="h-5 w-5" />
-            Book Your Service
+            Book Service for a Customer
           </DialogTitle>
           <DialogDescription>
             Please provide your details so our team can contact you
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
           
-          {/* Service Summary */}
-          <div className="lg:col-span-1">
+          {/*Service Selection Form  */}
+           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Service Summary</CardTitle>
+                <CardTitle className="text-lg">Choose a Services</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Category Select */}
                 <div>
-                  <Label className="text-sm font-medium">Selected Service</Label>
-                  <p className="text-sm text-muted-foreground mt-1">{service}</p>
+                  <Label>Category</Label>
+                  <Select
+                    value={formData.categoryId || ''}
+                    onValueChange={val => {
+                      setFormData(prev => ({
+                        ...prev,
+                        categoryId: val,
+                        serviceId: '',
+                        subServiceName: '',
+                        price: '',
+                        getQuote: false,
+                      }))
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {servicesData.categories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                
-                {subService && (
+                {/* Service Select */}
+                <div>
+                  <Label>Service</Label>
+                  <Select
+                    value={formData.serviceId || ''}
+                    onValueChange={val => {
+                      setFormData(prev => ({
+                        ...prev,
+                        serviceId: val,
+                        subServiceName: '',
+                        price: '',
+                        getQuote: false,
+                      }))
+                    }}
+                    disabled={!formData.categoryId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select service" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(servicesData.categories.find(cat => cat.id === formData.categoryId)?.services || []).map(service => (
+                        <SelectItem key={service.id} value={service.id}>{service.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Subservice Select */}
+                <div>
+                  <Label>Subservice</Label>
+                  <Select
+                    value={formData.subServiceName || ''}
+                    onValueChange={val => {
+                      // Find price for this subservice
+                      const subService = (servicesData.categories.find(cat => cat.id === formData.categoryId)?.services.find(s => s.id === formData.serviceId)?.subServices || []).find(ss => ss.name === val)
+                      setFormData(prev => ({
+                        ...prev,
+                        subServiceName: val,
+                        price: subService?.price || '',
+                        getQuote: subService?.price === 'Quote',
+                      }))
+                    }}
+                    disabled={!formData.serviceId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select subservice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(servicesData.categories.find(cat => cat.id === formData.categoryId)?.services.find(s => s.id === formData.serviceId)?.subServices || []).map(subService => (
+                        <SelectItem key={subService.name} value={subService.name}>{subService.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Price Display */}
+                {formData.subServiceName && (
                   <div>
-                    <Label className="text-sm font-medium">Sub Service</Label>
-                    <p className="text-sm text-muted-foreground mt-1">{subService}</p>
-                  </div>
-                )}
-                
-                {price && (
-                  <div>
-                    <Label className="text-sm font-medium">Price</Label>
-                    <div className="mt-1">
-                      <Badge variant="secondary" className="text-lg">
-                        {price === 'Quote' ? 'Get Quote' : `₹${price}`}
-                      </Badge>
+                    <Label>Price</Label>
+                    <div className="text-lg font-semibold">
+                      {formData.price === 'Quote' || formData.getQuote
+                        ? 'Get Quote'
+                        : formData.price
+                          ? `₹${formData.price}`
+                          : '—'}
                     </div>
                   </div>
                 )}
-                
-                <div className="pt-4 border-t space-y-2">
-                  <div className="flex items-center text-sm text-green-600">
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Professional Service
-                  </div>
-                  <div className="flex items-center text-sm text-green-600">
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Verified Technicians
-                  </div>
-                  <div className="flex items-center text-sm text-green-600">
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    30-Day Warranty
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Lead Form (Simplified) */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 mb-10">
+            <div className="flex flex-col items-center justify-center text-center">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                Add Customer Details
+              </h2>
+              <div className="w-full  mt-2 mb-5" />
+            </div>
+            {/* Show selected service summary */}
+            {formData.categoryId && formData.serviceId && formData.subServiceName && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                <div className="font-medium text-blue-700">Selected Service:</div>
+                <div className="text-blue-900">
+                  {servicesData.categories.find(cat => cat.id === formData.categoryId)?.name}
+                  {' / '}
+                  {servicesData.categories.find(cat => cat.id === formData.categoryId)?.services.find(s => s.id === formData.serviceId)?.name}
+                  {' / '}
+                  {formData.subServiceName}
+                  {formData.price && (
+                    <span className="ml-2 text-green-700">{formData.price === 'Quote' || formData.getQuote ? 'Get Quote' : `₹${formData.price}`}</span>
+                  )}
+                </div>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
               
               {/* Personal Information */}
@@ -526,7 +588,7 @@ export default function LeadFormPopup({
                 <Button 
                   type="submit" 
                   className="flex-1" 
-                  disabled={loading}
+                  disabled={loading || !formData.categoryId || !formData.serviceId || !formData.subServiceName || !formData.customerName.trim() || !formData.customerPhone.trim() || !formData.address.trim()}
                 >
                   {loading ? (
                     <>
@@ -539,9 +601,7 @@ export default function LeadFormPopup({
                 </Button>
               </div>
               
-              <p className="text-xs text-muted-foreground text-center">
-                By submitting, you agree to our terms of service and privacy policy
-              </p>
+             
             </form>
           </div>
         </div>

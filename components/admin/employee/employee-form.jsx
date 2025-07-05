@@ -30,7 +30,8 @@ export function EmployeeForm({
     phone: "",
     password: "",
     role: "",
-    status: "Active",
+    type: "", // Add type field
+    status: "", // Remove hardcoded "Active"
     address: "",
   })
 
@@ -54,7 +55,8 @@ export function EmployeeForm({
         phone: employee.phone || "",
         password: "", // Don't populate password for editing
         role: employee.role?._id || employee.role || "",
-        status: employee.status || "Active",
+        type: employee.role?.name || employee.type || "", // Add type field
+        status: employee.status || "", // Remove default "Active"
         address: employee.address || "",
       })
     } else {
@@ -64,7 +66,8 @@ export function EmployeeForm({
         phone: "",
         password: "",
         role: "",
-        status: "Active",
+        type: "", // Add type field
+        status: "", // Remove hardcoded "Active"
         address: "",
       })
     }
@@ -93,14 +96,24 @@ export function EmployeeForm({
   }
 
   const handleSelectChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }))
+    if (name === "role") {
+      // Find the selected role to get its name
+      const selectedRole = roles.find(role => role._id === value)
+      setFormData(prev => ({ 
+        ...prev, 
+        [name]: value,
+        type: selectedRole ? selectedRole.name : "" // Set type to role name
+      }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
     // Validate form
-    if (!formData.name || !formData.email || !formData.phone || !formData.role) {
+    if (!formData.name || !formData.email || !formData.phone || !formData.role || !formData.status) {
       toast.error("Missing Fields: Please fill in all required fields.")
       return
     }
@@ -129,7 +142,8 @@ export function EmployeeForm({
       phone: "",
       password: "",
       role: "",
-      status: "Active",
+      type: "", // Add type field
+      status: "", // Remove hardcoded "Active"
       address: "",
     })
   }
@@ -223,7 +237,7 @@ export function EmployeeForm({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status">Status *</Label>
                 <Select 
                   value={formData.status} 
                   onValueChange={(value) => handleSelectChange("status", value)}

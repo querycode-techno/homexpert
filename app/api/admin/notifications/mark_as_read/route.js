@@ -1,14 +1,14 @@
-import Notification from "@/lib/models/notification";
+import NotificationRecipient from "@/lib/models/notificationRecipient";
 import connectDB from "@/lib/connnectDB";
 
 // mark as read
 export async function POST(req) {
-    const { notificationId } = await req.json();
+    const { notificationId, userId } = await req.json();
     await connectDB();
     try {
-      const updated = await Notification.findById(notificationId);
-      updated.read = true;
-      await updated.save();
+      const notificationRecipient = await NotificationRecipient.findOne({ notificationId, userId });
+      notificationRecipient.read = true;
+      await notificationRecipient.save();
       return new Response(JSON.stringify({ success: true  }), { status: 200 });
     } catch (error) {
       return new Response(JSON.stringify({ success: false, message: error.message }), { status: 400 });
