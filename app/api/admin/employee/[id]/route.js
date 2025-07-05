@@ -110,7 +110,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const { name, email, phone, password, role, address, profileImage } = body;
+    const { name, email, phone, password, role, address, profileImage, type, status } = body;
 
     // Validate required fields (name, email, phone are required)
     if (!name || !email || !phone) {
@@ -213,7 +213,9 @@ export async function PUT(request, { params }) {
       role: role ? new ObjectId(String(role)) : existingEmployee.role,
       address: address || existingEmployee.address,
       profileImage: profileImage !== undefined ? profileImage : existingEmployee.profileImage,
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      type:type,
+      status: status,
     };
 
     // If password is provided, hash it

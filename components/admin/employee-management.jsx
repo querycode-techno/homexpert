@@ -74,6 +74,7 @@ export function EmployeeManagement() {
   const handleAddEmployee = async (formData) => {
     try {
       setLoading(true)
+      console.log(formData);
       const result = await employeeService.createEmployee(formData)
       
       if (result.success) {
@@ -98,6 +99,7 @@ export function EmployeeManagement() {
   const handleUpdateEmployee = async (formData) => {
     try {
       setLoading(true)
+      console.log("formDAta", formData);
       const result = await employeeService.updateEmployee(currentEmployee._id, formData)
       
       if (result.success) {

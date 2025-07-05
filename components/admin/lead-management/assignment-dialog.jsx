@@ -42,6 +42,7 @@ export function AssignmentDialog({
     try {
       const response = await fetch(`/api/admin/leads/assign?leadIds=${selectedLeads.join(',')}`)
       const result = await response.json()
+      console.log(result);
       
       if (result.success) {
         setVendors(result.data.suggestedVendors || [])
@@ -60,6 +61,7 @@ export function AssignmentDialog({
 
   const handleAssign = async (assignToAll = false) => {
     const vendorsToAssign = assignToAll ? filteredVendors.map(v => v._id) : selectedVendors
+    
     
     if (vendorsToAssign.length === 0) {
       toast.error('Please select at least one vendor or use "Assign to All"')
@@ -171,7 +173,7 @@ export function AssignmentDialog({
                     <span>{vendor.rating?.toFixed(1) || 'N/A'}</span>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    Active Vendor
+                   {vendor.status}
                   </Badge>
                 </div>
               </div>

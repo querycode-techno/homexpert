@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Bell, Search, Settings, LogOut, User } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,7 +56,7 @@ export function AdminHeader() {
           />
         </div> */}
       </div>
-      <div className="flex flex-1 items-center justify-end gap-4 md:gap-2 md:flex-none">
+      <div className="flex flex-1 items-center justify-end gap-4 md:gap-6 md:flex-none">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
@@ -96,9 +95,7 @@ export function AdminHeader() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="ghost" size="icon">
-          <Settings className="h-5 w-5" />
-        </Button>
+        
         
         <DropdownMenu>
           <DropdownMenuTrigger >

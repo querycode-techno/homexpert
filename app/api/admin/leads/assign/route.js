@@ -294,7 +294,7 @@ async function getVendorsForRoundRobin(criteria, leadCount) {
   return vendors.map(v => v._id);
 }
 
-// GET /api/admin/leads/assign - Get assignment suggestions
+// GET /api/admin/leads/assign - Get assignment suggestions and return active vendor
 export async function GET(request) {
   try {
     await requireAdmin();
