@@ -109,10 +109,10 @@ export async function POST(request) {
     await requireAdmin();
 
     const body = await request.json();
-    const { name, email, phone, password, role, address, profileImage } = body;
+    const { name, email, phone, password, role, address, profileImage, type } = body;
 
     // Validation
-    if (!name || !email || !phone || !password || !role) {
+    if (!name || !email || !phone || !password || !role || !type) {
       return NextResponse.json(
         { 
           success: false, 
@@ -184,8 +184,9 @@ export async function POST(request) {
       );
     }
 
-    // Check if phone already exists
+    // Check if phone already exists 
     const existingPhone = await usersCollection.findOne({ phone });
+ 
     if (existingPhone) {
       return NextResponse.json(
         { 
@@ -210,7 +211,8 @@ export async function POST(request) {
       address: address || {},
       profileImage: profileImage || null,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      type:type,
     };
 
     // Create new employee

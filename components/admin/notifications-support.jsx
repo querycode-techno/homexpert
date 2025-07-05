@@ -31,8 +31,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { createNotification, deleteNotification, fetchNotifications, markAsRead } from "@/lib/services/notificationService"
-import { useSession } from "next-auth/react"
+import { createNotification, deleteNotification, fetchAdminNotifications, markAsRead } from "@/lib/services/notificationService"
+import { getSession, useSession } from "next-auth/react"
 import { SupportTickets } from "./notification/support-tickets"
 import { formatToCustomDateTime } from "@/lib/dateFormateUtils"
 
@@ -55,9 +55,8 @@ export function NotificationsSupport() {
   })
 
   const { data: session } = useSession()
-  const userId = session?.user?.id;
 
-  const titlemap = {
+  const targetmap = {
     "All Users": "user",
     "Vendors": "vendor",
     "Customers": "customer",
@@ -65,6 +64,16 @@ export function NotificationsSupport() {
     "Admin": "admin",
     "Helpline":"helpline",
     "Telecaller":"telecaller",
+  }
+
+  const targetmapreverse = {
+    "user": "All Users",
+    "vendor": "Vendors",
+    "customer": "Customers",
+    "support_team": "Support Team",
+    "admin": "Admin",
+    "helpline": "Helpline",
+    "telecaller": "Telecaller",
   }
 
   // Notifications pagination state
@@ -75,10 +84,16 @@ export function NotificationsSupport() {
   const [supportPage, setSupportPage] = useState(1)
   const [supportLimit, setSupportLimit] = useState(10)
 
+  
+
   useEffect(() => {
       setNotificationLoading(true);
+
       const fetchNotis = async () => {
-        const notis = await fetchNotifications()
+        const userId = await getSession().then(session => session?.user?.id)
+        console.log("userId", userId);
+        const notis = await fetchAdminNotifications(userId)
+        console.log("notis", notis);
         setNotifications(notis)
       }
       fetchNotis()
@@ -142,21 +157,18 @@ export function NotificationsSupport() {
       message: notificationForm.message,
       date: new Date().toISOString().split("T")[0],
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      type: notificationForm.type,
-      read: false,
-      target: notificationForm.target,
+      messageType: notificationForm.type,
+      target: targetmap[notificationForm.target],
     }
     
+    const userId = await getSession().then(session => session?.user?.id)
 
     const res = await createNotification({
       title: notificationForm.title,
       message: notificationForm.message,
-      type: notificationForm.type,
-      target: titlemap[notificationForm.target],
-      isBulkNotification: false,
-      createdBy: userId,
-      date: new Date().toISOString().split("T")[0],
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      messageType: notificationForm.type,
+      target: targetmap[notificationForm.target],
+      userId: userId,
     })
     console.log("res", res)
 
@@ -244,6 +256,7 @@ export function NotificationsSupport() {
                 <Button variant="outline" size="sm" className="h-8" onClick={handleMarkAllAsRead}>
                   Mark All as Read
                 </Button>
+                
                 <Dialog open={isCreateNotificationOpen} onOpenChange={setIsCreateNotificationOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="h-8 gap-1">
@@ -254,7 +267,7 @@ export function NotificationsSupport() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Create Notification</DialogTitle>
-                      <DialogDescription>Create a new notification to send to users.</DialogDescription>
+                      <DialogDescription>Create a new notification to send to all users.</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="space-y-2">
@@ -374,11 +387,11 @@ export function NotificationsSupport() {
                               <td className="p-2 max-w-[200px] truncate">{notification.message}</td>
                               <td className="p-2">{formatToCustomDateTime(notification.date, notification.time)}</td>
                               <td className="p-2">
-                                <Badge variant="default" className={getNotificationTypeColor(notification.type)}>
-                                  {notification.type}
+                                <Badge variant="default" className={getNotificationTypeColor(notification.messageType)}>
+                                  {notification.messageType}
                                 </Badge>
                               </td>
-                              <td className="p-2">{notification.target}</td>
+                              <td className="p-2">{targetmapreverse[notification.target]}</td>
                               <td className="p-2">
                                 <Badge variant="outline" className={notification.read ? "bg-gray-200" : "bg-blue-200"}>
                                   {notification.read ? "Read" : "Unread"}
@@ -440,6 +453,9 @@ export function NotificationsSupport() {
                       >
                         <option value={10}>10</option>
                         <option value={20}>20</option>
+                        <option value={30}>30</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
                       </select>
                     </div>
                     <div className="flex items-center gap-2">
