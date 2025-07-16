@@ -41,11 +41,11 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-4">
+        {/* <div className="hidden md:flex items-center gap-4">
           <Button asChild className="bg-blue-500 text-white hover:bg-blue-600">
             <Link href="/auth/admin-login">Admin Login</Link>
           </Button>
-        </div>
+        </div> */}
 
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild className="md:hidden">

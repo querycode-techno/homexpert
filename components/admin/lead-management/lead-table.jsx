@@ -24,6 +24,43 @@ import {
 } from "lucide-react"
 import { format, formatDistanceToNow } from "date-fns"
 
+// Function to parse city from address format
+const parseCity = (address) => {
+  if (!address) return 'Unknown'
+  
+  try {
+    // Remove pincode pattern (ends with - followed by numbers)
+    const withoutPincode = address.replace(/\s*-\s*\d+\s*$/, '')
+    
+    // Split by comma and get the parts
+    const parts = withoutPincode.split(',').map(part => part.trim())
+    
+    if (parts.length >= 2) {
+      // Get the second-to-last part (city is usually before state)
+      const cityPart = parts[parts.length - 2]
+      
+      // Handle cases like "Noida Sector 35/4, Noida, Uttar Pradesh"
+      // where city might be repeated
+      const lastPart = parts[parts.length - 1]
+      
+      // If last part doesn't look like a state (contains numbers or special chars)
+      // then use the last part as city
+      if (lastPart && /\d|\//.test(lastPart)) {
+        return cityPart || 'Unknown'
+      }
+      
+      // Otherwise use the second-to-last part
+      return cityPart || 'Unknown'
+    }
+    
+    // If only one part, return it as city
+    return parts[0] || 'Unknown'
+  } catch (error) {
+    console.error('Error parsing city:', error)
+    return 'Unknown'
+  }
+}
+
 // Status configuration
 const STATUS_CONFIG = {
   pending: {
@@ -132,25 +169,27 @@ function LeadTableRow({
 
       {/* Contact Details */}
       <TableCell>
-        <div className="space-y-1">
-          <div className="flex items-center text-sm">
-            <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-            <span className="truncate max-w-[200px]">
-              {lead.customerEmail || 'No email'}
-            </span>
-          </div>
-          {lead.address?.city && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3 mr-1" />
-              {lead.address.city}
-            </div>
-          )}
+        <div className="flex items-center text-sm">
+          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
+          <span className="truncate max-w-[200px]">
+            {lead.customerEmail || 'No email'}
+          </span>
+        </div>
+      </TableCell>
+
+      {/* City */}
+      <TableCell>
+        <div className="flex items-center text-sm">
+          <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
+          <span className="truncate max-w-[120px]">
+            {parseCity(lead.address)}
+          </span>
         </div>
       </TableCell>
 
       {/* Service */}
-      <TableCell>
-        <div className="min-w-0">
+      <TableCell className="w-48">
+        <div className="min-w-0 max-w-[180px]">
           <div className="font-medium truncate">
             {lead.selectedService || lead.service || 'No service'}
           </div>
@@ -190,23 +229,7 @@ function LeadTableRow({
         )}
       </TableCell>
 
-      {/* Date */}
-      <TableCell>
-        <div className="text-sm">
-          {lead.createdAt ? format(new Date(lead.createdAt), 'MMM dd') : 'Unknown'}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {lead.createdAt ? formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true }) : ''}
-        </div>
-      </TableCell>
-
-      {/* Lead Age */}
-      <TableCell>
-        <div className="text-sm">
-          {lead.leadAge ? `${Math.round(lead.leadAge)}d` : 'N/A'}
-        </div>
-      </TableCell>
-
+    
       {/* Actions */}
       <TableCell className="w-12">
         <DropdownMenu>
@@ -351,18 +374,17 @@ export function LeadTable({
                 </TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Service</TableHead>
+                <TableHead>City</TableHead>
+                <TableHead className="w-48">Service</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Assignment</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Age</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center">
+                  <TableCell colSpan={8} className="h-24 text-center">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="text-muted-foreground">No leads found</div>
                       <div className="text-sm text-muted-foreground">

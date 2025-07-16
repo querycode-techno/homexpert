@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import {
   Table,
   TableBody,
@@ -94,6 +94,18 @@ export function VendorList({
     service: "",
     verified: ""
   })
+  
+  // Debounce timeout ref
+  const searchTimeoutRef = useRef(null)
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // Filter vendors based on search and filters
   const filteredVendors = useMemo(() => {
@@ -124,7 +136,16 @@ export function VendorList({
 
   const handleSearch = (value) => {
     setSearchTerm(value)
-    onSearch?.(value)
+    
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+    
+    // Set new timeout for debounced API call
+    searchTimeoutRef.current = setTimeout(() => {
+      onSearch?.(value)
+    }, 500)
   }
 
   const handleFilterChange = (newFilters) => {
@@ -204,7 +225,13 @@ export function VendorList({
         <CardContent>
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
+            <form 
+              className="relative flex-1"
+              onSubmit={(e) => {
+                e.preventDefault()
+                // Prevent form submission that causes page reload
+              }}
+            >
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search vendors, businesses, cities..."
@@ -212,11 +239,12 @@ export function VendorList({
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10"
               />
-            </div>
+            </form>
             <Button
               variant="outline"
               onClick={() => setShowFilters(!showFilters)}
               className="whitespace-nowrap"
+              type="button"
             >
               <Filter className="h-4 w-4 mr-2" />
               Filters
@@ -262,6 +290,7 @@ export function VendorList({
                             variant="link"
                             onClick={() => handleSearch("")}
                             className="h-auto p-0"
+                            type="button"
                           >
                             Clear search
                           </Button>

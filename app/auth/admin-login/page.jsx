@@ -41,7 +41,8 @@ export default function AdminLoginPage() {
             console.log('Session after login:', session) // Debug log
             
             if (hasAdminAccess(session?.user?.role)) {
-              router.push('/admin')
+              // Force full page reload instead of client-side navigation
+              window.location.href = '/admin'
             } else {
               setError('Access denied. Administrative privileges required.')
               setIsLoading(false)
