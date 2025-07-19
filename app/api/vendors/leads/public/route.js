@@ -304,56 +304,40 @@ export async function GET(request) {
       const hoursAgo = Math.floor((now - lead.createdAt) / (1000 * 60 * 60));
       const isUrgent = hoursAgo >= 24;
 
-      // Calculate service relevance score
+      // Simple service match check
       const vendorServicesLower = vendor.services.map(s => s.toLowerCase().trim());
       const leadServiceLower = lead.service?.toLowerCase().trim();
       const leadSelectedServiceLower = lead.selectedService?.toLowerCase().trim();
       const leadSelectedSubServiceLower = lead.selectedSubService?.toLowerCase().trim();
       
-      let relevanceScore = 0;
-      let matchType = 'partial';
+      // Determine if it's exact or partial match
+      let serviceMatchType = 'partial';
+      let matchedService = null;
       
-      // Exact matches get higher scores
+      // Check for exact matches first
       if (vendorServicesLower.includes(leadServiceLower)) {
-        relevanceScore = 100;
-        matchType = 'exact';
+        serviceMatchType = 'exact';
+        matchedService = leadServiceLower;
       } else if (vendorServicesLower.includes(leadSelectedServiceLower)) {
-        relevanceScore = 90;
-        matchType = 'exact';
+        serviceMatchType = 'exact';
+        matchedService = leadSelectedServiceLower;
       } else if (vendorServicesLower.includes(leadSelectedSubServiceLower)) {
-        relevanceScore = 85;
-        matchType = 'exact';
+        serviceMatchType = 'exact';
+        matchedService = leadSelectedSubServiceLower;
       } else {
-        // Partial matches get lower scores
-        relevanceScore = 60;
-        matchType = 'partial';
+        // Find partial match
+        matchedService = vendorServicesLower.find(vs => 
+          leadServiceLower?.includes(vs) || 
+          leadSelectedServiceLower?.includes(vs) || 
+          leadSelectedSubServiceLower?.includes(vs) ||
+          vs.includes(leadServiceLower) ||
+          vs.includes(leadSelectedServiceLower) ||
+          vs.includes(leadSelectedSubServiceLower)
+        );
       }
 
-      // Calculate location relevance
+      // Simple location match check
       const locationMatch = isLocationMatch(lead.address, vendor.address, vendor.address?.serviceAreas);
-      let locationRelevanceScore = 0;
-      
-      if (locationMatch.match) {
-        switch (locationMatch.type) {
-          case 'primary_city':
-            locationRelevanceScore = 100;
-            break;
-          case 'service_area_city':
-            locationRelevanceScore = 90;
-            break;
-          case 'service_area_specific':
-            locationRelevanceScore = 85;
-            break;
-          case 'same_state':
-            locationRelevanceScore = 60;
-            break;
-          default:
-            locationRelevanceScore = 50;
-        }
-      }
-
-      // Combined relevance score (service 70% + location 30%)
-      const combinedRelevanceScore = Math.round((relevanceScore * 0.7) + (locationRelevanceScore * 0.3));
 
       return {
         id: lead._id.toString(),
@@ -371,33 +355,18 @@ export async function GET(request) {
           lead.description.substring(0, 100) + '... [Subscribe to view full details]' : 
           lead.description,
         
-        // Service relevance information
-        serviceRelevance: {
-          score: relevanceScore,
-          matchType: matchType,
-          matchedService: vendorServicesLower.find(vs => 
-            leadServiceLower?.includes(vs) || 
-            leadSelectedServiceLower?.includes(vs) || 
-            leadSelectedSubServiceLower?.includes(vs) ||
-            vs === leadServiceLower ||
-            vs === leadSelectedServiceLower ||
-            vs === leadSelectedSubServiceLower
-          )
+        // Simplified service relevance information
+        serviceMatch: {
+          type: serviceMatchType,
+          matchedService: matchedService,
+          isExactMatch: serviceMatchType === 'exact'
         },
 
-        // Location relevance information
-        locationRelevance: {
-          score: locationRelevanceScore,
-          matchType: locationMatch.type,
-          matchedArea: locationMatch.area,
-          isLocalArea: locationMatch.type === 'primary_city' || locationMatch.type === 'service_area_specific'
-        },
-
-        // Combined relevance score
-        overallRelevance: {
-          score: combinedRelevanceScore,
-          serviceWeight: 70,
-          locationWeight: 30
+        // Simplified location relevance information
+        locationMatch: {
+          type: locationMatch.type,
+          area: locationMatch.area,
+          isLocal: locationMatch.type === 'primary_city' || locationMatch.type === 'service_area_specific'
         },
         
         // Location - PARTIALLY MASKED
@@ -441,11 +410,25 @@ export async function GET(request) {
       };
     });
 
-    // Sort by combined relevance score (highest first) then by creation date
+    // Simple sorting: exact matches first, then by creation date
     formattedLeads.sort((a, b) => {
-      if (a.overallRelevance.score !== b.overallRelevance.score) {
-        return b.overallRelevance.score - a.overallRelevance.score;
+      // Prioritize exact service matches
+      if (a.serviceMatch.isExactMatch && !b.serviceMatch.isExactMatch) {
+        return -1;
       }
+      if (!a.serviceMatch.isExactMatch && b.serviceMatch.isExactMatch) {
+        return 1;
+      }
+      
+      // Then prioritize local leads
+      if (a.locationMatch.isLocal && !b.locationMatch.isLocal) {
+        return -1;
+      }
+      if (!a.locationMatch.isLocal && b.locationMatch.isLocal) {
+        return 1;
+      }
+      
+      // Finally sort by creation date (newest first)
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
@@ -564,8 +547,8 @@ export async function GET(request) {
           enabled: true,
           message: `Showing leads relevant to your services: ${vendor.services.join(', ')}`,
           totalRelevantLeads,
-          exactMatches: formattedLeads.filter(l => l.serviceRelevance.matchType === 'exact').length,
-          partialMatches: formattedLeads.filter(l => l.serviceRelevance.matchType === 'partial').length
+          exactMatches: formattedLeads.filter(l => l.serviceMatch.isExactMatch).length,
+          partialMatches: formattedLeads.filter(l => !l.serviceMatch.isExactMatch).length
         },
         locationFiltering: {
           enabled: true,
@@ -573,8 +556,8 @@ export async function GET(request) {
           primaryCity: vendor.address?.city,
           state: vendor.address?.state,
           serviceAreas: vendor.address?.serviceAreas || [],
-          localLeads: formattedLeads.filter(l => l.locationRelevance.isLocalArea).length,
-          nearbyLeads: formattedLeads.filter(l => !l.locationRelevance.isLocalArea).length
+          localLeads: formattedLeads.filter(l => l.locationMatch.isLocal).length,
+          nearbyLeads: formattedLeads.filter(l => !l.locationMatch.isLocal).length
         },
         marketOverview: {
           totalRelevantLeads,
