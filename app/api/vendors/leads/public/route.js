@@ -29,15 +29,7 @@ export async function GET(request) {
 
     // Get database collections
     const leadsCollection = await database.getLeadsCollection();
-    const subscriptionHistoryCollection = await database.getSubscriptionHistoryCollection();
     const vendorsCollection = await database.getVendorsCollection();
-
-    // Check if vendor has active subscription
-    const activeSubscription = await subscriptionHistoryCollection.findOne({
-      user: new ObjectId(userId),
-      status: 'active',
-      isActive: true
-    });
 
     // Get vendor details including their services
     const vendor = await vendorsCollection.findOne({ _id: new ObjectId(vendorId) });
@@ -272,18 +264,13 @@ export async function GET(request) {
       return serviceMatch && locationMatch.match;
     });
 
-    // Helper function to mask sensitive data
-    const maskSensitiveData = (text, visibleChars = 2) => {
-      if (!text) return '****';
-      if (text.length <= visibleChars) return '****';
-      return text.substring(0, visibleChars) + '****';
-    };
-
+    // Helper function to mask phone
     const maskPhone = (phone) => {
       if (!phone) return '****';
       return phone.substring(0, 3) + '****' + phone.substring(phone.length - 2);
     };
 
+    // Helper function to mask email
     const maskEmail = (email) => {
       if (!email) return '****';
       const [username, domain] = email.split('@');
@@ -291,11 +278,27 @@ export async function GET(request) {
       return username.substring(0, 2) + '****@' + domain;
     };
 
+    // Helper function to mask address - keep city, state, pincode but mask street/area
     const maskAddress = (address) => {
       if (!address) return '****';
+      
+      // Split by comma to get address parts
+      const parts = address.split(',').map(part => part.trim());
+      
+      if (parts.length >= 2) {
+        // Replace first part (street/area) with asterisks, keep rest
+        parts[0] = '********';
+        return parts.join(', ');
+      }
+      
+      // If no comma, just mask the first part
       const words = address.split(' ');
-      if (words.length <= 2) return words[0] + ' ****';
-      return words.slice(0, 2).join(' ') + ' ****';
+      if (words.length > 1) {
+        words[0] = '********';
+        return words.join(' ');
+      }
+      
+      return '********';
     };
 
     // Format leads data with masked sensitive information
@@ -342,8 +345,8 @@ export async function GET(request) {
       return {
         id: lead._id.toString(),
         
-        // Customer info - MASKED
-        customerName: maskSensitiveData(lead.customerName, 3),
+        // Customer info - Name unmasked, phone/email masked
+        customerName: lead.customerName, // Unmasked as requested
         customerPhone: maskPhone(lead.customerPhone),
         customerEmail: maskEmail(lead.customerEmail),
         
@@ -369,7 +372,7 @@ export async function GET(request) {
           isLocal: locationMatch.type === 'primary_city' || locationMatch.type === 'service_area_specific'
         },
         
-        // Location - PARTIALLY MASKED
+        // Location - Street/area masked, city/state/pincode visible
         address: maskAddress(lead.address),
         area: lead.address.split(',')[0] || 'Area ****', // Show general area only
         
@@ -498,25 +501,6 @@ export async function GET(request) {
 
     const estimatedValue = totalValueRelevant[0]?.totalValue || 0;
 
-    // Subscription plans for call-to-action
-    const subscriptionPlansCollection = await database.getSubscriptionPlansCollection();
-    const plans = await subscriptionPlansCollection
-      .find({ isActive: true })
-      .sort({ price: 1 })
-      .limit(3)
-      .toArray();
-
-    const formattedPlans = plans.map(plan => ({
-      id: plan._id.toString(),
-      planName: plan.planName,
-      duration: plan.duration,
-      totalLeads: plan.totalLeads,
-      price: plan.price,
-      discountedPrice: plan.discountedPrice,
-      effectivePrice: plan.discountedPrice || plan.price,
-      pricePerLead: Math.round((plan.discountedPrice || plan.price) / plan.totalLeads)
-    }));
-
     // Pagination info (based on filtered results)
     const pagination = {
       currentPage: page,
@@ -530,13 +514,6 @@ export async function GET(request) {
       success: true,
       data: {
         leads: formattedLeads,
-        subscriptionRequired: !activeSubscription,
-        subscription: activeSubscription ? {
-          id: activeSubscription._id.toString(),
-          planName: activeSubscription.planSnapshot.planName,
-          leadsRemaining: activeSubscription.usage.leadsRemaining,
-          status: 'active'
-        } : null,
         vendorServices: vendor.services, // Show vendor's services for reference
         vendorLocation: {
           city: vendor.address?.city,
@@ -569,24 +546,17 @@ export async function GET(request) {
           })
         },
         callToAction: {
-          title: activeSubscription ? 
-            'You have an active subscription!' : 
-            'Subscribe now to access relevant leads for your services!',
-          message: activeSubscription ?
-            'Start taking leads that match your expertise and grow your business.' :
-            `Join thousands of vendors earning more with leads specifically filtered for your services (${vendor.services.join(', ')}) in ${vendor.address?.city || 'your area'}`,
+          title: 'Subscribe now to access these leads!',
+          message: `Get leads specifically filtered for your services (${vendor.services.join(', ')}) in ${vendor.address?.city || 'your area'}`,
           benefits: [
-            'View complete customer contact information',
-            'Access exact addresses and locations',
-            'See full project descriptions and requirements',
-            'Direct customer communication',
-            'Lead management and follow-up tools',
-            'Priority customer support',
-            'Performance analytics and insights'
+            'View complete customer contact details',
+            'Access full address and location',
+            'See complete project descriptions and requirements',
+            'Contact customer directly',
+            'Get follow-up reminders'
           ],
           urgencyMessage: `${totalRelevantLeads} relevant leads worth ₹${estimatedValue.toLocaleString()} waiting for vendors like you!`
         },
-        availablePlans: formattedPlans,
         filters: {
           appliedFilters: {
             service: service || null,
@@ -601,11 +571,9 @@ export async function GET(request) {
         pagination
       },
       meta: {
-        requiresSubscription: !activeSubscription,
         leadPreviewMode: true,
         serviceFilteringEnabled: true,
-        locationFilteringEnabled: true,
-        upgradeUrl: '/api/vendors/subscriptions'
+        locationFilteringEnabled: true
       }
     });
 
