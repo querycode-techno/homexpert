@@ -39,8 +39,119 @@ export async function GET(request) {
       isActive: true
     });
 
-    // Get vendor details
+    // Get vendor details including their services
     const vendor = await vendorsCollection.findOne({ _id: new ObjectId(vendorId) });
+
+    if (!vendor) {
+      return NextResponse.json({
+        success: false,
+        error: 'Vendor not found'
+      }, { status: 404 });
+    }
+
+    // Helper function to check if lead service matches vendor services
+    const isServiceMatch = (leadService, leadSelectedService, leadSelectedSubService, vendorServices) => {
+      if (!vendorServices || vendorServices.length === 0) return false;
+      
+      // Convert vendor services to lowercase for case-insensitive comparison
+      const vendorServicesLower = vendorServices.map(s => s.toLowerCase().trim());
+      
+      // Check exact matches first
+      const leadServiceLower = leadService?.toLowerCase().trim();
+      const leadSelectedServiceLower = leadSelectedService?.toLowerCase().trim();
+      const leadSelectedSubServiceLower = leadSelectedSubService?.toLowerCase().trim();
+      
+      // 1. Exact match with vendor service
+      if (leadServiceLower && vendorServicesLower.includes(leadServiceLower)) {
+        return true;
+      }
+      
+      // 2. Exact match with selected service
+      if (leadSelectedServiceLower && vendorServicesLower.includes(leadSelectedServiceLower)) {
+        return true;
+      }
+      
+      // 3. Exact match with selected sub-service
+      if (leadSelectedSubServiceLower && vendorServicesLower.includes(leadSelectedSubServiceLower)) {
+        return true;
+      }
+      
+      // 4. Partial match - check if vendor service is contained in lead service
+      for (const vendorService of vendorServicesLower) {
+        if (leadServiceLower && leadServiceLower.includes(vendorService)) {
+          return true;
+        }
+        if (leadSelectedServiceLower && leadSelectedServiceLower.includes(vendorService)) {
+          return true;
+        }
+        if (leadSelectedSubServiceLower && leadSelectedSubServiceLower.includes(vendorService)) {
+          return true;
+        }
+      }
+      
+      // 5. Reverse partial match - check if lead service is contained in vendor service
+      for (const vendorService of vendorServicesLower) {
+        if (leadServiceLower && vendorService.includes(leadServiceLower)) {
+          return true;
+        }
+        if (leadSelectedServiceLower && vendorService.includes(leadSelectedServiceLower)) {
+          return true;
+        }
+        if (leadSelectedSubServiceLower && vendorService.includes(leadSelectedSubServiceLower)) {
+          return true;
+        }
+      }
+      
+      return false;
+    };
+
+    // Helper function to check if lead location matches vendor's service areas
+    const isLocationMatch = (leadAddress, vendorAddress, vendorServiceAreas) => {
+      if (!leadAddress) return false;
+      
+      const leadAddressLower = leadAddress.toLowerCase().trim();
+      
+      // 1. Check vendor's primary city
+      if (vendorAddress?.city) {
+        const vendorCityLower = vendorAddress.city.toLowerCase().trim();
+        if (leadAddressLower.includes(vendorCityLower)) {
+          return { match: true, type: 'primary_city', area: vendorAddress.city };
+        }
+      }
+      
+      // 2. Check vendor's state (broader match)
+      if (vendorAddress?.state) {
+        const vendorStateLower = vendorAddress.state.toLowerCase().trim();
+        if (leadAddressLower.includes(vendorStateLower)) {
+          return { match: true, type: 'same_state', area: vendorAddress.state };
+        }
+      }
+      
+      // 3. Check service areas if defined
+      if (vendorServiceAreas && vendorServiceAreas.length > 0) {
+        for (const serviceArea of vendorServiceAreas) {
+          // Check service area city
+          if (serviceArea.city) {
+            const serviceAreaCityLower = serviceArea.city.toLowerCase().trim();
+            if (leadAddressLower.includes(serviceAreaCityLower)) {
+              return { match: true, type: 'service_area_city', area: serviceArea.city };
+            }
+          }
+          
+          // Check specific areas within service area
+          if (serviceArea.areas && serviceArea.areas.length > 0) {
+            for (const area of serviceArea.areas) {
+              const areaLower = area.toLowerCase().trim();
+              if (leadAddressLower.includes(areaLower)) {
+                return { match: true, type: 'service_area_specific', area: area };
+              }
+            }
+          }
+        }
+      }
+      
+      return { match: false, type: 'no_match', area: null };
+    };
 
     // Build query for pending leads (not assigned to any vendor yet)
     const query = {
@@ -51,14 +162,81 @@ export async function GET(request) {
       ]
     };
 
-    // Add service filter
-    if (service) {
-      query.service = new RegExp(service, 'i');
+    // Add location filter based on vendor's city and service areas
+    if (vendor.address?.city || (vendor.address?.serviceAreas && vendor.address.serviceAreas.length > 0)) {
+      const locationConditions = [];
+      
+      // Add vendor's primary city
+      if (vendor.address.city) {
+        const cityRegex = new RegExp(vendor.address.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        locationConditions.push({ address: cityRegex });
+      }
+      
+      // Add vendor's state for broader coverage
+      if (vendor.address.state) {
+        const stateRegex = new RegExp(vendor.address.state.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        locationConditions.push({ address: stateRegex });
+      }
+      
+      // Add service areas if defined
+      if (vendor.address.serviceAreas && vendor.address.serviceAreas.length > 0) {
+        for (const serviceArea of vendor.address.serviceAreas) {
+          if (serviceArea.city) {
+            const serviceAreaCityRegex = new RegExp(serviceArea.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+            locationConditions.push({ address: serviceAreaCityRegex });
+          }
+          
+          if (serviceArea.areas && serviceArea.areas.length > 0) {
+            for (const area of serviceArea.areas) {
+              const areaRegex = new RegExp(area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+              locationConditions.push({ address: areaRegex });
+            }
+          }
+        }
+      }
+      
+      // Add location filtering to main query
+      if (locationConditions.length > 0) {
+        query.$and = query.$and || [];
+        query.$and.push({ $or: locationConditions });
+      }
     }
 
-    // Add location filter (broad area)
+    // Add service filter based on vendor's services
+    if (vendor.services && vendor.services.length > 0) {
+      // Create service filter conditions
+      const serviceConditions = [];
+      
+      for (const vendorService of vendor.services) {
+        const serviceRegex = new RegExp(vendorService.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        serviceConditions.push(
+          { service: serviceRegex },
+          { selectedService: serviceRegex },
+          { selectedSubService: serviceRegex }
+        );
+      }
+      
+      // Add service filtering to main query
+      query.$and = query.$and || [];
+      query.$and.push({ $or: serviceConditions });
+    }
+
+    // Add additional service filter from query params
+    if (service) {
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { service: new RegExp(service, 'i') },
+          { selectedService: new RegExp(service, 'i') },
+          { selectedSubService: new RegExp(service, 'i') }
+        ]
+      });
+    }
+
+    // Add additional location filter from query params
     if (location) {
-      query.address = new RegExp(location, 'i');
+      query.$and = query.$and || [];
+      query.$and.push({ address: new RegExp(location, 'i') });
     }
 
     // Add price filter
@@ -87,6 +265,13 @@ export async function GET(request) {
       .limit(limit)
       .toArray();
 
+    // Filter leads on application level for more precise matching
+    const relevantLeads = leads.filter(lead => {
+      const serviceMatch = isServiceMatch(lead.service, lead.selectedService, lead.selectedSubService, vendor.services);
+      const locationMatch = isLocationMatch(lead.address, vendor.address, vendor.address?.serviceAreas);
+      return serviceMatch && locationMatch.match;
+    });
+
     // Helper function to mask sensitive data
     const maskSensitiveData = (text, visibleChars = 2) => {
       if (!text) return '****';
@@ -114,10 +299,61 @@ export async function GET(request) {
     };
 
     // Format leads data with masked sensitive information
-    const formattedLeads = leads.map(lead => {
+    const formattedLeads = relevantLeads.map(lead => {
       const now = new Date();
       const hoursAgo = Math.floor((now - lead.createdAt) / (1000 * 60 * 60));
       const isUrgent = hoursAgo >= 24;
+
+      // Calculate service relevance score
+      const vendorServicesLower = vendor.services.map(s => s.toLowerCase().trim());
+      const leadServiceLower = lead.service?.toLowerCase().trim();
+      const leadSelectedServiceLower = lead.selectedService?.toLowerCase().trim();
+      const leadSelectedSubServiceLower = lead.selectedSubService?.toLowerCase().trim();
+      
+      let relevanceScore = 0;
+      let matchType = 'partial';
+      
+      // Exact matches get higher scores
+      if (vendorServicesLower.includes(leadServiceLower)) {
+        relevanceScore = 100;
+        matchType = 'exact';
+      } else if (vendorServicesLower.includes(leadSelectedServiceLower)) {
+        relevanceScore = 90;
+        matchType = 'exact';
+      } else if (vendorServicesLower.includes(leadSelectedSubServiceLower)) {
+        relevanceScore = 85;
+        matchType = 'exact';
+      } else {
+        // Partial matches get lower scores
+        relevanceScore = 60;
+        matchType = 'partial';
+      }
+
+      // Calculate location relevance
+      const locationMatch = isLocationMatch(lead.address, vendor.address, vendor.address?.serviceAreas);
+      let locationRelevanceScore = 0;
+      
+      if (locationMatch.match) {
+        switch (locationMatch.type) {
+          case 'primary_city':
+            locationRelevanceScore = 100;
+            break;
+          case 'service_area_city':
+            locationRelevanceScore = 90;
+            break;
+          case 'service_area_specific':
+            locationRelevanceScore = 85;
+            break;
+          case 'same_state':
+            locationRelevanceScore = 60;
+            break;
+          default:
+            locationRelevanceScore = 50;
+        }
+      }
+
+      // Combined relevance score (service 70% + location 30%)
+      const combinedRelevanceScore = Math.round((relevanceScore * 0.7) + (locationRelevanceScore * 0.3));
 
       return {
         id: lead._id.toString(),
@@ -134,6 +370,35 @@ export async function GET(request) {
         description: lead.description.length > 100 ? 
           lead.description.substring(0, 100) + '... [Subscribe to view full details]' : 
           lead.description,
+        
+        // Service relevance information
+        serviceRelevance: {
+          score: relevanceScore,
+          matchType: matchType,
+          matchedService: vendorServicesLower.find(vs => 
+            leadServiceLower?.includes(vs) || 
+            leadSelectedServiceLower?.includes(vs) || 
+            leadSelectedSubServiceLower?.includes(vs) ||
+            vs === leadServiceLower ||
+            vs === leadSelectedServiceLower ||
+            vs === leadSelectedSubServiceLower
+          )
+        },
+
+        // Location relevance information
+        locationRelevance: {
+          score: locationRelevanceScore,
+          matchType: locationMatch.type,
+          matchedArea: locationMatch.area,
+          isLocalArea: locationMatch.type === 'primary_city' || locationMatch.type === 'service_area_specific'
+        },
+
+        // Combined relevance score
+        overallRelevance: {
+          score: combinedRelevanceScore,
+          serviceWeight: 70,
+          locationWeight: 30
+        },
         
         // Location - PARTIALLY MASKED
         address: maskAddress(lead.address),
@@ -176,14 +441,79 @@ export async function GET(request) {
       };
     });
 
-    // Get statistics about available leads
-    const totalPendingLeads = await leadsCollection.countDocuments({ status: 'pending' });
-    const totalValuePending = await leadsCollection.aggregate([
-      { $match: { status: 'pending', price: { $exists: true, $ne: null } } },
+    // Sort by combined relevance score (highest first) then by creation date
+    formattedLeads.sort((a, b) => {
+      if (a.overallRelevance.score !== b.overallRelevance.score) {
+        return b.overallRelevance.score - a.overallRelevance.score;
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    // Get statistics about available leads for this vendor
+    const vendorRelevantLeadsQuery = {
+      status: 'pending',
+      $and: []
+    };
+
+    // Add location filtering for stats
+    if (vendor.address?.city || (vendor.address?.serviceAreas && vendor.address.serviceAreas.length > 0)) {
+      const locationConditions = [];
+      
+      // Add vendor's primary city
+      if (vendor.address.city) {
+        const cityRegex = new RegExp(vendor.address.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        locationConditions.push({ address: cityRegex });
+      }
+      
+      // Add vendor's state for broader coverage
+      if (vendor.address.state) {
+        const stateRegex = new RegExp(vendor.address.state.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        locationConditions.push({ address: stateRegex });
+      }
+      
+      // Add service areas if defined
+      if (vendor.address.serviceAreas && vendor.address.serviceAreas.length > 0) {
+        for (const serviceArea of vendor.address.serviceAreas) {
+          if (serviceArea.city) {
+            const serviceAreaCityRegex = new RegExp(serviceArea.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+            locationConditions.push({ address: serviceAreaCityRegex });
+          }
+          
+          if (serviceArea.areas && serviceArea.areas.length > 0) {
+            for (const area of serviceArea.areas) {
+              const areaRegex = new RegExp(area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+              locationConditions.push({ address: areaRegex });
+            }
+          }
+        }
+      }
+      
+      if (locationConditions.length > 0) {
+        vendorRelevantLeadsQuery.$and.push({ $or: locationConditions });
+      }
+    }
+
+    // Add service filtering for stats
+    if (vendor.services && vendor.services.length > 0) {
+      const serviceConditions = [];
+      for (const vendorService of vendor.services) {
+        const serviceRegex = new RegExp(vendorService.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        serviceConditions.push(
+          { service: serviceRegex },
+          { selectedService: serviceRegex },
+          { selectedSubService: serviceRegex }
+        );
+      }
+      vendorRelevantLeadsQuery.$and.push({ $or: serviceConditions });
+    }
+
+    const totalRelevantLeads = await leadsCollection.countDocuments(vendorRelevantLeadsQuery);
+    const totalValueRelevant = await leadsCollection.aggregate([
+      { $match: { ...vendorRelevantLeadsQuery, price: { $exists: true, $ne: null } } },
       { $group: { _id: null, totalValue: { $sum: '$price' } } }
     ]);
 
-    const estimatedValue = totalValuePending[0]?.totalValue || 0;
+    const estimatedValue = totalValueRelevant[0]?.totalValue || 0;
 
     // Subscription plans for call-to-action
     const subscriptionPlansCollection = await database.getSubscriptionPlansCollection();
@@ -204,12 +534,12 @@ export async function GET(request) {
       pricePerLead: Math.round((plan.discountedPrice || plan.price) / plan.totalLeads)
     }));
 
-    // Pagination info
+    // Pagination info (based on filtered results)
     const pagination = {
       currentPage: page,
-      totalPages: Math.ceil(totalCount / limit),
-      totalCount,
-      hasNextPage: page < Math.ceil(totalCount / limit),
+      totalPages: Math.ceil(formattedLeads.length / limit),
+      totalCount: formattedLeads.length,
+      hasNextPage: page < Math.ceil(formattedLeads.length / limit),
       hasPrevPage: page > 1
     };
 
@@ -224,22 +554,44 @@ export async function GET(request) {
           leadsRemaining: activeSubscription.usage.leadsRemaining,
           status: 'active'
         } : null,
+        vendorServices: vendor.services, // Show vendor's services for reference
+        vendorLocation: {
+          city: vendor.address?.city,
+          state: vendor.address?.state,
+          serviceAreas: vendor.address?.serviceAreas || []
+        },
+        serviceFiltering: {
+          enabled: true,
+          message: `Showing leads relevant to your services: ${vendor.services.join(', ')}`,
+          totalRelevantLeads,
+          exactMatches: formattedLeads.filter(l => l.serviceRelevance.matchType === 'exact').length,
+          partialMatches: formattedLeads.filter(l => l.serviceRelevance.matchType === 'partial').length
+        },
+        locationFiltering: {
+          enabled: true,
+          message: `Filtered by location: ${vendor.address?.city}${vendor.address?.state ? ', ' + vendor.address.state : ''}`,
+          primaryCity: vendor.address?.city,
+          state: vendor.address?.state,
+          serviceAreas: vendor.address?.serviceAreas || [],
+          localLeads: formattedLeads.filter(l => l.locationRelevance.isLocalArea).length,
+          nearbyLeads: formattedLeads.filter(l => !l.locationRelevance.isLocalArea).length
+        },
         marketOverview: {
-          totalPendingLeads,
+          totalRelevantLeads,
           estimatedTotalValue: estimatedValue,
-          averageLeadValue: totalPendingLeads > 0 ? Math.round(estimatedValue / totalPendingLeads) : 0,
-          newLeadsToday: await leadsCollection.countDocuments({
-            status: 'pending',
+          averageLeadValue: totalRelevantLeads > 0 ? Math.round(estimatedValue / totalRelevantLeads) : 0,
+          newRelevantLeadsToday: await leadsCollection.countDocuments({
+            ...vendorRelevantLeadsQuery,
             createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
           })
         },
         callToAction: {
           title: activeSubscription ? 
             'You have an active subscription!' : 
-            'Subscribe now to access full lead details!',
+            'Subscribe now to access relevant leads for your services!',
           message: activeSubscription ?
-            'Start taking leads and grow your business.' :
-            'Join thousands of vendors earning more with our premium lead service.',
+            'Start taking leads that match your expertise and grow your business.' :
+            `Join thousands of vendors earning more with leads specifically filtered for your services (${vendor.services.join(', ')}) in ${vendor.address?.city || 'your area'}`,
           benefits: [
             'View complete customer contact information',
             'Access exact addresses and locations',
@@ -249,22 +601,27 @@ export async function GET(request) {
             'Priority customer support',
             'Performance analytics and insights'
           ],
-          urgencyMessage: `${totalPendingLeads} leads worth ₹${estimatedValue.toLocaleString()} waiting for vendors like you!`
+          urgencyMessage: `${totalRelevantLeads} relevant leads worth ₹${estimatedValue.toLocaleString()} waiting for vendors like you!`
         },
         availablePlans: formattedPlans,
         filters: {
           appliedFilters: {
             service: service || null,
             location: location || null,
-            maxPrice: maxPrice || null
+            maxPrice: maxPrice || null,
+            vendorServices: vendor.services,
+            vendorCity: vendor.address?.city,
+            vendorState: vendor.address?.state
           },
-          availableServices: vendor?.services || []
+          availableServices: vendor.services
         },
         pagination
       },
       meta: {
         requiresSubscription: !activeSubscription,
         leadPreviewMode: true,
+        serviceFilteringEnabled: true,
+        locationFilteringEnabled: true,
         upgradeUrl: '/api/vendors/subscriptions'
       }
     });
