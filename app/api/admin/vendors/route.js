@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 // GET /api/admin/vendors - Get all vendors
 export async function GET(request) {
   try {
-    await requireAdmin();
+    const { user, role } = await requireAdmin();
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
@@ -23,6 +23,11 @@ export async function GET(request) {
 
     // Build query
     let query = {};
+    
+    // Role-based filtering: Only admins see all vendors, others see only their onboarded vendors
+    if (role.name !== 'admin') {
+      query.onboardedBy = new ObjectId(user.id);
+    }
     
     // Search across multiple fields
     if (search) {
@@ -155,7 +160,23 @@ export async function GET(request) {
           ]
         }
       },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'onboardedBy',
+          foreignField: '_id',
+          as: 'onboardedByUser',
+          pipeline: [
+            { $project: { name: 1, email: 1, role: 1 } }
+          ]
+        }
+      },
       { $unwind: '$userData' },
+      {
+        $addFields: {
+          onboardedByUser: { $arrayElemAt: ['$onboardedByUser', 0] }
+        }
+      },
       { $sort: { createdAt: -1 } },
       { $skip: skip },
       { $limit: limit }
@@ -183,8 +204,14 @@ export async function GET(request) {
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
-    // Get summary stats
+    // Get summary stats (with same filtering as main query)
+    let statsQuery = {};
+    if (role.name !== 'admin') {
+      statsQuery.onboardedBy = new ObjectId(user.id);
+    }
+    
     const stats = await vendorsCollection.aggregate([
+      { $match: statsQuery },
       {
         $group: {
           _id: '$status',
@@ -244,7 +271,7 @@ export async function GET(request) {
 // POST /api/admin/vendors - Create new vendor
 export async function POST(request) {
   try {
-    await requireAdmin();
+    const { user } = await requireAdmin();
 
     const body = await request.json();
     const { 
@@ -396,10 +423,16 @@ export async function POST(request) {
         serviceAreas: address.serviceAreas || []
       },
       documents: documents || {
-        aadharCard: { verified: false },
-        panCard: { verified: false },
-        businessLicense: { verified: false },
-        bankDetails: { verified: false }
+        identity: {
+          type: "",
+          number: "",
+          docImageUrl: ""
+        },
+        business: {
+          type: "",
+          number: "",
+          docImageUrl: ""
+        }
       },
       verified: {
         isVerified: false
@@ -407,10 +440,12 @@ export async function POST(request) {
       status: 'pending',
       rating: 0,
       totalJobs: 0,
+      onboardedBy: new ObjectId(user.id), // Set who onboarded this vendor
       history: [{
         action: 'registered',
         date: new Date(),
-        notes: 'Vendor registered by admin'
+        performedBy: new ObjectId(user.id),
+        notes: `Vendor registered by ${user.name || 'admin'}`
       }],
       createdAt: new Date(),
       updatedAt: new Date()

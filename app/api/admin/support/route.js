@@ -11,7 +11,7 @@ import { ObjectId } from 'mongodb';
 // GET /api/admin/support - Get all support tickets for admin
 export async function GET(request) {
   try {
-    await requireAdmin();
+    const { user, role } = await requireAdmin();
     await connectDB();
 
     const { searchParams } = new URL(request.url);
@@ -29,6 +29,11 @@ export async function GET(request) {
 
     // Build query
     const query = {};
+
+    // Role-based filtering: Only admins see all tickets, others see only assigned tickets
+    if (role.name !== 'admin') {
+      query.assignedTo = new ObjectId(user.id);
+    }
 
     if (status && status !== 'all') {
       query.status = status;
@@ -73,8 +78,14 @@ export async function GET(request) {
       .limit(limit)
       .lean();
 
-    // Get summary statistics
+    // Get summary statistics with role-based filtering
+    const statsMatchQuery = {};
+    if (role.name !== 'admin') {
+      statsMatchQuery.assignedTo = new ObjectId(user.id);
+    }
+
     const stats = await SupportTicket.aggregate([
+      { $match: statsMatchQuery },
       {
         $group: {
           _id: '$status',
@@ -97,8 +108,9 @@ export async function GET(request) {
       statusStats[stat._id] = stat.count;
     });
 
-    // Get priority breakdown
+    // Get priority breakdown with role-based filtering
     const priorityStats = await SupportTicket.aggregate([
+      { $match: statsMatchQuery },
       {
         $group: {
           _id: '$priority',

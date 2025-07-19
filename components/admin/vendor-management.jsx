@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -12,11 +13,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import vendorService from "@/lib/services/vendorService"
 
 // Import vendor components
 import { VendorList, VendorForm } from "./vendor"
+import { VendorDetailsDialog } from "./vendor/vendor-details-dialog"
 
 export function VendorManagement() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  // Get URL parameters
+  const currentPage = parseInt(searchParams.get('page')) || 1
+  const currentSearch = searchParams.get('search') || ""
+  const currentStatus = searchParams.get('status') || ""
+  const currentCity = searchParams.get('city') || ""
+  const currentService = searchParams.get('service') || ""
+  const currentVerified = searchParams.get('verified') || ""
+
   // State management
   const [vendors, setVendors] = useState([])
   const [stats, setStats] = useState({})
@@ -34,40 +48,89 @@ export function VendorManagement() {
   const [isAddVendorOpen, setIsAddVendorOpen] = useState(false)
   const [isEditVendorOpen, setIsEditVendorOpen] = useState(false)
   const [isDeleteVendorDialogOpen, setIsDeleteVendorDialogOpen] = useState(false)
+  const [isViewVendorDialogOpen, setIsViewVendorDialogOpen] = useState(false)
   const [currentVendor, setCurrentVendor] = useState(null)
 
-  // Filter states
-  const [searchTerm, setSearchTerm] = useState("")
+  // Local state synced with URL parameters
+  const [searchTerm, setSearchTerm] = useState(currentSearch)
   const [filters, setFilters] = useState({
-    status: "",
-    city: "",
-    service: "",
-    verified: ""
+    status: currentStatus,
+    city: currentCity,
+    service: currentService,
+    verified: currentVerified
   })
 
   // File input ref
   const vendorFileInputRef = useRef(null)
 
-  // Fetch vendors
-  const fetchVendors = async (page = 1, search = "", filterParams = {}) => {
+  // Update URL with new parameters
+  const updateURL = (newParams) => {
+    console.log('🔄 updateURL called with:', newParams)
+    console.log('📍 Current URL params:', Object.fromEntries(searchParams.entries()))
+    
+    const params = new URLSearchParams(searchParams.toString())
+    
+    // Update or remove parameters
+    Object.keys(newParams).forEach(key => {
+      const value = newParams[key]
+      
+      // If value is explicitly undefined, delete the parameter
+      if (value === undefined) {
+        params.delete(key)
+      }
+      // If value exists and is not empty/all, set it
+      else if (value && value !== '' && value !== 'all') {
+        params.set(key, value.toString())
+      }
+      // If value is empty/falsy, delete the parameter
+      else {
+        params.delete(key)
+      }
+    })
+
+    const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`
+    console.log('➡️ Navigating to:', newURL)
+    router.push(newURL, { scroll: false })
+  }
+
+  // Load vendors when URL parameters change
+  useEffect(() => {
+    fetchVendors()
+  }, [currentPage, currentSearch, currentStatus, currentCity, currentService, currentVerified])
+
+  // Sync local state with URL parameters
+  useEffect(() => {
+    setSearchTerm(currentSearch)
+    setFilters({
+      status: currentStatus,
+      city: currentCity,
+      service: currentService,
+      verified: currentVerified
+    })
+  }, [currentSearch, currentStatus, currentCity, currentService, currentVerified])
+
+  // Fetch vendors using the vendor service
+  const fetchVendors = async () => {
     try {
       setLoading(true)
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: pagination.itemsPerPage.toString(),
-        ...(search && { search }),
-        ...filterParams
-      })
+      const params = {
+        page: currentPage,
+        limit: pagination.itemsPerPage,
+        search: currentSearch,
+        status: currentStatus,
+        city: currentCity,
+        service: currentService,
+        verified: currentVerified
+      }
 
-      const response = await fetch(`/api/admin/vendors?${params}`)
-      const data = await response.json()
+      const result = await vendorService.getVendors(params)
 
-      if (data.success) {
-        setVendors(data.data.vendors)
-        setPagination(data.data.pagination)
-        setStats(data.data.stats)
+      if (result.success) {
+        setVendors(result.vendors)
+        setPagination(result.pagination)
+        setStats(result.stats)
       } else {
-        throw new Error(data.error)
+        toast.error(`Error: ${result.error}`)
       }
     } catch (error) {
       console.error('Error fetching vendors:', error)
@@ -77,31 +140,18 @@ export function VendorManagement() {
     }
   }
 
-  // Load vendors on component mount
-  useEffect(() => {
-    fetchVendors()
-  }, [])
-
-  // Vendor handlers
+  // Vendor handlers using vendor service
   const handleAddVendor = async (formData) => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/vendors', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
+      const result = await vendorService.createVendor(formData)
 
-      const data = await response.json()
-
-      if (data.success) {
-        toast.success(`Vendor Added: ${data.data.userData.name} has been added successfully.`)
+      if (result.success) {
+        toast.success(`Vendor Added: ${result.vendor.userData?.name || result.vendor.businessName} has been added successfully.`)
         setIsAddVendorOpen(false)
-        fetchVendors(pagination.currentPage, searchTerm, filters)
+        fetchVendors()
       } else {
-        throw new Error(data.error)
+        toast.error(`Error: ${result.error}`)
       }
     } catch (error) {
       console.error('Error adding vendor:', error)
@@ -119,23 +169,15 @@ export function VendorManagement() {
   const handleUpdateVendor = async (formData) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/admin/vendors/${currentVendor._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
+      const result = await vendorService.updateVendor(currentVendor._id, formData)
 
-      const data = await response.json()
-
-      if (data.success) {
-        toast.success(`Vendor Updated: ${data.data.userData.name} has been updated successfully.`)
+      if (result.success) {
+        toast.success(`Vendor Updated: ${result.vendor.userData?.name || result.vendor.businessName} has been updated successfully.`)
         setIsEditVendorOpen(false)
         setCurrentVendor(null)
-        fetchVendors(pagination.currentPage, searchTerm, filters)
+        fetchVendors()
       } else {
-        throw new Error(data.error)
+        toast.error(`Error: ${result.error}`)
       }
     } catch (error) {
       console.error('Error updating vendor:', error)
@@ -153,19 +195,15 @@ export function VendorManagement() {
   const confirmDeleteVendor = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/admin/vendors/${currentVendor._id}`, {
-        method: 'DELETE',
-      })
+      const result = await vendorService.deleteVendor(currentVendor._id)
 
-      const data = await response.json()
-
-      if (data.success) {
-        toast.success(`Vendor Deleted: ${currentVendor.userData.name} has been deleted successfully.`)
+      if (result.success) {
+        toast.success(`Vendor Deleted: ${currentVendor.userData?.name || currentVendor.businessName} has been deleted successfully.`)
         setIsDeleteVendorDialogOpen(false)
         setCurrentVendor(null)
-        fetchVendors(pagination.currentPage, searchTerm, filters)
+        fetchVendors()
       } else {
-        throw new Error(data.error)
+        toast.error(`Error: ${result.error}`)
       }
     } catch (error) {
       console.error('Error deleting vendor:', error)
@@ -176,33 +214,20 @@ export function VendorManagement() {
   }
 
   const handleViewVendor = (vendor) => {
-    // TODO: Implement vendor detail view
-    toast.info(`View details for ${vendor.userData.name} - To be implemented`)
+    setCurrentVendor(vendor)
+    setIsViewVendorDialogOpen(true)
   }
 
   const handleVerifyVendor = async (vendor) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/admin/vendors/${vendor._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          verified: {
-            isVerified: true,
-            verificationNotes: 'Vendor verified by admin'
-          }
-        }),
-      })
+      const result = await vendorService.verifyVendor(vendor._id)
 
-      const data = await response.json()
-
-      if (data.success) {
-        toast.success(`Vendor Verified: ${vendor.userData.name} has been verified.`)
-        fetchVendors(pagination.currentPage, searchTerm, filters)
+      if (result.success) {
+        toast.success(`Vendor Verified: ${vendor.userData?.name || vendor.businessName} has been verified.`)
+        fetchVendors()
       } else {
-        throw new Error(data.error)
+        toast.error(`Error: ${result.error}`)
       }
     } catch (error) {
       console.error('Error verifying vendor:', error)
@@ -213,33 +238,117 @@ export function VendorManagement() {
   }
 
   const handleSearch = (search) => {
+    console.log('🔍 handleSearch called with:', search, 'current:', currentSearch)
     setSearchTerm(search)
-    fetchVendors(1, search, filters)
+    
+    // Always update URL for search changes, including clearing search
+    // Special handling for empty search to ensure it always clears
+    if (search !== currentSearch || (!search && currentSearch)) {
+      console.log('🔄 Search changed, updating URL')
+      updateURL({ 
+        search: search || undefined,
+        page: undefined // Reset to page 1 by removing page param
+      })
+    }
   }
 
   const handleFilter = (newFilters) => {
+    console.log('🔧 handleFilter called with:', newFilters)
     setFilters(newFilters)
-    fetchVendors(1, searchTerm, newFilters)
+    
+    // Always update URL when filters change, including when clearing filters
+    // Check if any filter values actually changed
+    const filtersChanged = 
+      newFilters.status !== currentStatus ||
+      newFilters.city !== currentCity ||
+      newFilters.service !== currentService ||
+      newFilters.verified !== currentVerified
+    
+    // Also trigger update if this is a clear operation (all filters empty)
+    const isClearOperation = !newFilters.status && !newFilters.city && !newFilters.service && !newFilters.verified
+    const hadFilters = currentStatus || currentCity || currentService || currentVerified
+    
+    if (filtersChanged || (isClearOperation && hadFilters)) {
+      console.log('🔄 Filters changed, updating URL', { filtersChanged, isClearOperation, hadFilters })
+      updateURL({ 
+        status: newFilters.status || undefined,
+        city: newFilters.city || undefined,
+        service: newFilters.service || undefined,
+        verified: newFilters.verified || undefined,
+        page: undefined // Reset to page 1 by removing page param
+      })
+    }
   }
 
   const handlePageChange = (page) => {
-    fetchVendors(page, searchTerm, filters)
+    console.log('📄 handlePageChange called with:', page)
+    const validatedPage = Math.max(1, page)
+    updateURL({ page: validatedPage })
   }
 
-  const handleVendorExport = () => {
-    // TODO: Implement export functionality
-    toast.info("Export functionality - To be implemented")
+  // Export functionality using vendor service
+  const handleVendorExport = async () => {
+    try {
+      const result = await vendorService.exportVendors()
+      if (result.success) {
+        toast.success("Vendor data has been exported to CSV.")
+      } else {
+        toast.error(`Export Error: ${result.error}`)
+      }
+    } catch (err) {
+      toast.error(`Export Error: ${err.message}`)
+    }
   }
 
+  // Import functionality using vendor service
   const handleVendorImport = () => {
-    vendorFileInputRef.current.click()
+    vendorFileInputRef.current?.click()
   }
 
-  const handleVendorFileChange = (e) => {
-    const file = e.target.files[0]
+  // Download template functionality
+  const handleDownloadTemplate = () => {
+    try {
+      const result = vendorService.downloadTemplate()
+      if (result.success) {
+        toast.success("CSV template downloaded successfully.")
+      } else {
+        toast.error("Failed to download template.")
+      }
+    } catch (err) {
+      toast.error(`Download Error: ${err.message}`)
+    }
+  }
+
+  const handleVendorFileChange = async (e) => {
+    const file = e.target.files?.[0]
     if (file) {
-      // TODO: Implement import functionality
-      toast.info("Import functionality - To be implemented")
+      try {
+        setLoading(true)
+        const result = await vendorService.importVendors(file)
+        
+        if (result.success) {
+          toast.success(result.message)
+          if (result.results) {
+            const { successful, failed, errors } = result.results
+            console.log('Import results:', { successful, failed, errors })
+            
+            if (failed > 0) {
+              toast.warning(`${failed} vendors failed to import. Check console for details.`)
+              console.warn('Import errors:', errors)
+            }
+          }
+          // Refresh vendor list after import
+          fetchVendors()
+        } else {
+          toast.error(`Import Error: ${result.error}`)
+        }
+      } catch (err) {
+        toast.error(`Import Error: ${err.message}`)
+      } finally {
+        setLoading(false)
+        // Reset file input
+        e.target.value = ''
+      }
     }
   }
 
@@ -263,9 +372,17 @@ export function VendorManagement() {
         onVerifyVendor={handleVerifyVendor}
         onExport={handleVendorExport}
         onImport={handleVendorImport}
+        onDownloadTemplate={handleDownloadTemplate}
         onSearch={handleSearch}
         onFilter={handleFilter}
         onPageChange={handlePageChange}
+        searchTerm={currentSearch}
+        filters={{
+          status: currentStatus,
+          city: currentCity,
+          service: currentService,
+          verified: currentVerified
+        }}
       />
 
       {/* Vendor Form Dialogs */}
@@ -298,7 +415,7 @@ export function VendorManagement() {
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the vendor
-              "{currentVendor?.name}" and remove all their data from our servers.
+              "{currentVendor?.userData?.name || currentVendor?.businessName}" and remove all their data from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -317,6 +434,13 @@ export function VendorManagement() {
         onChange={handleVendorFileChange} 
         accept=".csv" 
         className="hidden" 
+      />
+
+      {/* Vendor Details Dialog */}
+      <VendorDetailsDialog
+        open={isViewVendorDialogOpen}
+        onOpenChange={setIsViewVendorDialogOpen}
+        vendor={currentVendor}
       />
     </div>
   )

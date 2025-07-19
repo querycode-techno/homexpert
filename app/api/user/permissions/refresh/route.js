@@ -1,53 +1,42 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/auth'
+import { auth } from '@/auth'
+import { permissionCache } from '@/lib/permissionCache'
 import { PermissionService } from '@/lib/services/permissionService'
-
-export async function GET(request) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.role?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const permissions = await PermissionService.getUserPermissions(session.user.role.id)
-    
-    return NextResponse.json({ 
-      permissions,
-      userId: session.user.id 
-    })
-
-  } catch (error) {
-    console.error('Error fetching permissions:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch permissions' }, 
-      { status: 500 }
-    )
-  }
-}
 
 export async function POST(request) {
   try {
-    // Get current session
-    const session = await getServerSession(authOptions)
+    const session = await auth()
+    
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        { success: false, error: 'Not authenticated' },
+        { status: 401 }
+      )
     }
 
-    // Refresh permissions using the service
-    const permissions = await PermissionService.getUserPermissions(session.user.role.id)
-    
-    return NextResponse.json({ 
-      message: 'Permissions refreshed successfully',
-      permissions,
-      userId: session.user.id 
-    })
+    const { userId } = await request.json()
+    const targetUserId = userId || session.user.id
 
+    // Clear permission cache for the user
+    permissionCache.clear(targetUserId)
+    
+    // Fetch fresh permissions from database
+    const roleId = session.user.role?._id || session.user.role
+    const freshPermissions = await PermissionService.getUserPermissions(roleId)
+    
+    console.log('Refreshed permissions for user:', targetUserId)
+    console.log('Fresh permissions:', freshPermissions)
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Permissions refreshed successfully',
+      permissions: freshPermissions
+    })
+    
   } catch (error) {
     console.error('Error refreshing permissions:', error)
     return NextResponse.json(
-      { error: 'Failed to refresh permissions' }, 
+      { success: false, error: 'Failed to refresh permissions' },
       { status: 500 }
     )
   }

@@ -210,6 +210,56 @@ export function LeadDetailsDialog({
                 </CardContent>
               </Card>
 
+              {/* Lead Information Card - Added for Created By */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Lead Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Created By</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <UserCheck className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {lead.createdBy ? (
+                            lead.createdByUser?.name || 'Admin User'
+                          ) : (
+                            'Customer (Self-submitted)'
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Created Date</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{formatDate(lead.createdAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {lead.price && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Price</Label>
+                        <p className="mt-1 font-medium text-green-600">₹{lead.price}</p>
+                      </div>
+                      {lead.getQuote && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Quote Required</Label>
+                          <Badge variant="outline" className="mt-1">
+                            Yes
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Service Details</CardTitle>

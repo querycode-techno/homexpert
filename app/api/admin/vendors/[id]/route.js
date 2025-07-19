@@ -37,7 +37,23 @@ export async function GET(request, { params }) {
           ]
         }
       },
-      { $unwind: '$userData' }
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'onboardedBy',
+          foreignField: '_id',
+          as: 'onboardedByUser',
+          pipeline: [
+            { $project: { name: 1, email: 1, role: 1 } }
+          ]
+        }
+      },
+      { $unwind: '$userData' },
+      {
+        $addFields: {
+          onboardedByUser: { $arrayElemAt: ['$onboardedByUser', 0] }
+        }
+      }
     ]).toArray();
 
     if (!vendor.length) {
@@ -81,6 +97,7 @@ export async function PUT(request, { params }) {
   try {
     const session = await requireAdmin();
     const adminUserId = session.user.id;
+    const adminRole = session.role;
 
     const { id } = params;
     const body = await request.json();
@@ -207,6 +224,15 @@ export async function PUT(request, { params }) {
     if (body.rating !== undefined) updateData.rating = body.rating;
     if (body.totalJobs !== undefined) updateData.totalJobs = body.totalJobs;
 
+    // Handle onboardedBy field (admin only)
+    if (body.onboardedBy !== undefined && adminRole.name === 'admin') {
+      if (body.onboardedBy === '' || body.onboardedBy === null) {
+        updateData.onboardedBy = null; // Self-registered vendor
+      } else if (ObjectId.isValid(body.onboardedBy)) {
+        updateData.onboardedBy = new ObjectId(body.onboardedBy);
+      }
+    }
+
     // Handle verification updates
     if (body.verified) {
       const verificationUpdate = { ...existingVendor.verified, ...body.verified };
@@ -300,7 +326,23 @@ export async function PUT(request, { params }) {
           ]
         }
       },
-      { $unwind: '$userData' }
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'onboardedBy',
+          foreignField: '_id',
+          as: 'onboardedByUser',
+          pipeline: [
+            { $project: { name: 1, email: 1, role: 1 } }
+          ]
+        }
+      },
+      { $unwind: '$userData' },
+      {
+        $addFields: {
+          onboardedByUser: { $arrayElemAt: ['$onboardedByUser', 0] }
+        }
+      }
     ]).toArray();
 
     return NextResponse.json({

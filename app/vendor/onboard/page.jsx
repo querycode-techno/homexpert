@@ -32,8 +32,55 @@ import {
 import { ServiceSelector } from "@/components/admin/vendor/service-selector"
 import DocumentUpload from "@/components/admin/vendor/document-upload"
 import { toast } from "sonner"
+import { 
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue
+} from '@/components/ui/select'
 
-export default function VendorOnboardingPage() {
+// Indian States List
+const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry'
+];
+
+export default function VendorOnboardPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
@@ -63,14 +110,15 @@ export default function VendorOnboardingPage() {
       
       // Documents
       documents: {
-        aadharCard: { number: "", imageUrl: "", verified: false },
-        panCard: { number: "", imageUrl: "", verified: false },
-        businessLicense: { number: "", imageUrl: "", verified: false },
-        bankDetails: { 
-          accountNumber: "", 
-          ifscCode: "", 
-          accountHolderName: "", 
-          verified: false 
+        identity: {
+          type: "",
+          number: "",
+          docImageUrl: ""
+        },
+        business: {
+          type: "",
+          number: "",
+          docImageUrl: ""
         }
       }
     }
@@ -103,16 +151,9 @@ export default function VendorOnboardingPage() {
       return
     }
 
-    if (!data.documents.aadharCard.number || !data.documents.aadharCard.imageUrl ||
-        !data.documents.panCard.number || !data.documents.panCard.imageUrl) {
-      toast.error("Aadhar Card and PAN Card are required")
-      return
-    }
-
-    if (!data.documents.bankDetails.accountHolderName || 
-        !data.documents.bankDetails.accountNumber || 
-        !data.documents.bankDetails.ifscCode) {
-      toast.error("Complete bank details are required")
+    if (!data.documents.identity.number || !data.documents.identity.docImageUrl ||
+        !data.documents.business.number || !data.documents.business.docImageUrl) {
+      toast.error("Identity and Business documents are required")
       return
     }
 
@@ -419,7 +460,18 @@ export default function VendorOnboardingPage() {
                             <FormItem>
                               <FormLabel>State *</FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter state" {...field} />
+                                <Select onValueChange={(value) => field.onChange(value)} defaultValue={field.value}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a state" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {INDIAN_STATES.map((state) => (
+                                      <SelectItem key={state} value={state}>
+                                        {state}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -452,111 +504,39 @@ export default function VendorOnboardingPage() {
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Aadhar Card */}
+                        {/* Identity Document */}
                         <DocumentUpload
-                          document={form.watch("documents.aadharCard")}
-                          documentType="aadharCard"
-                          title="Aadhar Card"
+                          document={form.watch("documents.identity")}
+                          documentType="identity"
+                          title="Identity Document"
                           required={true}
                           numberField="number"
-                          numberFieldName="Aadhar Number"
+                          numberFieldName="Document Number"
                           onDocumentChange={(updatedDoc) => {
-                            form.setValue("documents.aadharCard", updatedDoc)
+                            form.setValue("documents.identity", updatedDoc)
                           }}
                           onNumberChange={(value) => {
-                            form.setValue("documents.aadharCard.number", value)
+                            form.setValue("documents.identity.number", value)
                           }}
                           disabled={false}
                         />
 
-                        {/* PAN Card */}
+                        {/* Business Document */}
                         <DocumentUpload
-                          document={form.watch("documents.panCard")}
-                          documentType="panCard"
-                          title="PAN Card"
+                          document={form.watch("documents.business")}
+                          documentType="business"
+                          title="Business Document"
                           required={true}
                           numberField="number"
-                          numberFieldName="PAN Number"
+                          numberFieldName="Document Number"
                           onDocumentChange={(updatedDoc) => {
-                            form.setValue("documents.panCard", updatedDoc)
+                            form.setValue("documents.business", updatedDoc)
                           }}
                           onNumberChange={(value) => {
-                            form.setValue("documents.panCard.number", value)
+                            form.setValue("documents.business.number", value)
                           }}
                           disabled={false}
                         />
-
-                        {/* Business License */}
-                        <DocumentUpload
-                          document={form.watch("documents.businessLicense")}
-                          documentType="businessLicense"
-                          title="Business License"
-                          required={false}
-                          numberField="number"
-                          numberFieldName="License Number"
-                          onDocumentChange={(updatedDoc) => {
-                            form.setValue("documents.businessLicense", updatedDoc)
-                          }}
-                          onNumberChange={(value) => {
-                            form.setValue("documents.businessLicense.number", value)
-                          }}
-                          disabled={false}
-                        />
-
-                        {/* Bank Details */}
-                        <div className="space-y-4">
-                          <div className="p-4 border rounded-lg">
-                            <h4 className="font-medium mb-3 flex items-center gap-2">
-                              <CreditCard className="h-4 w-4" />
-                              Bank Details
-                              <span className="text-red-500">*</span>
-                            </h4>
-                            
-                            <div className="space-y-3">
-                              <FormField
-                                control={form.control}
-                                name="documents.bankDetails.accountHolderName"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Account Holder Name</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Enter account holder name" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="documents.bankDetails.accountNumber"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Account Number</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Enter account number" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="documents.bankDetails.ifscCode"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>IFSC Code</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Enter IFSC code" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </div>
-                        </div>
                       </div>
                     </div>
 

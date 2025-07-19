@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
+import { usePermissions } from "@/hooks/usePermissions"
 import {
   Dialog,
   DialogContent,
@@ -59,6 +60,46 @@ const statusOptions = [
   { value: "inactive", label: "Inactive" }
 ]
 
+// Indian States List
+const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry'
+];
+
 export function VendorForm({
   isOpen,
   onClose,
@@ -69,7 +110,51 @@ export function VendorForm({
   loading = false
 }) {
   const isEdit = !!vendor
+  const { isAdmin } = usePermissions()
+  const [users, setUsers] = useState([])
+  const [usersLoading, setUsersLoading] = useState(false)
   
+  // Debug admin permission
+  useEffect(() => {
+    console.log('VendorForm - isAdmin:', isAdmin, 'isOpen:', isOpen)
+  }, [isAdmin, isOpen])
+  
+  // Fetch users for onboardedBy dropdown (admin only)
+  const fetchUsers = async () => {
+    if (!isAdmin) return
+    
+    try {
+      setUsersLoading(true)
+      // Fetch all administrative users (excluding vendors)
+      const response = await fetch('/api/admin/employee?limit=200')
+      const data = await response.json()
+      
+      if (data.success) {
+        setUsers(data.data?.employees || [])
+        console.log('Successfully loaded users:', data.data?.employees?.length || 0)
+      } else {
+        console.error('Failed to fetch users:', data.error)
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+  
+  // Fetch users when form opens
+  useEffect(() => {
+    if (isOpen && isAdmin) {
+      console.log('Fetching users for onboardedBy dropdown...')
+      fetchUsers()
+    }
+  }, [isOpen, isAdmin])
+  
+  // Debug log when users change
+  useEffect(() => {
+    console.log('Users loaded:', users.length, users)
+  }, [users])
+
   const form = useForm({
     defaultValues: {
       // User data
@@ -95,14 +180,15 @@ export function VendorForm({
       
       // Documents
       documents: {
-        aadharCard: { number: "", imageUrl: "", verified: false },
-        panCard: { number: "", imageUrl: "", verified: false },
-        businessLicense: { number: "", imageUrl: "", verified: false },
-        bankDetails: { 
-          accountNumber: "", 
-          ifscCode: "", 
-          accountHolderName: "", 
-          verified: false 
+        identity: {
+          type: "",
+          number: "",
+          docImageUrl: ""
+        },
+        business: {
+          type: "",
+          number: "",
+          docImageUrl: ""
         }
       },
       
@@ -111,7 +197,10 @@ export function VendorForm({
       verified: {
         isVerified: false,
         verificationNotes: ""
-      }
+      },
+      
+      // Admin-only field
+      onboardedBy: ""
     }
   })
 
@@ -142,15 +231,8 @@ export function VendorForm({
         
         // Documents
         documents: {
-          aadharCard: vendor.documents?.aadharCard || { number: "", imageUrl: "", verified: false },
-          panCard: vendor.documents?.panCard || { number: "", imageUrl: "", verified: false },
-          businessLicense: vendor.documents?.businessLicense || { number: "", imageUrl: "", verified: false },
-          bankDetails: vendor.documents?.bankDetails || { 
-            accountNumber: "", 
-            ifscCode: "", 
-            accountHolderName: "", 
-            verified: false 
-          }
+          identity: vendor.documents?.identity || { type: "", number: "", docImageUrl: "" },
+          business: vendor.documents?.business || { type: "", number: "", docImageUrl: "" }
         },
         
         // Status and verification
@@ -158,7 +240,10 @@ export function VendorForm({
         verified: {
           isVerified: vendor.verified?.isVerified || false,
           verificationNotes: vendor.verified?.verificationNotes || ""
-        }
+        },
+        
+        // Admin-only field
+        onboardedBy: vendor.onboardedBy?._id || vendor.onboardedBy || ""
       })
     }
   }, [isEdit, vendor, form])
@@ -387,7 +472,18 @@ export function VendorForm({
                     <FormItem>
                       <FormLabel>State</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter state" {...field} />
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a state" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INDIAN_STATES.map((state) => (
+                              <SelectItem key={state} value={state}>
+                                {state}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -421,114 +517,39 @@ export function VendorForm({
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Aadhar Card */}
+                {/* Identity Documents */}
                 <DocumentUpload
-                  document={form.watch("documents.aadharCard")}
-                  documentType="aadharCard"
-                  title="Aadhar Card"
+                  document={form.watch("documents.identity")}
+                  documentType="identity"
+                  title="Identity Documents"
                   required={true}
                   numberField="number"
-                  numberFieldName="Aadhar Number"
+                  numberFieldName="Document Number"
                   onDocumentChange={(updatedDoc) => {
-                    form.setValue("documents.aadharCard", updatedDoc)
+                    form.setValue("documents.identity", updatedDoc)
                   }}
                   onNumberChange={(value) => {
-                    form.setValue("documents.aadharCard.number", value)
+                    form.setValue("documents.identity.number", value)
                   }}
                   disabled={false}
                 />
 
-                {/* PAN Card */}
+                {/* Business Documents */}
                 <DocumentUpload
-                  document={form.watch("documents.panCard")}
-                  documentType="panCard"
-                  title="PAN Card"
+                  document={form.watch("documents.business")}
+                  documentType="business"
+                  title="Business Documents"
                   required={true}
                   numberField="number"
-                  numberFieldName="PAN Number"
+                  numberFieldName="Document Number"
                   onDocumentChange={(updatedDoc) => {
-                    form.setValue("documents.panCard", updatedDoc)
+                    form.setValue("documents.business", updatedDoc)
                   }}
                   onNumberChange={(value) => {
-                    form.setValue("documents.panCard.number", value)
+                    form.setValue("documents.business.number", value)
                   }}
                   disabled={false}
                 />
-
-                {/* Business License */}
-                <DocumentUpload
-                  document={form.watch("documents.businessLicense")}
-                  documentType="businessLicense"
-                  title="Business License"
-                  required={false}
-                  numberField="number"
-                  numberFieldName="License Number"
-                  onDocumentChange={(updatedDoc) => {
-                    form.setValue("documents.businessLicense", updatedDoc)
-                  }}
-                  onNumberChange={(value) => {
-                    form.setValue("documents.businessLicense.number", value)
-                  }}
-                  disabled={false}
-                />
-
-                {/* Bank Details */}
-                <div className="space-y-4">
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-medium mb-3 flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Bank Details
-                      <span className="text-red-500">*</span>
-                    </h4>
-                    
-                    <div className="space-y-3">
-                      <FormField
-                        control={form.control}
-                        name="documents.bankDetails.accountHolderName"
-                        rules={{ required: "Account holder name is required" }}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Account Holder Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter account holder name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="documents.bankDetails.accountNumber"
-                        rules={{ required: "Account number is required" }}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Account Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter account number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="documents.bankDetails.ifscCode"
-                        rules={{ required: "IFSC code is required" }}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>IFSC Code</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter IFSC code" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -540,76 +561,6 @@ export function VendorForm({
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Verification</h3>
                   
-                  {/* Document Verification */}
-                  <div className="space-y-3">
-                    <FormLabel className="text-base">Document Verification</FormLabel>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
-                      <FormField
-                        control={form.control}
-                        name="documents.aadharCard.verified"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between">
-                            <FormLabel className="text-sm">Aadhar Card</FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="documents.panCard.verified"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between">
-                            <FormLabel className="text-sm">PAN Card</FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="documents.businessLicense.verified"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between">
-                            <FormLabel className="text-sm">Business License</FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="documents.bankDetails.verified"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between">
-                            <FormLabel className="text-sm">Bank Details</FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-
                   <FormField
                     control={form.control}
                     name="verified.isVerified"
@@ -640,6 +591,7 @@ export function VendorForm({
                         <FormControl>
                           <Textarea
                             placeholder="Add verification notes..."
+                            className="resize-none"
                             {...field}
                           />
                         </FormControl>
@@ -648,6 +600,62 @@ export function VendorForm({
                     )}
                   />
                 </div>
+
+                {/* Admin Only - Onboarded By */}
+                {isAdmin && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">Management</h3>
+                      </div>
+                      
+                      <FormField
+                        control={form.control}
+                        name="onboardedBy"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Onboarded By</FormLabel>
+                            <FormDescription>
+                              Select the user who onboarded this vendor. Leave blank for self-registered vendors.
+                            </FormDescription>
+                            <Select 
+                              onValueChange={(value) => {
+                                // Convert "none" back to empty string for the form
+                                const newValue = value === "none" ? "" : value
+                                field.onChange(newValue)
+                              }} 
+                              value={field.value ? field.value : "none"}
+                              disabled={usersLoading}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select user (optional)"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">None (Self-registered)</SelectItem>
+                                {usersLoading ? (
+                                  <SelectItem value="loading" disabled>Loading users...</SelectItem>
+                                ) : users.length > 0 ? (
+                                  users.map((user) => (
+                                    <SelectItem key={user._id} value={user._id}>
+                                      {user.name} - {user.email} ({user.role?.name || 'Unknown Role'})
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="no-users" disabled>No users available</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
 

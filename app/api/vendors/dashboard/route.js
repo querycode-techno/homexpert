@@ -293,10 +293,7 @@ export async function GET(request) {
       vendor.address,
       vendor.phone,
       vendor.description,
-      vendor.documents?.aadharCard?.verified || 
-      vendor.documents?.panCard?.verified || 
-      vendor.documents?.businessLicense?.verified || 
-      vendor.documents?.bankDetails?.verified
+      vendor.documents?.identity?.docImageUrl || vendor.documents?.business?.docImageUrl
     ];
     const completedFields = requiredFields.filter(Boolean).length;
     const accountCompletionPercentage = Math.round((completedFields / requiredFields.length) * 100);

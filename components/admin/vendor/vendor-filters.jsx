@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
 
-export function VendorFilters({ filters = {}, vendors = [], onChange }) {
+export function VendorFilters({ filters = {}, vendors = [], onChange, disabled = false }) {
   // Extract unique values for filter options
   const filterOptions = useMemo(() => {
     const cities = [...new Set(
@@ -31,6 +31,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
   }, [vendors])
 
   const handleFilterChange = (key, value) => {
+    if (disabled) return
     const newFilters = {
       ...filters,
       [key]: value === "all" ? "" : value
@@ -39,6 +40,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
   }
 
   const clearAllFilters = () => {
+    if (disabled) return
     onChange?.({
       status: "",
       city: "",
@@ -58,6 +60,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
           <Select
             value={filters.status || "all"}
             onValueChange={(value) => handleFilterChange("status", value)}
+            disabled={disabled}
           >
             <SelectTrigger>
               <SelectValue placeholder="All statuses" />
@@ -78,6 +81,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
           <Select
             value={filters.city || "all"}
             onValueChange={(value) => handleFilterChange("city", value)}
+            disabled={disabled}
           >
             <SelectTrigger>
               <SelectValue placeholder="All cities" />
@@ -99,6 +103,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
           <Select
             value={filters.service || "all"}
             onValueChange={(value) => handleFilterChange("service", value)}
+            disabled={disabled}
           >
             <SelectTrigger>
               <SelectValue placeholder="All services" />
@@ -120,6 +125,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
           <Select
             value={filters.verified || "all"}
             onValueChange={(value) => handleFilterChange("verified", value)}
+            disabled={disabled}
           >
             <SelectTrigger>
               <SelectValue placeholder="All vendors" />
@@ -142,8 +148,10 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
             <Badge variant="secondary" className="gap-1">
               Status: {filters.status}
               <button
+                type="button"
                 onClick={() => handleFilterChange("status", "")}
                 className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={disabled}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -154,8 +162,10 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
             <Badge variant="secondary" className="gap-1">
               City: {filters.city}
               <button
+                type="button"
                 onClick={() => handleFilterChange("city", "")}
                 className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={disabled}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -166,8 +176,10 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
             <Badge variant="secondary" className="gap-1">
               Service: {filters.service}
               <button
+                type="button"
                 onClick={() => handleFilterChange("service", "")}
                 className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={disabled}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -178,8 +190,10 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
             <Badge variant="secondary" className="gap-1">
               {filters.verified === "verified" ? "Verified" : "Unverified"}
               <button
+                type="button"
                 onClick={() => handleFilterChange("verified", "")}
                 className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={disabled}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -187,10 +201,12 @@ export function VendorFilters({ filters = {}, vendors = [], onChange }) {
           )}
 
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={clearAllFilters}
             className="h-auto py-1 px-2 text-xs"
+            disabled={disabled}
           >
             Clear all
           </Button>

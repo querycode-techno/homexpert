@@ -62,7 +62,7 @@ export function AdminSidebar() {
       title: "Vendor Management",
       icon: <Store className="h-5 w-5" />,
       href: "/admin/vendors",
-      permission: can.viewEmployees, // Using same permission for now
+      permission: can.viewVendors, // Using same permission for now
     },
     {
       title: "Service Management",
@@ -92,13 +92,13 @@ export function AdminSidebar() {
       title: "Support & Tickets",
       icon: <Headphones className="h-5 w-5" />,
       href: "/admin/support",
-      permission: can.manageSupport,
+      permission: null,
     },
     {
       title: "Notifications",
       icon: <Bell className="h-5 w-5" />,
       href: "/admin/notifications",
-      permission: can.manageSupport,
+      permission: null,
     },
     {
       title: "Lead Management",

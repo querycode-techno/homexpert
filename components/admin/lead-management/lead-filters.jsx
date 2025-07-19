@@ -32,6 +32,14 @@ const SORT_OPTIONS = [
 
 export function LeadFilters({ filters, onFilterChange, loading }) {
   const [localSearch, setLocalSearch] = useState(filters.search || '')
+  const [localFilters, setLocalFilters] = useState({
+    status: filters.status || '',
+    service: filters.service || '',
+    city: filters.city || '',
+    assignedStatus: filters.assignedStatus || '',
+    sortBy: filters.sortBy || 'createdAt',
+    sortOrder: filters.sortOrder || 'desc'
+  })
   const [dateRange, setDateRange] = useState({
     from: filters.dateFrom ? new Date(filters.dateFrom) : null,
     to: filters.dateTo ? new Date(filters.dateTo) : null
@@ -41,14 +49,22 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
   // Debounce search to avoid excessive API calls
   const debouncedSearch = useDebounce(localSearch, 300)
 
-  // Services from utils
-  const services = useMemo(() => serviceUtils.getAllServices(), [])
-  
-  // Common cities (could be fetched from API)
-  const cities = useMemo(() => [
-    'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 
-    'Kolkata', 'Pune', 'Ahmedabad', 'Surat', 'Jaipur'
-  ], [])
+  // Update local state when props change
+  useEffect(() => {
+    setLocalSearch(filters.search || '')
+    setLocalFilters({
+      status: filters.status || '',
+      service: filters.service || '',
+      city: filters.city || '',
+      assignedStatus: filters.assignedStatus || '',
+      sortBy: filters.sortBy || 'createdAt',
+      sortOrder: filters.sortOrder || 'desc'
+    })
+    setDateRange({
+      from: filters.dateFrom ? new Date(filters.dateFrom) : null,
+      to: filters.dateTo ? new Date(filters.dateTo) : null
+    })
+  }, [filters])
 
   // Handle debounced search
   useEffect(() => {
@@ -57,33 +73,25 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
     }
   }, [debouncedSearch, filters.search, onFilterChange])
 
-  // Handle date range changes
-  useEffect(() => {
-    const dateFrom = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
-    const dateTo = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
-    
-    if (dateFrom !== filters.dateFrom || dateTo !== filters.dateTo) {
-      onFilterChange({ dateFrom, dateTo })
-    }
-  }, [dateRange, filters.dateFrom, filters.dateTo, onFilterChange])
+  // Handle filter changes
+  const handleFilterChange = (key, value) => {
+    const newFilters = { ...localFilters, [key]: value === 'all' ? '' : value }
+    setLocalFilters(newFilters)
+    onFilterChange(newFilters)
+  }
 
-  // Get active filter count
-  const activeFilterCount = useMemo(() => {
-    let count = 0
-    if (filters.search) count++
-    if (filters.status && filters.status !== 'all') count++
-    if (filters.service && filters.service !== 'all') count++
-    if (filters.city && filters.city !== 'all') count++
-    if (filters.assignedStatus && filters.assignedStatus !== 'all') count++
-    if (filters.dateFrom || filters.dateTo) count++
-    return count
-  }, [filters])
+  // Handle date range changes
+  const handleDateRangeChange = (range) => {
+    setDateRange(range)
+    onFilterChange({
+      dateFrom: range.from ? range.from.toISOString().split('T')[0] : '',
+      dateTo: range.to ? range.to.toISOString().split('T')[0] : ''
+    })
+  }
 
   // Clear all filters
   const clearAllFilters = () => {
-    setLocalSearch('')
-    setDateRange({ from: null, to: null })
-    onFilterChange({
+    const emptyFilters = {
       search: '',
       status: '',
       service: '',
@@ -93,29 +101,55 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
       dateTo: '',
       sortBy: 'createdAt',
       sortOrder: 'desc'
+    }
+    
+    setLocalSearch('')
+    setLocalFilters({
+      status: '',
+      service: '',
+      city: '',
+      assignedStatus: '',
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
     })
+    setDateRange({ from: null, to: null })
+    
+    onFilterChange(emptyFilters)
   }
 
-  // Clear individual filter
-  const clearFilter = (filterName) => {
-    if (filterName === 'search') {
-      setLocalSearch('')
-    } else if (filterName === 'dateRange') {
-      setDateRange({ from: null, to: null })
-    } else {
-      onFilterChange({ [filterName]: '' })
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return localSearch || 
+           localFilters.status || 
+           localFilters.service || 
+           localFilters.city || 
+           localFilters.assignedStatus || 
+           dateRange.from || 
+           dateRange.to ||
+           localFilters.sortBy !== 'createdAt' ||
+           localFilters.sortOrder !== 'desc'
+  }, [localSearch, localFilters, dateRange])
+
+  // Get available services
+  const availableServices = useMemo(() => {
+    try {
+      const services = serviceUtils.getAllServices()
+      return services.map(service => service.name).sort()
+    } catch (error) {
+      console.error('Error getting services:', error)
+      return []
     }
-  }
+  }, [])
 
   return (
     <div className="space-y-4">
-      {/* Primary Filters */}
+      {/* Search and Main Filters */}
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search leads by name, phone, email, or service..."
+            placeholder="Search leads by customer name, phone, or email..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
             className="pl-10"
@@ -125,15 +159,15 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
 
         {/* Status Filter */}
         <Select 
-          value={filters.status || 'all'} 
-          onValueChange={(value) => onFilterChange({ status: value === 'all' ? '' : value })}
+          value={localFilters.status || "all"} 
+          onValueChange={(value) => handleFilterChange('status', value)}
           disabled={loading}
         >
-          <SelectTrigger className="w-full lg:w-[150px]">
-            <SelectValue placeholder="Status" />
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             {LEAD_STATUSES.map((status) => (
               <SelectItem key={status} value={status}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -142,19 +176,19 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
           </SelectContent>
         </Select>
 
-        {/* Assignment Status */}
+        {/* Assignment Status Filter */}
         <Select 
-          value={filters.assignedStatus || 'all'} 
-          onValueChange={(value) => onFilterChange({ assignedStatus: value === 'all' ? '' : value })}
+          value={localFilters.assignedStatus || "all"} 
+          onValueChange={(value) => handleFilterChange('assignedStatus', value)}
           disabled={loading}
         >
-          <SelectTrigger className="w-full lg:w-[150px]">
-            <SelectValue placeholder="Assignment" />
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="All Leads" />
           </SelectTrigger>
           <SelectContent>
-            {ASSIGNMENT_STATUSES.map((status) => (
-              <SelectItem key={status.value} value={status.value}>
-                {status.label}
+            {ASSIGNMENT_STATUSES.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -165,26 +199,37 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
           variant="outline"
           onClick={() => setShowAdvanced(!showAdvanced)}
           disabled={loading}
+          className="whitespace-nowrap"
         >
           <Filter className="h-4 w-4 mr-2" />
-          Filters
-          {activeFilterCount > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {activeFilterCount}
-            </Badge>
-          )}
+          {showAdvanced ? 'Hide' : 'More'} Filters
         </Button>
+
+        {/* Clear Filters Button */}
+        {hasActiveFilters && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={clearAllFilters}
+            disabled={loading}
+            className="whitespace-nowrap"
+            type="button"
+          >
+            <X className="h-3 w-3 mr-1" />
+            Clear All
+          </Button>
+        )}
       </div>
 
       {/* Advanced Filters */}
       {showAdvanced && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
           {/* Service Filter */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Service</label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Service</label>
             <Select 
-              value={filters.service || 'all'} 
-              onValueChange={(value) => onFilterChange({ service: value === 'all' ? '' : value })}
+              value={localFilters.service || "all"} 
+              onValueChange={(value) => handleFilterChange('service', value)}
               disabled={loading}
             >
               <SelectTrigger>
@@ -192,7 +237,7 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Services</SelectItem>
-                {services.map((service) => (
+                {availableServices.map((service) => (
                   <SelectItem key={service} value={service}>
                     {service}
                   </SelectItem>
@@ -202,46 +247,28 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
           </div>
 
           {/* City Filter */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">City</label>
-            <Select 
-              value={filters.city || 'all'} 
-              onValueChange={(value) => onFilterChange({ city: value === 'all' ? '' : value })}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">City</label>
+            <Input
+              placeholder="Enter city..."
+              value={localFilters.city}
+              onChange={(e) => handleFilterChange('city', e.target.value)}
               disabled={loading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Cities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Cities</SelectItem>
-                {cities.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           {/* Date Range */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Date Range</label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Date Range</label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                  disabled={loading}
-                >
+                <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={loading}>
                   <Calendar className="mr-2 h-4 w-4" />
                   {dateRange.from ? (
                     dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "LLL dd")} -{" "}
-                        {format(dateRange.to, "LLL dd")}
-                      </>
+                      `${format(dateRange.from, "MMM dd")} - ${format(dateRange.to, "MMM dd")}`
                     ) : (
-                      format(dateRange.from, "LLL dd, y")
+                      format(dateRange.from, "MMM dd, yyyy")
                     )
                   ) : (
                     "Pick a date range"
@@ -250,10 +277,9 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <CalendarComponent
-                  initialFocus
                   mode="range"
                   selected={dateRange}
-                  onSelect={setDateRange}
+                  onSelect={handleDateRangeChange}
                   numberOfMonths={2}
                 />
               </PopoverContent>
@@ -261,12 +287,12 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
           </div>
 
           {/* Sort Options */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Sort By</label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Sort By</label>
             <div className="flex gap-2">
               <Select 
-                value={filters.sortBy || 'createdAt'} 
-                onValueChange={(value) => onFilterChange({ sortBy: value })}
+                value={localFilters.sortBy || "createdAt"} 
+                onValueChange={(value) => handleFilterChange('sortBy', value)}
                 disabled={loading}
               >
                 <SelectTrigger className="flex-1">
@@ -281,8 +307,8 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
                 </SelectContent>
               </Select>
               <Select 
-                value={filters.sortOrder || 'desc'} 
-                onValueChange={(value) => onFilterChange({ sortOrder: value })}
+                value={localFilters.sortOrder || "desc"} 
+                onValueChange={(value) => handleFilterChange('sortOrder', value)}
                 disabled={loading}
               >
                 <SelectTrigger className="w-20">
@@ -298,79 +324,98 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
         </div>
       )}
 
-      {/* Active Filters */}
-      {activeFilterCount > 0 && (
-        <div className="flex flex-wrap gap-2 items-center">
+      {/* Active Filters Display */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap gap-2">
           <span className="text-sm text-muted-foreground">Active filters:</span>
           
-          {filters.search && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Search: {filters.search}
-              <X 
-                className="h-3 w-3 cursor-pointer" 
-                onClick={() => clearFilter('search')}
-              />
+          {localSearch && (
+            <Badge variant="secondary" className="gap-1">
+              Search: {localSearch}
+              <button
+                type="button"
+                onClick={() => {
+                  setLocalSearch('')
+                  onFilterChange({ search: '' })
+                }}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={loading}
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
           
-          {filters.status && filters.status !== 'all' && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Status: {filters.status}
-              <X 
-                className="h-3 w-3 cursor-pointer" 
-                onClick={() => clearFilter('status')}
-              />
+          {localFilters.status && (
+            <Badge variant="secondary" className="gap-1">
+              Status: {localFilters.status}
+              <button
+                type="button"
+                onClick={() => handleFilterChange('status', '')}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={loading}
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
           
-          {filters.service && filters.service !== 'all' && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Service: {filters.service}
-              <X 
-                className="h-3 w-3 cursor-pointer" 
-                onClick={() => clearFilter('service')}
-              />
+          {localFilters.assignedStatus && localFilters.assignedStatus !== 'all' && (
+            <Badge variant="secondary" className="gap-1">
+              Assignment: {ASSIGNMENT_STATUSES.find(s => s.value === localFilters.assignedStatus)?.label}
+              <button
+                type="button"
+                onClick={() => handleFilterChange('assignedStatus', '')}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={loading}
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
           
-          {filters.city && filters.city !== 'all' && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              City: {filters.city}
-              <X 
-                className="h-3 w-3 cursor-pointer" 
-                onClick={() => clearFilter('city')}
-              />
+          {localFilters.service && (
+            <Badge variant="secondary" className="gap-1">
+              Service: {localFilters.service}
+              <button
+                type="button"
+                onClick={() => handleFilterChange('service', '')}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={loading}
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
           
-          {filters.assignedStatus && filters.assignedStatus !== 'all' && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Assignment: {ASSIGNMENT_STATUSES.find(s => s.value === filters.assignedStatus)?.label}
-              <X 
-                className="h-3 w-3 cursor-pointer" 
-                onClick={() => clearFilter('assignedStatus')}
-              />
+          {localFilters.city && (
+            <Badge variant="secondary" className="gap-1">
+              City: {localFilters.city}
+              <button
+                type="button"
+                onClick={() => handleFilterChange('city', '')}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={loading}
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
           
-          {(filters.dateFrom || filters.dateTo) && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Date Range
-              <X 
-                className="h-3 w-3 cursor-pointer" 
-                onClick={() => clearFilter('dateRange')}
-              />
+          {(dateRange.from || dateRange.to) && (
+            <Badge variant="secondary" className="gap-1">
+              Date: {dateRange.from && format(dateRange.from, "MMM dd")}
+              {dateRange.to && ` - ${format(dateRange.to, "MMM dd")}`}
+              <button
+                type="button"
+                onClick={() => handleDateRangeChange({ from: null, to: null })}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={loading}
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearAllFilters}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            Clear all
-          </Button>
         </div>
       )}
     </div>

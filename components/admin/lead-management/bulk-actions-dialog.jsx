@@ -36,6 +36,13 @@ export function BulkActionsDialog({
   const [loading, setLoading] = useState(false)
 
   const handleExecute = async () => {
+    // Handle delete action differently - delegate to confirmation dialog
+    if (action === 'delete') {
+      onOpenChange(false) // Close this dialog
+      onExecute(action, {}) // Trigger the delete confirmation
+      return
+    }
+
     if (!formData[getRequiredField()]) {
       toast.error(`Please select a ${getRequiredField()}`)
       return
@@ -107,7 +114,7 @@ export function BulkActionsDialog({
       case 'export': 
         return `Export ${count} lead${count > 1 ? 's' : ''} to file`
       case 'delete': 
-        return `Permanently delete ${count} lead${count > 1 ? 's' : ''}. This action cannot be undone.`
+        return `This will open a confirmation dialog to delete ${count} lead${count > 1 ? 's' : ''}.`
       default: 
         return `Perform bulk action on ${count} lead${count > 1 ? 's' : ''}`
     }
@@ -137,107 +144,113 @@ export function BulkActionsDialog({
             </Badge>
           </div>
 
-          {/* Action-specific Form Fields */}
-          {action === 'updateStatus' && (
-            <div className="space-y-2">
-              <Label htmlFor="status">New Status</Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="assigned">Assigned</SelectItem>
-                  <SelectItem value="taken">Taken</SelectItem>
-                  <SelectItem value="contacted">Contacted</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Action-specific Form Fields - Don't show for delete action */}
+          {action !== 'delete' && (
+            <>
+              {action === 'updateStatus' && (
+                <div className="space-y-2">
+                  <Label htmlFor="status">New Status</Label>
+                  <Select 
+                    value={formData.status} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="assigned">Assigned</SelectItem>
+                      <SelectItem value="taken">Taken</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {action === 'addNote' && (
+                <div className="space-y-2">
+                  <Label htmlFor="note">Note</Label>
+                  <Textarea
+                    id="note"
+                    placeholder="Enter note to add to all selected leads..."
+                    value={formData.note}
+                    onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
+                    rows={4}
+                  />
+                </div>
+              )}
+
+              {action === 'setPriority' && (
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority Level</Label>
+                  <Select 
+                    value={formData.priority} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low Priority</SelectItem>
+                      <SelectItem value="medium">Medium Priority</SelectItem>
+                      <SelectItem value="high">High Priority</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {action === 'export' && (
+                <div className="space-y-2">
+                  <Label htmlFor="exportFormat">Export Format</Label>
+                  <Select 
+                    value={formData.exportFormat} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, exportFormat: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="csv">CSV (Comma Separated)</SelectItem>
+                      <SelectItem value="xlsx">Excel Spreadsheet</SelectItem>
+                      <SelectItem value="json">JSON Format</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Choose the format for the exported file
+                  </p>
+                </div>
+              )}
+
+              {/* Confirmation for high-impact actions */}
+              {action === 'updateStatus' && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-800">Confirmation Required</p>
+                      <p className="text-amber-700 mt-1">
+                        This will update the status for all selected leads and create progress history entries.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {action === 'addNote' && (
-            <div className="space-y-2">
-              <Label htmlFor="note">Note</Label>
-              <Textarea
-                id="note"
-                placeholder="Enter note to add to all selected leads..."
-                value={formData.note}
-                onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
-                rows={4}
-              />
-            </div>
-          )}
-
-          {action === 'setPriority' && (
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priority Level</Label>
-              <Select 
-                value={formData.priority} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low Priority</SelectItem>
-                  <SelectItem value="medium">Medium Priority</SelectItem>
-                  <SelectItem value="high">High Priority</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {action === 'export' && (
-            <div className="space-y-2">
-              <Label htmlFor="exportFormat">Export Format</Label>
-              <Select 
-                value={formData.exportFormat} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, exportFormat: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select format" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="csv">CSV (Comma Separated)</SelectItem>
-                  <SelectItem value="xlsx">Excel Spreadsheet</SelectItem>
-                  <SelectItem value="json">JSON Format</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                Choose the format for the exported file
-              </p>
-            </div>
-          )}
-
-          {/* Warning for destructive actions */}
-          {isDestructive && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                This action will permanently delete the selected leads and cannot be undone. 
-                All associated data including notes, follow-ups, and progress history will be lost.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Confirmation for high-impact actions */}
-          {(action === 'updateStatus' || action === 'delete') && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+          {/* Delete action info */}
+          {action === 'delete' && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
+                <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium text-amber-800">Confirmation Required</p>
-                  <p className="text-amber-700 mt-1">
-                    {action === 'updateStatus' 
-                      ? 'This will update the status for all selected leads and create progress history entries.'
-                      : 'This action cannot be undone. Please make sure you want to delete these leads.'
-                    }
+                  <p className="font-medium text-red-800">Delete Confirmation Required</p>
+                  <p className="text-red-700 mt-1">
+                    Clicking "Proceed" will open a detailed confirmation dialog where you can review 
+                    the leads to be deleted and provide a reason for the deletion.
                   </p>
                 </div>
               </div>
@@ -251,7 +264,7 @@ export function BulkActionsDialog({
           </Button>
           <Button 
             onClick={handleExecute}
-            disabled={loading || (!formData[getRequiredField()] && getRequiredField())}
+            disabled={loading || (action !== 'delete' && !formData[getRequiredField()] && getRequiredField())}
             variant={isDestructive ? "destructive" : "default"}
           >
             {loading ? (
@@ -262,15 +275,21 @@ export function BulkActionsDialog({
             ) : (
               <div className="flex items-center gap-2">
                 {action === 'delete' ? (
-                  <Trash2 className="h-4 w-4" />
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Proceed to Delete
+                  </>
                 ) : action === 'export' ? (
-                  <Download className="h-4 w-4" />
+                  <>
+                    <Download className="h-4 w-4" />
+                    Export Leads
+                  </>
                 ) : (
-                  <CheckCircle className="h-4 w-4" />
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    Apply Changes
+                  </>
                 )}
-                {action === 'delete' ? 'Delete Leads' : 
-                 action === 'export' ? 'Export Leads' : 
-                 'Apply Changes'}
               </div>
             )}
           </Button>

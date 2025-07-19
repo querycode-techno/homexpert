@@ -4,50 +4,85 @@ import { requireAdmin } from '@/lib/dal';
 import { ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
-// GET /api/admin/employee - Get all employees
+// GET /api/admin/employee - Get all employees (exclude vendors by role)
 export async function GET(request) {
   try {
     await requireAdmin();
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page')) || 1;
-    const limit = parseInt(searchParams.get('limit')) || 10;
-    const search = searchParams.get('search') || '';
-    const role = searchParams.get('role') || '';
-    const status = searchParams.get('status') || '';
+    const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit')) || 10));
+    const search = searchParams.get('search')?.trim() || '';
+    const role = searchParams.get('role')?.trim() || '';
+    const status = searchParams.get('status')?.trim() || '';
 
     const usersCollection = await database.getUsersCollection();
     const rolesCollection = await database.getRolesCollection();
 
-    // Build query
-    let query = {};
+    // Get vendor role to exclude vendors
+    const vendorRole = await rolesCollection.findOne({ name: 'vendor' });
+    if (!vendorRole) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Vendor role not found in system' 
+        },
+        { status: 500 }
+      );
+    }
+
+    // Build query conditions - CRITICAL: Always exclude vendor role
+    const queryConditions = [
+      { role: { $ne: vendorRole._id } } // Always exclude vendors
+    ];
     
-    // Search across multiple fields
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
-        { employeeId: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    // Filter by role if specified
+    // Filter by specific role if provided (but never allow vendor role)
     if (role && ObjectId.isValid(role)) {
-      query.role = new ObjectId(String(role));
+      const requestedRoleId = new ObjectId(String(role));
+      // Double check that the requested role is not vendor role
+      if (!requestedRoleId.equals(vendorRole._id)) {
+        queryConditions.push({ role: requestedRoleId });
+      }
     }
 
-    // Calculate pagination
-    const skip = (page - 1) * limit;
+    // Filter by status if specified
+    if (status) {
+      queryConditions.push({ status: status });
+    }
+    
+    // Handle search across multiple fields
+    if (search) {
+      queryConditions.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { phone: { $regex: search, $options: 'i' } },
+          { employeeId: { $regex: search, $options: 'i' } }
+        ]
+      });
+    }
 
-    // Get total count for pagination
+    // Combine all conditions with $and
+    const query = queryConditions.length > 1 ? { $and: queryConditions } : queryConditions[0];
+
+    // Get total count for pagination (using same query)
     const total = await usersCollection.countDocuments(query);
 
-    // Get employees
+    // Calculate pagination info
+    const totalPages = Math.ceil(total / limit) || 1;
+    
+    // If requested page exceeds total pages, redirect to last page
+    const actualPage = Math.min(page, totalPages);
+    const actualSkip = (actualPage - 1) * limit;
+
+    const hasNextPage = actualPage < totalPages;
+    const hasPrevPage = actualPage > 1;
+
+    // Get employees (using same query with corrected pagination)
     const employees = await usersCollection
       .find(query, { projection: { password: 0 } }) // Exclude password
       .sort({ createdAt: -1 })
-      .skip(skip)
+      .skip(actualSkip)
       .limit(limit)
       .toArray();
 
@@ -62,17 +97,12 @@ export async function GET(request) {
       }
     }
 
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
-
     return NextResponse.json({
       success: true,
       data: {
         employees,
         pagination: {
-          currentPage: page,
+          currentPage: actualPage,
           totalPages,
           totalItems: total,
           itemsPerPage: limit,
@@ -103,16 +133,16 @@ export async function GET(request) {
   }
 }
 
-// POST /api/admin/employee - Create new employee
+// POST /api/admin/employee - Create new employee (no vendors allowed)
 export async function POST(request) {
   try {
     await requireAdmin();
 
     const body = await request.json();
-    const { name, email, phone, password, role, address, profileImage, type } = body;
+    const { name, email, phone, password, role, address, profileImage } = body;
 
     // Validation
-    if (!name || !email || !phone || !password || !role || !type) {
+    if (!name || !email || !phone || !password || !role) {
       return NextResponse.json(
         { 
           success: false, 
@@ -160,13 +190,36 @@ export async function POST(request) {
     const usersCollection = await database.getUsersCollection();
     const rolesCollection = await database.getRolesCollection();
 
-    // Check if role exists
+    // Get vendor role to ensure it's not assigned to employees
+    const vendorRole = await rolesCollection.findOne({ name: 'vendor' });
+    if (!vendorRole) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Vendor role not found in system' 
+        },
+        { status: 500 }
+      );
+    }
+
+    // Check if role exists and is not vendor role
     const roleExists = await rolesCollection.findOne({ _id: new ObjectId(String(role)) });
     if (!roleExists) {
       return NextResponse.json(
         { 
           success: false, 
           error: 'Invalid role specified' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Prevent vendor role assignment in employee creation
+    if (roleExists._id.equals(vendorRole._id)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Cannot assign vendor role to employee. Use vendor management instead.' 
         },
         { status: 400 }
       );
@@ -211,8 +264,7 @@ export async function POST(request) {
       address: address || {},
       profileImage: profileImage || null,
       createdAt: new Date(),
-      updatedAt: new Date(),
-      type:type,
+      updatedAt: new Date()
     };
 
     // Create new employee

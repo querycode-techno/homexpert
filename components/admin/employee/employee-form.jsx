@@ -30,8 +30,7 @@ export function EmployeeForm({
     phone: "",
     password: "",
     role: "",
-    type: "", // Add type field
-    status: "", // Remove hardcoded "Active"
+    status: "",
     address: "",
   })
 
@@ -55,8 +54,7 @@ export function EmployeeForm({
         phone: employee.phone || "",
         password: "", // Don't populate password for editing
         role: employee.role?._id || employee.role || "",
-        type: employee.role?.name || employee.type || "", // Add type field
-        status: employee.status || "", // Remove default "Active"
+        status: employee.status || "",
         address: employee.address || "",
       })
     } else {
@@ -66,8 +64,7 @@ export function EmployeeForm({
         phone: "",
         password: "",
         role: "",
-        type: "", // Add type field
-        status: "", // Remove hardcoded "Active"
+        status: "",
         address: "",
       })
     }
@@ -102,7 +99,6 @@ export function EmployeeForm({
       setFormData(prev => ({ 
         ...prev, 
         [name]: value,
-        type: selectedRole ? selectedRole.name : "" // Set type to role name
       }))
     } else {
       setFormData(prev => ({ ...prev, [name]: value }))
@@ -142,8 +138,7 @@ export function EmployeeForm({
       phone: "",
       password: "",
       role: "",
-      type: "", // Add type field
-      status: "", // Remove hardcoded "Active"
+      status: "",
       address: "",
     })
   }

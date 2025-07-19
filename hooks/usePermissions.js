@@ -144,7 +144,7 @@ export function usePermissions() {
 
   const isAdmin = useMemo(() => {
     const userRole = session?.user?.role?.name
-    return isAdministrativeRole(userRole)
+    return userRole?.toLowerCase() === 'admin'
   }, [session])
 
   const userRole = useMemo(() => {

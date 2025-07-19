@@ -134,58 +134,58 @@ export function AssignmentDialog({
     }
 
     return (
-                <div className="space-y-2">
-            {filteredVendors.map((vendor) => (
-              <div 
-                key={vendor._id}
-                className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
-                  selectedVendors.includes(vendor._id) 
-                    ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200' 
-                    : 'hover:border-muted-foreground/20'
-                }`}
-                onClick={() => handleVendorToggle(vendor._id)}
-              >
-                <Checkbox 
-                  checked={selectedVendors.includes(vendor._id)}
-                  readOnly
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate flex items-center gap-2">
-                    {vendor.businessName || vendor.name || `Vendor ${vendor._id?.slice(-6)}`}
-                    {selectedVendors.includes(vendor._id) && (
-                      <Badge variant="secondary" className="text-xs">
-                        Selected
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {vendor.userData?.email || 'No email'} • {vendor.address?.city || 'Location not set'}
-                  </div>
-                  {vendor.userData?.phone && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      📞 {vendor.userData.phone}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center space-x-3 text-sm">
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                    <span>{vendor.rating?.toFixed(1) || 'N/A'}</span>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                   {vendor.status}
+      <div className="space-y-2">
+        {filteredVendors.map((vendor) => (
+          <div 
+            key={vendor._id}
+            className={`flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
+              selectedVendors.includes(vendor._id) 
+                ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-200' 
+                : 'hover:border-muted-foreground/20'
+            }`}
+            onClick={() => handleVendorToggle(vendor._id)}
+          >
+            <Checkbox 
+              checked={selectedVendors.includes(vendor._id)}
+              readOnly
+            />
+            <div className="flex-1 min-w-0">
+              <div className="font-medium truncate flex items-center gap-2">
+                {vendor.businessName || vendor.name || `Vendor ${vendor._id?.slice(-6)}`}
+                {selectedVendors.includes(vendor._id) && (
+                  <Badge variant="secondary" className="text-xs">
+                    Selected
                   </Badge>
-                </div>
+                )}
               </div>
-            ))}
+              <div className="text-sm text-muted-foreground">
+                {vendor.userData?.email || 'No email'} • {vendor.address?.city || 'Location not set'}
+              </div>
+              {vendor.userData?.phone && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  📞 {vendor.userData.phone}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center space-x-3 text-sm">
+              <div className="flex items-center">
+                <Star className="h-4 w-4 text-yellow-500 mr-1" />
+                <span>{vendor.rating?.toFixed(1) || 'N/A'}</span>
+              </div>
+              <Badge variant="outline" className="text-xs">
+               {vendor.status}
+              </Badge>
+            </div>
           </div>
+        ))}
+      </div>
     )
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] h-[85vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-4">
           <DialogTitle>
             Assign {selectedLeads.length === 1 ? 'Lead' : 'Leads'} to Vendors
           </DialogTitle>
@@ -194,9 +194,9 @@ export function AssignmentDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 flex flex-col space-y-4 py-4 min-h-0">
+        <div className="flex-1 flex flex-col space-y-4 min-h-0 overflow-hidden">
           {/* Search */}
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search vendors by name, service, or city..."
@@ -207,7 +207,7 @@ export function AssignmentDialog({
           </div>
 
           {/* Assignment Options */}
-          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+          <div className="flex-shrink-0 flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium">Assignment:</span>
               {selectedVendors.length > 0 ? (
@@ -242,14 +242,16 @@ export function AssignmentDialog({
           </div>
 
           {/* Vendor List */}
-          <div className="flex-1 min-h-0">
-            <ScrollArea className="h-full pr-4">
-              <VendorList />
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="pr-4">
+                <VendorList />
+              </div>
             </ScrollArea>
           </div>
         </div>
 
-        <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-2 pt-4 border-t bg-background">
+        <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-2 pt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { usePermissions } from "@/hooks/usePermissions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -52,6 +53,9 @@ const STATUS_CONFIG = {
 export default function AdminSupportTicketDetailsPage({ params }) {
   const router = useRouter()
   const { id } = params
+  const { isAdmin } = usePermissions()
+
+  console.log("isAdmin", isAdmin)
   
   const [ticket, setTicket] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -473,31 +477,32 @@ export default function AdminSupportTicketDetailsPage({ params }) {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Assign To</Label>
-                <Select
-                  value={ticket.assignedTo?._id || "unassigned"}
-                  onValueChange={updateTicketAssignment}
-                  disabled={updatingTicket || loadingAssignees}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingAssignees ? "Loading..." : "Select assignee"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        Unassigned
-                      </div>
-                    </SelectItem>
-                    {assigneeUsers.map((user) => (
-                      <SelectItem key={user._id} value={user._id}>
+              {isAdmin && (
+                <div className="space-y-2">
+                  <Label>Assign To</Label>
+                  <Select
+                    value={ticket.assignedTo?._id || "unassigned"}
+                    onValueChange={updateTicketAssignment}
+                    disabled={updatingTicket || loadingAssignees}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingAssignees ? "Loading..." : "Select assignee"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">
                         <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">{user.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {user.role.name} • {user.email}
+                          <User className="h-4 w-4 text-gray-400" />
+                          Unassigned
+                        </div>
+                      </SelectItem>
+                      {assigneeUsers.map((user) => (
+                        <SelectItem key={user._id} value={user._id}>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">{user.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {user.role.name} • {user.email}
                             </span>
                           </div>
                         </div>
@@ -505,7 +510,8 @@ export default function AdminSupportTicketDetailsPage({ params }) {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

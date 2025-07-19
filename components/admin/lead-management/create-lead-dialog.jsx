@@ -120,7 +120,11 @@ export default function CreateLeadDialog({
       const selectedService = selectedCategory?.services.find(s => s.id === formData.serviceId);
       const selectedSubService = selectedService?.subServices.find(ss => ss.name === formData.subServiceName);
 
-      // Prepare optimized payload for new API (using names, not IDs)
+      // Get current user session for createdBy field
+      const session = await getSession();
+      const currentUserId = session?.user?.id;
+
+      // Prepare optimized payload for admin API
       const leadPayload = {
         // Customer Information (matching new schema)
         customerName: formData.customerName.trim(),
@@ -134,8 +138,6 @@ export default function CreateLeadDialog({
         
         // Address (simplified for new schema)
         address: `${formData.address.trim()}${formData.city ? `, ${formData.city}` : ''}${formData.state ? `, ${formData.state}` : ''}${formData.pincode ? ` - ${formData.pincode}` : ''}`.trim(),
-        city: formData.city.trim() || undefined,
-        state: formData.state.trim() || undefined,
         
         // Lead Details
         description: formData.description.trim() || `Service request for ${selectedService?.name}${selectedSubService ? ` - ${selectedSubService.name}` : ''}`,
@@ -147,11 +149,17 @@ export default function CreateLeadDialog({
         
         // Scheduling
         preferredDate: formData.preferredDate || undefined,
-        preferredTime: formData.preferredTime || undefined
+        preferredTime: formData.preferredTime || undefined,
+        
+        // Admin tracking - include createdBy when admin creates lead
+        createdBy: currentUserId || undefined
       }
 
-      // Submit to optimized API
-      const response = await fetch('/api/leads', {
+      console.log('Creating lead with payload:', leadPayload);
+      console.log('Current user ID:', currentUserId);
+
+      // Submit to ADMIN API endpoint (not public API)
+      const response = await fetch('/api/admin/leads', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -169,43 +177,49 @@ export default function CreateLeadDialog({
       
       if (result.success) {
         setSubmitted(true)
-        toast.success(result.message || 'Your service request has been submitted successfully!')
+        toast.success(result.message || 'Lead has been created successfully!')
         
         // Optional: Track successful submission
         if (typeof gtag !== 'undefined') {
-          gtag('event', 'lead_submission', {
-            event_category: 'engagement',
+          gtag('event', 'admin_lead_creation', {
+            event_category: 'admin_action',
             event_label: selectedSubService?.name || selectedService?.name || selectedCategory?.name,
             value: formData.price || 0
           });
         }
       } else {
-        throw new Error(result.error || 'Failed to submit your request')
+        throw new Error(result.error || 'Failed to create lead')
       }
 
-      const userId = await getSession().then(session => session?.user?.id);
+      // Create notification for vendor
+      if (currentUserId) {
+        try {
+          const address = `${formData.address.trim()}${formData.city ? `, ${formData.city}` : ''}${formData.state ? `, ${formData.state}` : ''}${formData.pincode ? ` - ${formData.pincode}` : ''}`.trim();
 
-      const address = `${formData.address.trim()}${formData.city ? `, ${formData.city}` : ''}${formData.state ? `, ${formData.state}` : ''}${formData.pincode ? ` - ${formData.pincode}` : ''}`.trim();
-
-      const res = await createNotification({
-        title:"New Lead Create",
-        message: `New booking is comming for ${selectedSubService?.name} and address : ${address}`,
-        messageType:"Info",
-        target:"vendor",
-        userId:userId,
-        link:"",
-      })
+          await createNotification({
+            title: "New Lead Created by Admin",
+            message: `Admin created a new lead for ${selectedSubService?.name} at ${address}`,
+            messageType: "Info",
+            target: "vendor",
+            userId: currentUserId,
+            link: "",
+          });
+        } catch (notificationError) {
+          console.error('Error creating notification:', notificationError);
+          // Don't fail the whole operation for notification errors
+        }
+      }
 
     } catch (error) {
       console.error('Error submitting lead:', error)
       
       // Better error handling with user-friendly messages
-      let errorMessage = 'Failed to submit your request. Please try again.'
+      let errorMessage = 'Failed to create lead. Please try again.'
       
       if (error.message.includes('network') || error.message.includes('fetch')) {
         errorMessage = 'Connection issue. Please check your internet and try again.'
       } else if (error.message.includes('duplicate') || error.message.includes('similar')) {
-        errorMessage = 'A similar request was recently submitted. Our team will contact you shortly.'
+        errorMessage = 'A similar lead was recently created. Please check the lead list.'
       } else if (error.message) {
         errorMessage = error.message
       }

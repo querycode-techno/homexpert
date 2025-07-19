@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -18,11 +19,31 @@ import employeeService from "@/lib/services/employeeService"
 import { EmployeeList, EmployeeForm } from "./employee"
 
 export function EmployeeManagement() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  // Get URL parameters
+  const currentPage = parseInt(searchParams.get('page')) || 1
+  const currentSearch = searchParams.get('search') || ""
+  const currentRole = searchParams.get('role') || ""
+  const currentStatus = searchParams.get('status') || ""
+
   // Employee data state
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [pagination, setPagination] = useState({})
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10,
+    hasNextPage: false,
+    hasPrevPage: false
+  })
+
+  // Available roles for filtering
+  const [availableRoles, setAvailableRoles] = useState([])
+  const [rolesLoading, setRolesLoading] = useState(false)
 
   // Employee states
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false)
@@ -30,18 +51,99 @@ export function EmployeeManagement() {
   const [isDeleteEmployeeDialogOpen, setIsDeleteEmployeeDialogOpen] = useState(false)
   const [currentEmployee, setCurrentEmployee] = useState(null)
 
-  // Search and filter states
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
+  // Search and filter states (derived from URL)
+  const [searchTerm, setSearchTerm] = useState(currentSearch)
+  const [filters, setFilters] = useState({
+    role: currentRole,
+    status: currentStatus
+  })
   const [pageSize, setPageSize] = useState(10)
 
   // File input ref
   const employeeFileInputRef = useRef(null)
 
-  // Load employees on component mount
+  // Update URL with new parameters
+  const updateURL = (newParams) => {
+    console.log('🔄 updateURL called with:', newParams)
+    console.log('📍 Current URL params:', Object.fromEntries(searchParams.entries()))
+    
+    const params = new URLSearchParams(searchParams.toString())
+    
+    // Update or remove parameters
+    Object.keys(newParams).forEach(key => {
+      const value = newParams[key]
+      if (value !== undefined) {
+        if (value && value !== '' && value !== 'all') {
+          params.set(key, value.toString())
+        } else {
+          params.delete(key)
+        }
+      }
+    })
+
+    // Only remove page=1 from URL for cleaner URLs (don't remove other page numbers)
+    // Temporarily disabled to debug pagination issues
+    // if (params.get('page') === '1' && newParams.page !== 1) {
+    //   params.delete('page')
+    // }
+
+    const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`
+    console.log('➡️ Navigating to:', newURL)
+    router.push(newURL, { scroll: false })
+  }
+
+  // Debug URL parameter changes
+  useEffect(() => {
+    console.log('📊 URL params changed:', { 
+      page: currentPage, 
+      search: currentSearch, 
+      role: currentRole, 
+      status: currentStatus 
+    })
+  }, [currentPage, currentSearch, currentRole, currentStatus])
+
+  // Load initial data on component mount
+  useEffect(() => {
+    loadInitialData()
+  }, [])
+
+  // Load employees when URL parameters change
   useEffect(() => {
     loadEmployees()
-  }, [currentPage, pageSize, searchTerm])
+  }, [currentPage, currentSearch, currentRole, currentStatus])
+
+  // Sync local state with URL parameters
+  useEffect(() => {
+    setSearchTerm(currentSearch)
+    setFilters({
+      role: currentRole,
+      status: currentStatus
+    })
+  }, [currentSearch, currentRole, currentStatus])
+
+  // Load initial data (roles only - employees loaded by URL useEffect)
+  const loadInitialData = async () => {
+    await loadRoles() // Only load roles initially, employees loaded by URL params useEffect
+  }
+
+  // Load available roles for filtering
+  const loadRoles = async () => {
+    try {
+      setRolesLoading(true)
+      const result = await employeeService.getRoles()
+      
+      if (result.success) {
+        setAvailableRoles(result.roles)
+      } else {
+        console.error('Failed to load roles:', result.error)
+        // Don't show error toast for roles as it's not critical
+      }
+    } catch (err) {
+      console.error('Error loading roles:', err.message)
+    } finally {
+      setRolesLoading(false)
+    }
+  }
 
   // API functions
   const loadEmployees = async () => {
@@ -49,11 +151,15 @@ export function EmployeeManagement() {
       setLoading(true)
       setError(null)
       
-      const result = await employeeService.getEmployees({
+      const params = {
         page: currentPage,
         limit: pageSize,
-        search: searchTerm
-      })
+        search: currentSearch,
+        role: currentRole,
+        status: currentStatus
+      }
+      
+      const result = await employeeService.getEmployees(params)
 
       if (result.success) {
         setEmployees(result.employees)
@@ -80,7 +186,12 @@ export function EmployeeManagement() {
       if (result.success) {
         toast.success(`Employee Added: ${result.employee.name} has been added successfully.`)
         setIsAddEmployeeOpen(false)
-        loadEmployees() // Refresh the list
+        // Go to first page to see new employee, but only if not already on page 1
+        if (currentPage !== 1) {
+          updateURL({ page: undefined }) // Remove page param to go to page 1
+        } else {
+          await loadEmployees() // Just refresh current page
+        }
       } else {
         toast.error(`Error: ${result.error}`)
       }
@@ -106,7 +217,7 @@ export function EmployeeManagement() {
         toast.success(`Employee Updated: ${result.employee.name} has been updated successfully.`)
         setIsEditEmployeeOpen(false)
         setCurrentEmployee(null)
-        loadEmployees() // Refresh the list
+        await loadEmployees() // Refresh the list
       } else {
         toast.error(`Error: ${result.error}`)
       }
@@ -131,7 +242,7 @@ export function EmployeeManagement() {
         toast.success(`Employee Deleted: ${currentEmployee.name} has been deleted successfully.`)
         setIsDeleteEmployeeDialogOpen(false)
         setCurrentEmployee(null)
-        loadEmployees() // Refresh the list
+        await loadEmployees() // Refresh the list
       } else {
         toast.error(`Error: ${result.error}`)
       }
@@ -156,11 +267,11 @@ export function EmployeeManagement() {
   }
 
   const handleEmployeeImport = () => {
-    employeeFileInputRef.current.click()
+    employeeFileInputRef.current?.click()
   }
 
   const handleEmployeeFileChange = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (file) {
       // For now, show a message that import is not implemented
       toast.info("Import functionality will be implemented soon.")
@@ -169,12 +280,37 @@ export function EmployeeManagement() {
   }
 
   const handleSearch = (term) => {
+    console.log('🔍 handleSearch called with:', term, 'current:', currentSearch)
     setSearchTerm(term)
-    setCurrentPage(1) // Reset to first page when searching
+    // Only reset to page 1 if this is an actual search action (not initial sync)
+    if (term !== currentSearch) {
+      console.log('🔄 Search changed, updating URL')
+      updateURL({ 
+        search: term || undefined,
+        page: undefined // Reset to page 1 by removing page param
+      })
+    }
+  }
+
+  const handleFilterChange = (newFilters) => {
+    console.log('🔧 handleFilterChange called with:', newFilters, 'current:', { role: currentRole, status: currentStatus })
+    setFilters(newFilters)
+    // Only reset to page 1 if filters actually changed (not initial sync)
+    if (newFilters.role !== currentRole || newFilters.status !== currentStatus) {
+      console.log('🔄 Filters changed, updating URL')
+      updateURL({ 
+        role: newFilters.role || undefined, 
+        status: newFilters.status || undefined, 
+        page: undefined // Reset to page 1 by removing page param
+      })
+    }
   }
 
   const handlePageChange = (page) => {
-    setCurrentPage(page)
+    console.log('📄 handlePageChange called with:', page)
+    // Ensure valid page number  
+    const validatedPage = Math.max(1, page)
+    updateURL({ page: validatedPage })
   }
 
   return (
@@ -187,18 +323,24 @@ export function EmployeeManagement() {
       {/* Employee Management */}
       <EmployeeList
         employees={employees}
-        loading={loading}
+        loading={loading || rolesLoading}
         error={error}
         pagination={pagination}
+        availableRoles={availableRoles}
         onAddEmployee={() => setIsAddEmployeeOpen(true)}
         onEditEmployee={handleEditEmployee}
         onDeleteEmployee={handleDeleteEmployee}
         onExport={handleEmployeeExport}
         onImport={handleEmployeeImport}
         onSearch={handleSearch}
+        onFilterChange={handleFilterChange}
         onPageChange={handlePageChange}
         currentPage={currentPage}
-        searchTerm={searchTerm}
+        searchTerm={currentSearch}
+        filters={{
+          role: currentRole,
+          status: currentStatus
+        }}
       />
 
       {/* Employee Form Dialogs */}
@@ -251,4 +393,4 @@ export function EmployeeManagement() {
       />
     </div>
   )
-} 
+}

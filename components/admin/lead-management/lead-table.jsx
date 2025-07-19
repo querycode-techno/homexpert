@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
@@ -15,8 +15,10 @@ import {
   Calendar, 
   MoreHorizontal, 
   Eye, 
+  EyeOff,
   UserPlus, 
   Edit, 
+  Trash2,
   Clock,
   Users,
   CheckCircle,
@@ -59,6 +61,17 @@ const parseCity = (address) => {
     console.error('Error parsing city:', error)
     return 'Unknown'
   }
+}
+
+// Function to mask phone number
+const maskPhone = (phone) => {
+  if (!phone) return 'No phone'
+  const cleanPhone = phone.replace(/\D/g, '') // Remove non-digits
+  if (cleanPhone.length >= 4) {
+    const lastFour = cleanPhone.slice(-4)
+    return `******${lastFour}`
+  }
+  return '******'
 }
 
 // Status configuration
@@ -122,6 +135,7 @@ function LeadTableRow({
   onViewLead, 
   onLeadAction 
 }) {
+  const [showPhone, setShowPhone] = useState(false)
   const statusConfig = STATUS_CONFIG[lead.status] || STATUS_CONFIG.pending
   const StatusIcon = statusConfig.icon
 
@@ -137,6 +151,12 @@ function LeadTableRow({
     onLeadAction('openAssignment', lead._id)
   }
 
+  const handleDeleteLead = () => {
+    onLeadAction('delete', lead._id, { 
+      reason: 'Deleted from lead table'
+    })
+  }
+
   return (
     <TableRow className="hover:bg-muted/50">
       {/* Selection Checkbox */}
@@ -147,7 +167,7 @@ function LeadTableRow({
         />
       </TableCell>
 
-      {/* Customer Info */}
+      {/* Customer Info with Phone Toggle */}
       <TableCell>
         <div className="flex items-center space-x-3">
           <Avatar className="h-8 w-8">
@@ -155,25 +175,29 @@ function LeadTableRow({
               {lead.customerName?.charAt(0)?.toUpperCase() || 'L'}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="font-medium truncate">
               {lead.customerName || 'Unknown'}
             </div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Phone className="h-3 w-3 mr-1" />
-              {lead.customerPhone || 'No phone'}
+            <div className="flex items-center text-xs text-muted-foreground gap-2">
+              <Phone className="h-3 w-3" />
+              <span className="select-none">
+                {showPhone ? (lead.customerPhone || 'No phone') : maskPhone(lead.customerPhone)}
+              </span>
+              <button
+                onClick={() => setShowPhone(!showPhone)}
+                className="ml-1 p-0.5 hover:bg-muted rounded transition-colors"
+                type="button"
+              >
+                {showPhone ? (
+                  <EyeOff className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                ) : (
+                  <Eye className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                )}
+              </button>
+      
             </div>
           </div>
-        </div>
-      </TableCell>
-
-      {/* Contact Details */}
-      <TableCell>
-        <div className="flex items-center text-sm">
-          <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span className="truncate max-w-[200px]">
-            {lead.customerEmail || 'No email'}
-          </span>
         </div>
       </TableCell>
 
@@ -229,7 +253,6 @@ function LeadTableRow({
         )}
       </TableCell>
 
-    
       {/* Actions */}
       <TableCell className="w-12">
         <DropdownMenu>
@@ -254,21 +277,13 @@ function LeadTableRow({
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            
-            {/* Quick Status Changes */}
-            {/* <div className="px-2 py-1 text-xs font-medium text-muted-foreground">
-              Quick Status
-            </div>
-            {['contacted', 'completed', 'cancelled'].map((status) => (
-              <DropdownMenuItem 
-                key={status}
-                onClick={() => handleQuickStatusChange(status)}
-                disabled={lead.status === status}
-              >
-                <StatusIcon className="h-4 w-4 mr-2" />
-                Mark as {status.charAt(0).toUpperCase() + status.slice(1)}
-              </DropdownMenuItem>
-            ))} */}
+            <DropdownMenuItem 
+              onClick={handleDeleteLead}
+              className="text-red-600 focus:text-red-600"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Lead
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -373,7 +388,6 @@ export function LeadTable({
                   />
                 </TableHead>
                 <TableHead>Customer</TableHead>
-                <TableHead>Contact</TableHead>
                 <TableHead>City</TableHead>
                 <TableHead className="w-48">Service</TableHead>
                 <TableHead>Status</TableHead>
@@ -384,7 +398,7 @@ export function LeadTable({
             <TableBody>
               {leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
+                  <TableCell colSpan={7} className="h-24 text-center">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="text-muted-foreground">No leads found</div>
                       <div className="text-sm text-muted-foreground">
@@ -408,8 +422,6 @@ export function LeadTable({
             </TableBody>
           </Table>
         </div>
-
-
       </div>
 
       {pagination && (

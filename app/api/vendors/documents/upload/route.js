@@ -18,6 +18,7 @@ export async function POST(request) {
     const documentType = formData.get('documentType');
     const file = formData.get('file');
     const documentNumber = formData.get('documentNumber');
+    const docType = formData.get('docType'); // identity type or business type
 
     // Validate input
     if (!documentType || !file) {
@@ -28,12 +29,31 @@ export async function POST(request) {
     }
 
     // Validate document type
-    const allowedTypes = ['aadharCard', 'panCard', 'businessLicense'];
+    const allowedTypes = ['identity', 'business'];
     if (!allowedTypes.includes(documentType)) {
       return NextResponse.json({
         success: false,
-        error: 'Invalid document type'
+        error: 'Invalid document type. Must be either identity or business'
       }, { status: 400 });
+    }
+
+    // Validate doc type enum
+    if (documentType === 'identity') {
+      const allowedIdentityTypes = ['driving_license', 'aadhar_card', 'voter_card'];
+      if (docType && !allowedIdentityTypes.includes(docType)) {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid identity document type'
+        }, { status: 400 });
+      }
+    } else if (documentType === 'business') {
+      const allowedBusinessTypes = ['gst', 'msme', 'other'];
+      if (docType && !allowedBusinessTypes.includes(docType)) {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid business document type'
+        }, { status: 400 });
+      }
     }
 
     // Validate file type and size
@@ -84,9 +104,9 @@ export async function POST(request) {
     // Update vendor document
     const updateField = `documents.${documentType}`;
     const documentUpdate = {
+      type: docType || vendor.documents?.[documentType]?.type || "",
       number: documentNumber || vendor.documents?.[documentType]?.number || "",
-      imageUrl: uploadedUrl,
-      verified: false, // Reset verification status on new upload
+      docImageUrl: uploadedUrl,
       uploadedAt: new Date()
     };
 
@@ -101,7 +121,7 @@ export async function POST(request) {
           history: {
             action: 'document_uploaded',
             date: new Date(),
-            notes: `${documentType} uploaded`
+            notes: `${documentType} document uploaded`
           }
         }
       }
@@ -116,29 +136,19 @@ export async function POST(request) {
     // Calculate document completion status
     const documents = updatedVendor.documents;
     const documentStatus = {
-      aadharCard: {
-        uploaded: !!documents?.aadharCard?.imageUrl,
-        verified: documents?.aadharCard?.verified || false
+      identity: {
+        uploaded: !!documents?.identity?.docImageUrl,
+        type: documents?.identity?.type || null
       },
-      panCard: {
-        uploaded: !!documents?.panCard?.imageUrl,
-        verified: documents?.panCard?.verified || false
-      },
-      businessLicense: {
-        uploaded: !!documents?.businessLicense?.imageUrl,
-        verified: documents?.businessLicense?.verified || false
-      },
-      bankDetails: {
-        provided: !!(documents?.bankDetails?.accountNumber && 
-                    documents?.bankDetails?.ifscCode && 
-                    documents?.bankDetails?.accountHolderName),
-        verified: documents?.bankDetails?.verified || false
+      business: {
+        uploaded: !!documents?.business?.docImageUrl,
+        type: documents?.business?.type || null
       }
     };
 
-    const totalDocuments = 4;
+    const totalDocuments = 2;
     const uploadedDocuments = Object.values(documentStatus).filter(doc => 
-      doc.uploaded || doc.provided
+      doc.uploaded
     ).length;
     const completionPercentage = Math.round((uploadedDocuments / totalDocuments) * 100);
 
@@ -162,105 +172,6 @@ export async function POST(request) {
     return NextResponse.json({
       success: false,
       error: 'Failed to upload document'
-    }, { status: 500 });
-  }
-}
-
-// PUT /api/vendors/documents/upload - Update bank details
-export async function PUT(request) {
-  // Verify authentication
-  const authResult = verifyVendorToken(request);
-  if (!authResult.success) {
-    return createAuthErrorResponse(authResult.error, authResult.status);
-  }
-
-  try {
-    const { vendorId } = authResult.user;
-    const { bankDetails } = await request.json();
-
-    // Validate input
-    if (!bankDetails?.accountNumber || !bankDetails?.ifscCode || !bankDetails?.accountHolderName) {
-      return NextResponse.json({
-        success: false,
-        error: 'Account number, IFSC code, and account holder name are required'
-      }, { status: 400 });
-    }
-
-    // Validate IFSC code format (basic validation)
-    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-    if (!ifscRegex.test(bankDetails.ifscCode)) {
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid IFSC code format'
-      }, { status: 400 });
-    }
-
-    // Validate account number (basic validation)
-    if (bankDetails.accountNumber.length < 9 || bankDetails.accountNumber.length > 18) {
-      return NextResponse.json({
-        success: false,
-        error: 'Account number must be between 9 and 18 digits'
-      }, { status: 400 });
-    }
-
-    // Get database collections
-    const vendorsCollection = await database.getVendorsCollection();
-
-    // Check if vendor exists
-    const vendor = await vendorsCollection.findOne({ _id: new ObjectId(vendorId) });
-    
-    if (!vendor) {
-      return NextResponse.json({
-        success: false,
-        error: 'Vendor not found'
-      }, { status: 404 });
-    }
-
-    // Update bank details
-    const bankDetailsUpdate = {
-      accountNumber: bankDetails.accountNumber.trim(),
-      ifscCode: bankDetails.ifscCode.trim().toUpperCase(),
-      accountHolderName: bankDetails.accountHolderName.trim(),
-      verified: false, // Reset verification status on update
-      updatedAt: new Date()
-    };
-
-    await vendorsCollection.updateOne(
-      { _id: new ObjectId(vendorId) },
-      {
-        $set: {
-          'documents.bankDetails': bankDetailsUpdate,
-          updatedAt: new Date()
-        },
-        $push: {
-          history: {
-            action: 'bank_details_updated',
-            date: new Date(),
-            notes: 'Bank details updated'
-          }
-        }
-      }
-    );
-
-    return NextResponse.json({
-      success: true,
-      message: 'Bank details updated successfully',
-      data: {
-        bankDetails: {
-          accountNumber: bankDetails.accountNumber,
-          ifscCode: bankDetails.ifscCode,
-          accountHolderName: bankDetails.accountHolderName,
-          verified: false
-        },
-        updatedAt: new Date()
-      }
-    });
-
-  } catch (error) {
-    console.error('Bank details update error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to update bank details'
     }, { status: 500 });
   }
 } 

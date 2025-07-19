@@ -40,43 +40,30 @@ export async function GET(request) {
 
     // Calculate document verification status
     const documentVerification = {
-      aadharCard: {
-        status: vendor.documents?.aadharCard?.verified ? 'verified' : 
-                vendor.documents?.aadharCard?.imageUrl ? 'pending' : 'missing',
-        hasDocument: !!vendor.documents?.aadharCard?.imageUrl,
-        verified: vendor.documents?.aadharCard?.verified || false
+      identity: {
+        status: vendor.documents?.identity?.docImageUrl ? 'pending' : 'missing',
+        hasDocument: !!vendor.documents?.identity?.docImageUrl,
+        type: vendor.documents?.identity?.type || null,
+        number: vendor.documents?.identity?.number || null
       },
-      panCard: {
-        status: vendor.documents?.panCard?.verified ? 'verified' : 
-                vendor.documents?.panCard?.imageUrl ? 'pending' : 'missing',
-        hasDocument: !!vendor.documents?.panCard?.imageUrl,
-        verified: vendor.documents?.panCard?.verified || false
-      },
-      businessLicense: {
-        status: vendor.documents?.businessLicense?.verified ? 'verified' : 
-                vendor.documents?.businessLicense?.imageUrl ? 'pending' : 'missing',
-        hasDocument: !!vendor.documents?.businessLicense?.imageUrl,
-        verified: vendor.documents?.businessLicense?.verified || false
-      },
-      bankDetails: {
-        status: vendor.documents?.bankDetails?.verified ? 'verified' : 
-                vendor.documents?.bankDetails?.accountNumber ? 'pending' : 'missing',
-        hasDetails: !!(vendor.documents?.bankDetails?.accountNumber && 
-                      vendor.documents?.bankDetails?.ifscCode && 
-                      vendor.documents?.bankDetails?.accountHolderName),
-        verified: vendor.documents?.bankDetails?.verified || false
+      business: {
+        status: vendor.documents?.business?.docImageUrl ? 'pending' : 'missing',
+        hasDocument: !!vendor.documents?.business?.docImageUrl,
+        type: vendor.documents?.business?.type || null,
+        number: vendor.documents?.business?.number || null
       }
     };
 
     // Calculate overall completion percentage
-    const totalDocuments = 4;
-    const verifiedDocuments = Object.values(documentVerification).filter(doc => doc.verified).length;
+    const totalDocuments = 2; // identity + business
     const providedDocuments = Object.values(documentVerification).filter(doc => 
-      doc.hasDocument || doc.hasDetails
+      doc.hasDocument
     ).length;
 
     const completionPercentage = Math.round((providedDocuments / totalDocuments) * 100);
-    const verificationPercentage = Math.round((verifiedDocuments / totalDocuments) * 100);
+    
+    // Single verification status (from vendor.verified.isVerified)
+    const verificationPercentage = vendor.verified.isVerified ? 100 : 0;
 
     // Get latest verification history
     const verificationHistory = vendor.history
@@ -115,28 +102,18 @@ export async function GET(request) {
         requirements: {
           documents: [
             {
-              type: 'aadharCard',
-              name: 'Aadhar Card',
+              type: 'identity',
+              name: 'Identity Document',
               required: true,
-              description: 'Upload clear photo of your Aadhar card'
+              description: 'Upload one of: Driving License, Aadhar Card, or Voter Card',
+              allowedTypes: ['driving_license', 'aadhar_card', 'voter_card']
             },
             {
-              type: 'panCard',
-              name: 'PAN Card',
+              type: 'business',
+              name: 'Business Document',
               required: true,
-              description: 'Upload clear photo of your PAN card'
-            },
-            {
-              type: 'businessLicense',
-              name: 'Business License',
-              required: true,
-              description: 'Upload your business registration certificate'
-            },
-            {
-              type: 'bankDetails',
-              name: 'Bank Account Details',
-              required: true,
-              description: 'Provide valid bank account information'
+              description: 'Upload one of: GST Certificate, MSME Certificate, or Other business document',
+              allowedTypes: ['gst', 'msme', 'other']
             }
           ]
         }

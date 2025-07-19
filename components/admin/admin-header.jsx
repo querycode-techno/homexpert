@@ -117,7 +117,7 @@ export function AdminHeader() {
                 </p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
+            {/* <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer">
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
@@ -125,8 +125,8 @@ export function AdminHeader() {
             <DropdownMenuItem className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            </DropdownMenuItem> */}
+            {/* <DropdownMenuSeparator /> */}
             <DropdownMenuItem 
               className="cursor-pointer text-destructive focus:text-destructive"
               onClick={logout}

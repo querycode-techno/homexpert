@@ -18,10 +18,223 @@ async function connectDB() {
   }
 }
 
+// POST /api/admin/leads - Create new lead (admin only)
+export async function POST(request) {
+  try {
+    await requireAdmin();
+    await connectDB();
+
+    const body = await request.json();
+
+    // Validation - check essential fields
+    if (!body.customerName?.trim() || !body.customerPhone?.trim()) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Customer name and phone number are required' 
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!body.service?.trim()) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Service selection is required' 
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!body.address?.trim()) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Address is required' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Phone validation
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(body.customerPhone.trim())) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Please provide a valid 10-digit phone number' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Email validation if provided
+    if (body.customerEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(body.customerEmail.trim())) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Please provide a valid email address' 
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Check for recent duplicates (within 24 hours)
+    const existingLead = await Lead.findOne({
+      customerPhone: body.customerPhone.trim(),
+      service: body.service.trim(),
+      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+    }).lean();
+
+    if (existingLead) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'A similar lead was created recently. Please check the lead list.' 
+        },
+        { status: 409 }
+      );
+    }
+
+    // Create lead object matching the schema
+    const leadData = {
+      // Customer Information
+      customerName: body.customerName.trim(),
+      customerPhone: body.customerPhone.trim(),
+      customerEmail: body.customerEmail?.trim() || undefined,
+      
+      // Service Information
+      service: body.service.trim(),
+      selectedService: body.selectedService?.trim() || body.service.trim(),
+      selectedSubService: body.selectedSubService?.trim() || undefined,
+      
+      // Address
+      address: body.address.trim(),
+      
+      // Lead Details
+      description: body.description?.trim() || `Service request for ${body.service}`,
+      additionalNotes: body.additionalNotes?.trim() || undefined,
+      
+      // Pricing
+      price: body.price || undefined,
+      getQuote: body.getQuote || (body.price === 'Quote'),
+      
+      // Scheduling
+      preferredDate: body.preferredDate ? new Date(body.preferredDate) : undefined,
+      preferredTime: body.preferredTime || undefined,
+      
+      // Lead Status - starts as pending (admin controlled)
+      status: 'pending',
+      
+      // Multi-Vendor Availability (empty initially - admin will assign)
+      availableToVendors: {
+        vendor: []
+      },
+      
+      // Follow-ups and Notes (empty initially)
+      followUps: [],
+      notes: [],
+      
+      // Lead Progress History
+      leadProgressHistory: [{
+        toStatus: 'pending',
+        reason: 'Lead created by admin',
+        date: new Date()
+      }],
+      
+      // Refund Request (default state)
+      refundRequest: {
+        isRequested: false,
+        adminResponse: {
+          status: 'pending'
+        }
+      },
+      
+      // Admin Tracking - include createdBy when admin creates lead
+      createdBy: body.createdBy || null, // Will be admin user ID
+      modifiedBy: body.createdBy || null
+    };
+
+    console.log('Creating lead with data:', leadData);
+
+    // Create the lead
+    const newLead = new Lead(leadData);
+    const savedLead = await newLead.save();
+
+    console.log('Lead created successfully:', savedLead._id);
+
+    // Return success response
+    return NextResponse.json({
+      success: true,
+      message: 'Lead created successfully!',
+      leadId: savedLead._id.toString(),
+      data: {
+        id: savedLead._id.toString(),
+        service: savedLead.service,
+        selectedService: savedLead.selectedService,
+        customerName: savedLead.customerName,
+        customerPhone: savedLead.customerPhone,
+        status: savedLead.status,
+        createdAt: savedLead.createdAt,
+        createdBy: savedLead.createdBy
+      }
+    }, { status: 201 });
+
+  } catch (error) {
+    console.error('Error creating lead:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Validation error: ${validationErrors.join(', ')}` 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'A similar lead already exists.' 
+        },
+        { status: 409 }
+      );
+    }
+
+    // Handle database connection errors
+    if (error.message.includes('connection') || error.message.includes('connect')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Database connection error. Please try again.' 
+        },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to create lead. Please try again.' 
+      },
+      { status: 500 }
+    );
+  }
+}
+
 // GET /api/admin/leads - Get all leads with filtering and pagination
 export async function GET(request) {
   try {
-    await requireAdmin();
+    const { user, role } = await requireAdmin();
     await connectDB();
 
     const { searchParams } = new URL(request.url);
@@ -42,6 +255,11 @@ export async function GET(request) {
 
     // Match stage - build query
     const matchQuery = {};
+
+    // Role-based filtering: Only admins see all leads, others see only their created leads
+    if (role.name !== 'admin') {
+      matchQuery.createdBy = new mongoose.Types.ObjectId(user.id);
+    }
 
     // Search across multiple fields
     if (search) {

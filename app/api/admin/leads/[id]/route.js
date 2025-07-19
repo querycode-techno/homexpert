@@ -102,6 +102,23 @@ export async function GET(request, { params }) {
         }
       },
       {
+        $lookup: {
+          from: 'users',
+          localField: 'createdBy',
+          foreignField: '_id',
+          as: 'createdByUser',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                email: 1,
+                role: 1
+              }
+            }
+          ]
+        }
+      },
+      {
         $addFields: {
           assignedVendorCount: { $size: '$assignedVendors' },
           isAssigned: { $gt: [{ $size: '$assignedVendors' }, 0] },
@@ -112,7 +129,8 @@ export async function GET(request, { params }) {
               86400000 // milliseconds in a day
             ]
           },
-          takenByVendorInfo: { $arrayElemAt: ['$takenByVendor', 0] }
+          takenByVendorInfo: { $arrayElemAt: ['$takenByVendor', 0] },
+          createdByUser: { $arrayElemAt: ['$createdByUser', 0] }
         }
       }
     ]);
@@ -180,7 +198,7 @@ export async function PATCH(request, { params }) {
 
     switch (action) {
       case 'updateBasicInfo':
-        const allowedFields = ['customerName', 'customerPhone', 'customerEmail', 'address', 'priority'];
+        const allowedFields = ['customerName', 'customerPhone', 'customerEmail', 'address', 'priority', 'selectedService', 'selectedSubService', 'description', 'status'];
         const updateFields = {};
         
         allowedFields.forEach(field => {
@@ -188,6 +206,20 @@ export async function PATCH(request, { params }) {
             updateFields[field] = data[field];
           }
         });
+
+        // Handle createdBy field - only allow admin users to modify this
+        if (data.createdBy !== undefined) {
+          if (data.createdBy === '' || data.createdBy === null) {
+            updateFields.createdBy = null;
+          } else if (mongoose.Types.ObjectId.isValid(data.createdBy)) {
+            updateFields.createdBy = new mongoose.Types.ObjectId(data.createdBy);
+          } else {
+            return NextResponse.json(
+              { success: false, error: 'Invalid createdBy user ID' },
+              { status: 400 }
+            );
+          }
+        }
 
         if (Object.keys(updateFields).length === 0) {
           return NextResponse.json(
@@ -202,7 +234,7 @@ export async function PATCH(request, { params }) {
             updatedAt: new Date()
           }
         };
-        message = 'Lead basic information updated successfully';
+        message = 'Lead updated successfully';
         break;
 
       case 'updateStatus':

@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import bcrypt from "bcryptjs"
+import { ObjectId } from "mongodb"
 import client from "@/lib/db"
 
 export const authOptions = {
@@ -87,12 +88,37 @@ export const authOptions = {
       return token
     },
     async session({ session, token }) {
-      // Pass cached data from JWT token (no database calls)
+      // Pass cached data from JWT token
       if (token) {
         session.user.id = token.sub
         session.user.userId = token.userId
         session.user.role = token.role
-        // Permissions will be fetched separately when needed
+        
+        // Fetch permissions for this session
+        try {
+          await client.connect()
+          const db = client.db('homexpert')
+          
+          // Get role with permissions
+          const role = await db.collection('roles').findOne(
+            { _id: new ObjectId(token.role.id) },
+            { projection: { permissions: 1 } }
+          )
+          
+          if (role?.permissions && role.permissions.length > 0) {
+            // Fetch permission details
+            const permissions = await db.collection('permissions').find({
+              _id: { $in: role.permissions.map(id => new ObjectId(id)) }
+            }, { projection: { module: 1, action: 1, resource: 1 } }).toArray()
+            
+            session.user.permissions = permissions
+          } else {
+            session.user.permissions = []
+          }
+        } catch (error) {
+          console.error('Error fetching permissions in session:', error)
+          session.user.permissions = []
+        }
       }
       return session
     },

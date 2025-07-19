@@ -242,7 +242,7 @@ export function NotificationsSupport() {
       <Tabs defaultValue="notifications" className="space-y-6" onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="support">Support Tickets</TabsTrigger>
+          {/* <TabsTrigger value="support">Support Tickets</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="notifications">

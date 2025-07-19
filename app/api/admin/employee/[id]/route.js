@@ -4,7 +4,7 @@ import { requireAdmin } from '@/lib/dal';
 import { ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
-// GET /api/admin/employee/[id] - Get single employee
+// GET /api/admin/employee/[id] - Get single employee (no vendors)
 export async function GET(request, { params }) {
   try {
     await requireAdmin();
@@ -25,9 +25,24 @@ export async function GET(request, { params }) {
     const usersCollection = await database.getUsersCollection();
     const rolesCollection = await database.getRolesCollection();
 
-    // Find employee by ID
+    // Get vendor role to ensure we don't return vendor users
+    const vendorRole = await rolesCollection.findOne({ name: 'vendor' });
+    if (!vendorRole) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Vendor role not found in system' 
+        },
+        { status: 500 }
+      );
+    }
+
+    // Find employee by ID (exclude vendors)
     const employee = await usersCollection.findOne(
-      { _id: new ObjectId(String(id)) },
+      { 
+        _id: new ObjectId(String(id)),
+        role: { $ne: vendorRole._id }
+      },
       { projection: { password: 0 } }
     );
 
@@ -110,7 +125,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const { name, email, phone, password, role, address, profileImage, type, status } = body;
+    const { name, email, phone, password, role, address, profileImage, status } = body;
 
     // Validate required fields (name, email, phone are required)
     if (!name || !email || !phone) {
@@ -147,7 +162,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // If role is being updated, validate it exists
+    // If role is being updated, validate it exists and is not vendor role
     if (role && role !== existingEmployee.role.toString()) {
       if (!ObjectId.isValid(role)) {
         return NextResponse.json(
@@ -159,12 +174,35 @@ export async function PUT(request, { params }) {
         );
       }
 
+      // Get vendor role to prevent assignment
+      const vendorRole = await rolesCollection.findOne({ name: 'vendor' });
+      if (!vendorRole) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Vendor role not found in system' 
+          },
+          { status: 500 }
+        );
+      }
+
       const roleExists = await rolesCollection.findOne({ _id: new ObjectId(String(role)) });
       if (!roleExists) {
         return NextResponse.json(
           { 
             success: false, 
             error: 'Invalid role specified' 
+          },
+          { status: 400 }
+        );
+      }
+
+      // Prevent vendor role assignment in employee update
+      if (roleExists._id.equals(vendorRole._id)) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Cannot assign vendor role to employee. Use vendor management instead.' 
           },
           { status: 400 }
         );
@@ -214,7 +252,6 @@ export async function PUT(request, { params }) {
       address: address || existingEmployee.address,
       profileImage: profileImage !== undefined ? profileImage : existingEmployee.profileImage,
       updatedAt: new Date(),
-      type:type,
       status: status,
     };
 

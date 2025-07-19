@@ -36,7 +36,9 @@ import {
   AlertCircle,
   Star,
   MapPin,
-  Briefcase
+  Briefcase,
+  ChevronDown,
+  X
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { VendorStats } from "./vendor-stats"
@@ -82,21 +84,29 @@ export function VendorList({
   onStatusChange,
   onExport,
   onImport,
+  onDownloadTemplate,
   onSearch,
   onFilter,
-  onPageChange
+  onPageChange,
+  // Add current values as props
+  searchTerm: currentSearchTerm = "",
+  filters: currentFilters = {}
 }) {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [localSearchTerm, setLocalSearchTerm] = useState(currentSearchTerm)
   const [showFilters, setShowFilters] = useState(false)
-  const [filters, setFilters] = useState({
-    status: "",
-    city: "",
-    service: "",
-    verified: ""
-  })
+  const [localFilters, setLocalFilters] = useState(currentFilters)
   
   // Debounce timeout ref
   const searchTimeoutRef = useRef(null)
+
+  // Sync local state with props when they change
+  useEffect(() => {
+    setLocalSearchTerm(currentSearchTerm)
+  }, [currentSearchTerm])
+
+  useEffect(() => {
+    setLocalFilters(currentFilters)
+  }, [currentFilters])
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -107,35 +117,9 @@ export function VendorList({
     }
   }, [])
 
-  // Filter vendors based on search and filters
-  const filteredVendors = useMemo(() => {
-    if (!vendors) return []
-    
-    return vendors.filter(vendor => {
-      const matchesSearch = !searchTerm || 
-        vendor.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        vendor.userData?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        vendor.userData?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        vendor.address?.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        vendor.services?.some(service => 
-          service.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-
-      const matchesStatus = !filters.status || vendor.status === filters.status
-      const matchesCity = !filters.city || vendor.address?.city === filters.city
-      const matchesService = !filters.service || 
-        vendor.services?.includes(filters.service)
-      const matchesVerified = !filters.verified || 
-        (filters.verified === "verified" && vendor.verified?.isVerified) ||
-        (filters.verified === "unverified" && !vendor.verified?.isVerified)
-
-      return matchesSearch && matchesStatus && matchesCity && 
-             matchesService && matchesVerified
-    })
-  }, [vendors, searchTerm, filters])
-
+  // Handle search with debounce
   const handleSearch = (value) => {
-    setSearchTerm(value)
+    setLocalSearchTerm(value)
     
     // Clear existing timeout
     if (searchTimeoutRef.current) {
@@ -149,9 +133,32 @@ export function VendorList({
   }
 
   const handleFilterChange = (newFilters) => {
-    setFilters(newFilters)
+    setLocalFilters(newFilters)
     onFilter?.(newFilters)
   }
+
+  // Clear all filters and search
+  const clearFilters = () => {
+    const emptyFilters = { status: "", city: "", service: "", verified: "" }
+    
+    // Update local state immediately
+    setLocalFilters(emptyFilters)
+    setLocalSearchTerm("")
+    
+    // Call parent handlers to trigger URL updates and server refresh
+    // Call filter handler first with empty filters
+    if (onFilter) {
+      onFilter(emptyFilters)
+    }
+    
+    // Then call search handler to clear search
+    if (onSearch) {
+      onSearch("")
+    }
+  }
+
+  // Check if any filters are active
+  const hasActiveFilters = localSearchTerm || localFilters.status || localFilters.city || localFilters.service || localFilters.verified
 
   const getInitials = (name) => {
     return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'V'
@@ -178,18 +185,6 @@ export function VendorList({
     )
   }
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Stats */}
@@ -206,15 +201,30 @@ export function VendorList({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={onImport} variant="outline" size="sm">
-                <Upload className="h-4 w-4 mr-2" />
-                Import
-              </Button>
-              <Button onClick={onExport} variant="outline" size="sm">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={loading}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={onImport}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onDownloadTemplate}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Template
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button onClick={onExport} variant="outline" size="sm" disabled={loading}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-              <Button onClick={onAddVendor} size="sm">
+              <Button onClick={onAddVendor} size="sm" disabled={loading}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Vendor
               </Button>
@@ -235,9 +245,10 @@ export function VendorList({
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search vendors, businesses, cities..."
-                value={searchTerm}
+                value={localSearchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10"
+                disabled={loading}
               />
             </form>
             <Button
@@ -245,19 +256,36 @@ export function VendorList({
               onClick={() => setShowFilters(!showFilters)}
               className="whitespace-nowrap"
               type="button"
+              disabled={loading}
             >
               <Filter className="h-4 w-4 mr-2" />
               Filters
             </Button>
+            
+            {/* Clear Filters Button */}
+            {hasActiveFilters && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearFilters}
+                disabled={loading}
+                className="whitespace-nowrap"
+                type="button"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+            )}
           </div>
 
           {/* Filters */}
           {showFilters && (
             <div className="mb-6">
               <VendorFilters
-                filters={filters}
+                filters={localFilters}
                 vendors={vendors}
                 onChange={handleFilterChange}
+                disabled={loading}
               />
             </div>
           )}
@@ -279,16 +307,28 @@ export function VendorList({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVendors.length === 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                        <span className="ml-2">Loading vendors...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : vendors.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
                         <Briefcase className="h-8 w-8 text-muted-foreground" />
                         <p className="text-muted-foreground">No vendors found</p>
-                        {searchTerm && (
+                        {localSearchTerm && (
                           <Button
                             variant="link"
-                            onClick={() => handleSearch("")}
+                            onClick={() => {
+                              setLocalSearchTerm("")
+                              onSearch?.("")
+                            }}
                             className="h-auto p-0"
                             type="button"
                           >
@@ -299,7 +339,7 @@ export function VendorList({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredVendors.map((vendor) => (
+                  vendors.map((vendor) => (
                     <TableRow key={vendor._id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -381,7 +421,7 @@ export function VendorList({
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
+                            <Button variant="ghost" className="h-8 w-8 p-0" disabled={loading}>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -431,7 +471,7 @@ export function VendorList({
                   variant="outline"
                   size="sm"
                   onClick={() => onPageChange?.(pagination.currentPage - 1)}
-                  disabled={!pagination.hasPrevPage}
+                  disabled={!pagination.hasPrevPage || loading}
                 >
                   Previous
                 </Button>
@@ -442,7 +482,7 @@ export function VendorList({
                   variant="outline"
                   size="sm"
                   onClick={() => onPageChange?.(pagination.currentPage + 1)}
-                  disabled={!pagination.hasNextPage}
+                  disabled={!pagination.hasNextPage || loading}
                 >
                   Next
                 </Button>

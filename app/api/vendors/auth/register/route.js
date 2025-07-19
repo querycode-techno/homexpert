@@ -117,26 +117,15 @@ export async function POST(request) {
         serviceAreas: []
       },
       documents: {
-        aadharCard: {
-          number: documents?.aadharCard?.number || "",
-          imageUrl: documents?.aadharCard?.imageUrl || "",
-          verified: false
+        identity: {
+          type: documents?.identity?.type || "",
+          number: documents?.identity?.number || "",
+          docImageUrl: documents?.identity?.docImageUrl || ""
         },
-        panCard: {
-          number: documents?.panCard?.number || "",
-          imageUrl: documents?.panCard?.imageUrl || "",
-          verified: false
-        },
-        businessLicense: {
-          number: documents?.businessLicense?.number || "",
-          imageUrl: documents?.businessLicense?.imageUrl || "",
-          verified: false
-        },
-        bankDetails: {
-          accountNumber: documents?.bankDetails?.accountNumber || "",
-          ifscCode: documents?.bankDetails?.ifscCode || "",
-          accountHolderName: documents?.bankDetails?.accountHolderName || "",
-          verified: false
+        business: {
+          type: documents?.business?.type || "",
+          number: documents?.business?.number || "",
+          docImageUrl: documents?.business?.docImageUrl || ""
         }
       },
       verified: {
