@@ -4,6 +4,9 @@ import { requireAdmin } from '@/lib/dal';
 import Lead from '@/lib/models/lead';
 import User from '@/lib/models/user';
 import Role from '@/lib/models/role';
+import Notification from '@/lib/models/notification';
+import NotificationRecipient from '@/lib/models/notificationRecipient';
+import admin from '@/lib/firebase/admin';
 
 // Connect to MongoDB
 async function connectDB() {
@@ -14,6 +17,102 @@ async function connectDB() {
     await mongoose.connect(process.env.MONGODB_URI);
   } catch (error) {
     console.error('MongoDB connection error:', error);
+    throw error;
+  }
+}
+
+// Function to send notifications to assigned vendors
+async function sendAssignmentNotifications(assignedVendors, leads, assignedByUserId) {
+  try {
+    console.log(`Sending assignment notifications to ${assignedVendors.length} vendors for ${leads.length} leads`);
+
+    // Create notification content
+    const leadCount = leads.length;
+    const leadText = leadCount === 1 ? 'lead' : 'leads';
+    const title = `New ${leadText.charAt(0).toUpperCase() + leadText.slice(1)} Assigned`;
+    const message = leadCount === 1 
+      ? `You have been assigned a new lead: ${leads[0].customerName || 'Customer'} - ${leads[0].service || leads[0].selectedService || 'Service'}`
+      : `You have been assigned ${leadCount} new leads. Check your dashboard for details.`;
+
+    // Create the notification document
+    const notification = new Notification({
+      title,
+      message,
+      messageType: 'Info',
+      createdBy: assignedByUserId,
+      target: 'vendor',
+    });
+    await notification.save();
+
+    // Create NotificationRecipient documents and send FCM notifications
+    const notificationPromises = assignedVendors.map(async (vendor) => {
+      // Create notification recipient record
+      const recipientDoc = new NotificationRecipient({
+        notificationId: notification._id,
+        userId: vendor._id,
+        userType: 'vendor',
+        deliveryStatus: vendor.fcmToken ? 'pending' : 'failed',
+        deliveryAttempts: 0,
+      });
+      await recipientDoc.save();
+
+      // Send FCM notification if vendor has a token
+      if (vendor.fcmToken && vendor.fcmToken.trim() !== '') {
+        try {
+          const fcmMessage = {
+            notification: {
+              title,
+              body: message,
+            },
+            data: {
+              type: 'lead_assignment',
+              leadCount: leadCount.toString(),
+              notificationId: notification._id.toString(),
+            },
+            token: vendor.fcmToken,
+          };
+
+          const sendResult = await admin.messaging().send(fcmMessage);
+          console.log(`FCM notification sent to vendor ${vendor.name}:`, sendResult);
+
+          // Update delivery status to delivered
+          await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
+            deliveryStatus: 'delivered',
+            deliveryAttempts: 1,
+          });
+
+        } catch (fcmError) {
+          console.error(`Failed to send FCM to vendor ${vendor.name}:`, fcmError.message);
+
+          // Update delivery status to failed
+          await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
+            deliveryStatus: 'failed',
+            deliveryAttempts: 1,
+          });
+
+          // Remove invalid FCM token if it's a token error
+          if (fcmError.code === 'messaging/invalid-registration-token' || 
+              fcmError.code === 'messaging/registration-token-not-registered') {
+            await User.findByIdAndUpdate(vendor._id, { fcmToken: null });
+            console.log(`Removed invalid FCM token for vendor: ${vendor.name}`);
+          }
+        }
+      } else {
+        console.log(`No FCM token for vendor ${vendor.name}, notification saved to database only`);
+      }
+    });
+
+    await Promise.all(notificationPromises);
+    console.log(`Assignment notifications processed for ${assignedVendors.length} vendors`);
+
+    return {
+      notificationId: notification._id,
+      sentCount: assignedVendors.filter(v => v.fcmToken).length,
+      totalVendors: assignedVendors.length,
+    };
+
+  } catch (error) {
+    console.error('Error sending assignment notifications:', error);
     throw error;
   }
 }
@@ -85,11 +184,11 @@ export async function POST(request) {
       );
     }
 
-    // Verify vendors exist and have vendor role
+    // Verify vendors exist and have vendor role (include FCM token for notifications)
     const vendors = await User.find({ 
       _id: { $in: finalVendorIds },
       role: vendorRole._id
-    }).lean();
+    }).select('_id name email phone fcmToken').lean();
 
     if (vendors.length === 0) {
       return NextResponse.json(
@@ -199,6 +298,15 @@ export async function POST(request) {
     // Execute all assignments in parallel
     const updatedLeads = await Promise.all(assignmentPromises);
 
+    // Send notifications to assigned vendors
+    let notificationResult = null;
+    try {
+      notificationResult = await sendAssignmentNotifications(vendors, leads, validAssignedBy);
+    } catch (notificationError) {
+      console.error('Failed to send assignment notifications:', notificationError);
+      // Don't fail the assignment if notifications fail
+    }
+
     return NextResponse.json({
       success: true,
       message: `Successfully assigned ${leads.length} lead(s) to vendor(s)`,
@@ -212,7 +320,16 @@ export async function POST(request) {
           name: v.name,
           email: v.email,
           phone: v.phone
-        }))
+        })),
+        notifications: notificationResult ? {
+          sent: true,
+          notificationId: notificationResult.notificationId,
+          sentCount: notificationResult.sentCount,
+          totalVendors: notificationResult.totalVendors
+        } : {
+          sent: false,
+          error: 'Failed to send notifications'
+        }
       }
     });
 
@@ -338,17 +455,16 @@ export async function GET(request) {
       );
     }
 
-    // Build user query for vendors
+    // Build user query for vendors - show ALL vendors regardless of city
     const userQuery = {
       role: vendorRole._id
     };
 
-    // Filter by city if specified or from leads  
-    if (city) {
+    // Optional: Filter by city if specifically requested (but not by default)
+    if (city && city !== 'all') {
       userQuery['address.city'] = city;
-    } else if (cities.length > 0) {
-      userQuery['address.city'] = { $in: cities };
     }
+    // Note: Removed automatic city filtering from leads to show all vendors
 
     // Get suggested vendors (users with vendor role)
     const suggestedVendors = await User.aggregate([
@@ -398,7 +514,7 @@ export async function GET(request) {
         }
       },
       { $sort: { matchScore: -1, name: 1 } },
-      { $limit: 20 }
+      { $limit: 200 }
     ]);
 
     // Debug: If no vendors found, check what vendors exist

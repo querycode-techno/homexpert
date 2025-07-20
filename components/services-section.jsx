@@ -76,12 +76,12 @@ export function ServicesSection() {
                 href={href}
                 className="group overflow-hidden rounded-lg border bg-card shadow-sm transition-all duration-200 hover:shadow-lg hover:scale-105 cursor-pointer"
               >
-              <div className="relative h-40 overflow-hidden">
+              <div className="relative h-80 sm:h-56 lg:h-48 overflow-hidden">
                 <Image
                   src={service.image || "/placeholder.svg"}
                   alt={service.title}
                   fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-110"
+                  className="object-cover object-center scale-110 transition-transform duration-300 group-hover:scale-125"
                 />
                 
               </div>

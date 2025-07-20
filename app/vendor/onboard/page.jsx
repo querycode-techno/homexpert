@@ -218,9 +218,11 @@ export default function VendorOnboardPage() {
                     <Button onClick={() => router.push('/')} variant="outline">
                       Back to Home
                     </Button>
-                    <Button onClick={() => router.push('/login/vendor')}>
-                      Vendor Login
-                    </Button>
+                    <Link href="https://play.google.com/store/apps/details?id=com.homesxpert.vendorapp">
+                      <Button>
+                        Download App
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </CardContent>

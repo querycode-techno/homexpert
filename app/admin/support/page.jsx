@@ -389,8 +389,30 @@ export default function AdminSupportPage() {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {ticket.vendorId?.businessName || 'Unknown Vendor'}
+                      {ticket.vendorId ? (
+                        ticket.vendorId.businessName || 
+                        ticket.vendorId.user?.name || 
+                        'Vendor (No Name)'
+                      ) : (
+                        <span className="text-muted-foreground">No Vendor</span>
+                      )}
                     </div>
+                    {ticket.vendorId?.user?.email && (
+                      <div className="text-xs text-muted-foreground">
+                        {ticket.vendorId.user.email}
+                      </div>
+                    )}
+                    {ticket.vendorId?.status && (
+                      <div className="text-xs">
+                        <span className={`px-1 py-0.5 rounded text-xs ${
+                          ticket.vendorId.status === 'active' ? 'bg-green-100 text-green-700' :
+                          ticket.vendorId.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {ticket.vendorId.status}
+                        </span>
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

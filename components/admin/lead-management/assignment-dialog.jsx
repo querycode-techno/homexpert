@@ -77,8 +77,19 @@ export function AssignmentDialog({
     }
 
     try {
-      await onAssign('assign', assignmentData)
-      toast.success(`Successfully assigned ${selectedLeads.length} lead${selectedLeads.length > 1 ? 's' : ''} to ${vendorsToAssign.length} vendor${vendorsToAssign.length > 1 ? 's' : ''}`)
+      const result = await onAssign('assign', assignmentData)
+      
+      // Show success message with notification info
+      let successMessage = `Successfully assigned ${selectedLeads.length} lead${selectedLeads.length > 1 ? 's' : ''} to ${vendorsToAssign.length} vendor${vendorsToAssign.length > 1 ? 's' : ''}`
+      
+      if (result?.data?.notifications?.sent) {
+        const { sentCount, totalVendors } = result.data.notifications
+        successMessage += `. Notifications sent to ${sentCount}/${totalVendors} vendors.`
+      } else if (result?.data?.notifications?.sent === false) {
+        successMessage += '. Note: Notifications could not be sent.'
+      }
+      
+      toast.success(successMessage)
       onOpenChange(false)
     } catch (error) {
       toast.error('Failed to assign leads. Please try again.')
@@ -93,14 +104,22 @@ export function AssignmentDialog({
     )
   }
 
-  // Filter vendors based on search
-  const filteredVendors = vendors.filter(vendor => 
-    vendor.businessName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vendor.services?.some(service => 
-      service.toLowerCase().includes(searchTerm.toLowerCase())
-    ) ||
-    vendor.address?.city?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Enhanced filtering - search across multiple fields
+  const filteredVendors = vendors.filter(vendor => {
+    if (!searchTerm.trim()) return true
+    
+    const searchLower = searchTerm.toLowerCase()
+    return (
+      vendor.businessName?.toLowerCase().includes(searchLower) ||
+      vendor.userData?.name?.toLowerCase().includes(searchLower) ||
+      vendor.userData?.email?.toLowerCase().includes(searchLower) ||
+      vendor.userData?.phone?.includes(searchTerm) ||
+      vendor.services?.some(service => 
+        service.toLowerCase().includes(searchLower)
+      ) ||
+      vendor.address?.city?.toLowerCase().includes(searchLower)
+    )
+  })
 
   const VendorList = () => {
     if (loading) {
@@ -122,13 +141,20 @@ export function AssignmentDialog({
       return (
         <div className="text-center py-12 text-muted-foreground">
           <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p className="text-lg font-medium">No vendors available</p>
+          <p className="text-lg font-medium">No vendors found</p>
           <p className="text-sm">
-            {vendors.length === 0 
-              ? 'No vendors match the lead requirements' 
-              : 'No vendors match your search criteria'
+            {searchTerm 
+              ? 'No vendors match your search criteria' 
+              : vendors.length === 0 
+                ? 'No vendors available in the system'
+                : 'No vendors available'
             }
           </p>
+          {vendors.length > 0 && searchTerm && (
+            <p className="text-xs mt-2 text-blue-600">
+              Try searching with different keywords or clear the search to see all {vendors.length} available vendors
+            </p>
+          )}
         </div>
       )
     }
@@ -151,7 +177,7 @@ export function AssignmentDialog({
             />
             <div className="flex-1 min-w-0">
               <div className="font-medium truncate flex items-center gap-2">
-                {vendor.businessName || vendor.name || `Vendor ${vendor._id?.slice(-6)}`}
+                {vendor.businessName || vendor.userData?.name || `Vendor ${vendor._id?.slice(-6)}`}
                 {selectedVendors.includes(vendor._id) && (
                   <Badge variant="secondary" className="text-xs">
                     Selected
@@ -164,6 +190,11 @@ export function AssignmentDialog({
               {vendor.userData?.phone && (
                 <div className="text-xs text-muted-foreground mt-1">
                   📞 {vendor.userData.phone}
+                </div>
+              )}
+              {vendor.services && vendor.services.length > 0 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  🔧 {vendor.services.slice(0, 3).join(', ')}{vendor.services.length > 3 ? '...' : ''}
                 </div>
               )}
             </div>

@@ -2,8 +2,110 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/dal';
 import { database } from '@/lib/db';
 import SupportTicket from '@/lib/models/supportTicket';
+import Notification from '@/lib/models/notification';
+import NotificationRecipient from '@/lib/models/notificationRecipient';
+import User from '@/lib/models/user';
+import admin from '@/lib/firebase/admin';
 import connectDB from '@/lib/connnectDB';
 import { ObjectId } from 'mongodb';
+import mongoose from 'mongoose';
+
+// Function to send support ticket notification (reused from main route)
+async function sendSupportNotification(recipientUser, notificationData, adminUserId) {
+  try {
+    console.log(`Sending support notification to user: ${recipientUser.name}`);
+
+    // Create the notification document
+    const notification = new Notification({
+      title: notificationData.title,
+      message: notificationData.message,
+      messageType: notificationData.messageType || 'Info',
+      createdBy: adminUserId,
+      target: notificationData.target || 'vendor',
+    });
+    await notification.save();
+
+    // Create notification recipient record
+    const recipientDoc = new NotificationRecipient({
+      notificationId: notification._id,
+      userId: recipientUser._id,
+      userType: notificationData.target || 'vendor',
+      deliveryStatus: recipientUser.fcmToken ? 'pending' : 'failed',
+      deliveryAttempts: 0,
+    });
+    await recipientDoc.save();
+
+    // Send FCM notification if user has a token
+    if (recipientUser.fcmToken && recipientUser.fcmToken.trim() !== '') {
+      try {
+        const fcmMessage = {
+          notification: {
+            title: notificationData.title,
+            body: notificationData.message,
+          },
+          data: {
+            type: notificationData.type || 'support_ticket',
+            ticketId: notificationData.ticketId || '',
+            notificationId: notification._id.toString(),
+            ...notificationData.data
+          },
+          token: recipientUser.fcmToken,
+        };
+
+        const sendResult = await admin.messaging().send(fcmMessage);
+        console.log(`FCM support notification sent to user ${recipientUser.name}:`, sendResult);
+
+        // Update delivery status to delivered
+        await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
+          deliveryStatus: 'delivered',
+          deliveryAttempts: 1,
+        });
+
+        return {
+          sent: true,
+          notificationId: notification._id,
+          fcmResult: sendResult
+        };
+
+      } catch (fcmError) {
+        console.error(`Failed to send FCM to user ${recipientUser.name}:`, fcmError.message);
+
+        // Update delivery status to failed
+        await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
+          deliveryStatus: 'failed',
+          deliveryAttempts: 1,
+        });
+
+        // Remove invalid FCM token if it's a token error
+        if (fcmError.code === 'messaging/invalid-registration-token' || 
+            fcmError.code === 'messaging/registration-token-not-registered') {
+          await User.findByIdAndUpdate(recipientUser._id, { fcmToken: null });
+          console.log(`Removed invalid FCM token for user: ${recipientUser.name}`);
+        }
+
+        return {
+          sent: false,
+          notificationId: notification._id,
+          error: fcmError.message
+        };
+      }
+    } else {
+      console.log(`No FCM token for user ${recipientUser.name}, notification saved to database only`);
+      return {
+        sent: false,
+        notificationId: notification._id,
+        reason: 'No FCM token'
+      };
+    }
+
+  } catch (error) {
+    console.error('Error sending support notification:', error);
+    return {
+      sent: false,
+      error: error.message
+    };
+  }
+}
 
 // GET /api/admin/support/[id] - Get specific support ticket with full details
 export async function GET(request, { params }) {
@@ -178,11 +280,45 @@ export async function POST(request, { params }) {
     // Save the ticket
     await ticket.save();
 
-    // Populate the sender for response
-    await ticket.populate('messages.sender', 'name email profileImage type');
+    // Populate the sender for response and get vendor user info
+    await ticket.populate([
+      { path: 'messages.sender', select: 'name email profileImage type' },
+      { path: 'vendorId', select: 'businessName user', populate: { path: 'user', select: 'name email fcmToken' } }
+    ]);
 
     // Find the newly added message
     const addedMessage = ticket.messages.find(msg => msg.messageId === newMessage.messageId);
+
+    // Send notification to vendor about admin reply (only if not internal message)
+    let notificationResult = null;
+    if (!isInternal && ticket.vendorId && ticket.vendorId.user) {
+      try {
+        const notificationData = {
+          title: 'New Reply to Your Support Ticket',
+          message: `You have a new reply on your support ticket "${ticket.title}". Ticket ID: ${ticket.ticketId}`,
+          messageType: 'Info',
+          type: 'support_ticket_reply',
+          target: 'vendor',
+          ticketId: ticket.ticketId,
+          data: {
+            messageContent: content.trim().substring(0, 100) + (content.trim().length > 100 ? '...' : ''),
+            senderName: adminData.user.name || 'Support Team'
+          }
+        };
+
+        // Convert adminUserId to mongoose ObjectId
+        const mongooseAdminId = new mongoose.Types.ObjectId(adminUserId);
+        
+        notificationResult = await sendSupportNotification(
+          ticket.vendorId.user,
+          notificationData,
+          mongooseAdminId
+        );
+      } catch (notificationError) {
+        console.error('Failed to send reply notification:', notificationError);
+        // Don't fail message sending if notification fails
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -196,7 +332,13 @@ export async function POST(request, { params }) {
           lastActivity: ticket.lastActivity,
           unreadCount: ticket.unreadCount,
           messageCount: ticket.messageCount
-        }
+        },
+        notification: notificationResult ? {
+          sent: notificationResult.sent,
+          notificationId: notificationResult.notificationId,
+          error: notificationResult.error || null,
+          reason: notificationResult.reason || null
+        } : null
       }
     });
 

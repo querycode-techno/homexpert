@@ -17,7 +17,7 @@ export function CtaSection() {
               <Link href="/vendor/onboard">Become an Xpert Partner Today</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="/login/vendor">Vendor Login</Link>
+              <Link href="https://play.google.com/store/apps/details?id=com.homesxpert.vendorapp">Download Vendor App</Link>
             </Button>
           </div>
         </div>

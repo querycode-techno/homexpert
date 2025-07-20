@@ -120,7 +120,7 @@ export async function POST(request) {
       additionalNotes: body.additionalNotes?.trim() || undefined,
       
       // Pricing
-      price: body.price || undefined,
+      price: (body.price && body.price !== 'Quote' && !isNaN(body.price)) ? Number(body.price) : undefined,
       getQuote: body.getQuote || (body.price === 'Quote'),
       
       // Scheduling

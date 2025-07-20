@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Facebook, Instagram, Linkedin, Youtube } from "lucide-react"
+import { Facebook, Instagram, Linkedin, Youtube, Phone, MessageCircle } from "lucide-react"
 import { serviceUtils } from "@/lib/utils"
 
 export function Footer() {
@@ -17,6 +17,8 @@ export function Footer() {
             <p className="text-sm text-text-secondary">
               Connecting you with trusted home service professionals for all your needs.
             </p>
+            
+            {/* Social Media Icons */}
             <div className="flex space-x-4">
               <Link href="#" className="text-text-secondary hover:text-primary">
                 <Facebook className="h-5 w-5" />
@@ -114,6 +116,29 @@ export function Footer() {
             © {new Date().getFullYear()} HomeXpert. All rights reserved.
           </p>
         </div>
+      </div>
+      
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+        {/* WhatsApp Button */}
+        <Link 
+          href="https://wa.me/919876543210?text=Hi%20HomeXpert,%20I%20need%20help%20with%20home%20services" 
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group bg-green-500 hover:bg-green-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+          title="Chat on WhatsApp"
+        >
+          <MessageCircle className="h-6 w-6 group-hover:scale-110 transition-transform" />
+        </Link>
+        
+        {/* Call Button */}
+        <Link 
+          href="tel:+919876543210" 
+          className="group bg-blue-500 hover:bg-blue-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+          title="Call Now"
+        >
+          <Phone className="h-6 w-6 group-hover:scale-110 transition-transform" />
+        </Link>
       </div>
     </footer>
   )

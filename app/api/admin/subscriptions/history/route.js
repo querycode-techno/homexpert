@@ -2,6 +2,126 @@ import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { requireAdmin } from '@/lib/dal';
 import { ObjectId } from 'mongodb';
+import mongoose from 'mongoose';
+import Notification from '@/lib/models/notification';
+import NotificationRecipient from '@/lib/models/notificationRecipient';
+import User from '@/lib/models/user';
+import admin from '@/lib/firebase/admin';
+
+// Connect to MongoDB for Mongoose models
+async function connectDB() {
+  if (mongoose.connections[0].readyState) {
+    return;
+  }
+  try {
+    await mongoose.connect(process.env.MONGODB_URI);
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+}
+
+// Function to send subscription notification to vendor
+async function sendSubscriptionNotification(vendorUser, subscriptionData, adminUserId) {
+  try {
+    console.log(`Sending subscription notification to vendor: ${vendorUser.name}`);
+
+    // Create notification content
+    const title = 'New Subscription Activated';
+    const message = `Your ${subscriptionData.planSnapshot.planName} subscription has been activated! You now have access to ${subscriptionData.planSnapshot.totalLeads} leads for ${subscriptionData.planSnapshot.duration}.`;
+
+    // Create the notification document
+    const notification = new Notification({
+      title,
+      message,
+      messageType: 'Success',
+      createdBy: adminUserId,
+      target: 'vendor',
+    });
+    await notification.save();
+
+    // Create notification recipient record
+    const recipientDoc = new NotificationRecipient({
+      notificationId: notification._id,
+      userId: vendorUser._id,
+      userType: 'vendor',
+      deliveryStatus: vendorUser.fcmToken ? 'pending' : 'failed',
+      deliveryAttempts: 0,
+    });
+    await recipientDoc.save();
+
+    // Send FCM notification if vendor has a token
+    if (vendorUser.fcmToken && vendorUser.fcmToken.trim() !== '') {
+      try {
+        const fcmMessage = {
+          notification: {
+            title,
+            body: message,
+          },
+          data: {
+            type: 'subscription_activated',
+            planName: subscriptionData.planSnapshot.planName,
+            totalLeads: subscriptionData.planSnapshot.totalLeads.toString(),
+            duration: subscriptionData.planSnapshot.duration,
+            notificationId: notification._id.toString(),
+          },
+          token: vendorUser.fcmToken,
+        };
+
+        const sendResult = await admin.messaging().send(fcmMessage);
+        console.log(`FCM subscription notification sent to vendor ${vendorUser.name}:`, sendResult);
+
+        // Update delivery status to delivered
+        await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
+          deliveryStatus: 'delivered',
+          deliveryAttempts: 1,
+        });
+
+        return {
+          sent: true,
+          notificationId: notification._id,
+          fcmResult: sendResult
+        };
+
+      } catch (fcmError) {
+        console.error(`Failed to send FCM to vendor ${vendorUser.name}:`, fcmError.message);
+
+        // Update delivery status to failed
+        await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
+          deliveryStatus: 'failed',
+          deliveryAttempts: 1,
+        });
+
+        // Remove invalid FCM token if it's a token error
+        if (fcmError.code === 'messaging/invalid-registration-token' || 
+            fcmError.code === 'messaging/registration-token-not-registered') {
+          await User.findByIdAndUpdate(vendorUser._id, { fcmToken: null });
+          console.log(`Removed invalid FCM token for vendor: ${vendorUser.name}`);
+        }
+
+        return {
+          sent: false,
+          notificationId: notification._id,
+          error: fcmError.message
+        };
+      }
+    } else {
+      console.log(`No FCM token for vendor ${vendorUser.name}, notification saved to database only`);
+      return {
+        sent: false,
+        notificationId: notification._id,
+        reason: 'No FCM token'
+      };
+    }
+
+  } catch (error) {
+    console.error('Error sending subscription notification:', error);
+    return {
+      sent: false,
+      error: error.message
+    };
+  }
+}
 
 // GET - Fetch subscription history with optional filtering
 export async function GET(request) {
@@ -211,6 +331,9 @@ export async function PUT(request) {
   try {
     const adminUser = await requireAdmin();
     const { subscriptionId, action, verificationNotes, transactionId } = await request.json();
+    
+    // Connect to MongoDB for Mongoose models (for notifications)
+    await connectDB();
 
     if (!subscriptionId || !action) {
       return NextResponse.json({
@@ -297,17 +420,61 @@ export async function PUT(request) {
       }
     );
 
-    // Get updated subscription
-    const updatedSubscription = await subscriptionHistoryCollection.findOne({
-      _id: new ObjectId(subscriptionId)
-    });
+    // Get updated subscription with user info
+    const updatedSubscription = await subscriptionHistoryCollection.aggregate([
+      { $match: { _id: new ObjectId(subscriptionId) } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userInfo',
+          pipeline: [
+            { $project: { name: 1, email: 1, phone: 1, fcmToken: 1 } }
+          ]
+        }
+      },
+      { $unwind: '$userInfo' }
+    ]).toArray();
+
+    // Send notification to vendor if subscription was activated
+    let notificationResult = null;
+    if (action === 'verify_and_activate' && updatedSubscription[0]?.userInfo) {
+      try {
+        // Convert MongoDB ObjectId to Mongoose ObjectId for notification
+        const mongooseUserId = new mongoose.Types.ObjectId(updatedSubscription[0].user);
+        const mongooseAdminId = new mongoose.Types.ObjectId(adminUser.user.id);
+        
+        // Get user with FCM token for notification
+        const userForNotification = await User.findById(mongooseUserId).select('name email phone fcmToken').lean();
+        
+        if (userForNotification) {
+          notificationResult = await sendSubscriptionNotification(
+            userForNotification, 
+            updatedSubscription[0], 
+            mongooseAdminId
+          );
+        }
+      } catch (notificationError) {
+        console.error('Failed to send verification notification:', notificationError);
+        // Don't fail the verification if notifications fail
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message: action === 'verify_and_activate' ? 
         'Subscription verified and activated successfully' : 
         'Payment rejected successfully',
-      data: updatedSubscription
+      data: {
+        subscription: updatedSubscription[0],
+        notification: notificationResult ? {
+          sent: notificationResult.sent,
+          notificationId: notificationResult.notificationId,
+          error: notificationResult.error || null,
+          reason: notificationResult.reason || null
+        } : null
+      }
     });
 
   } catch (error) {
@@ -324,6 +491,218 @@ export async function PUT(request) {
       { 
         success: false, 
         error: 'Failed to verify subscription',
+        details: error.message 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Create new subscription
+export async function POST(request) {
+  try {
+    const session = await requireAdmin();
+    const adminUserId = session.user.id;
+    
+    // Connect to MongoDB for Mongoose models (for notifications)
+    await connectDB();
+
+    const body = await request.json();
+    const { action, vendorId, subscriptionPlanId, paymentMethod, transactionId, amount, paymentStatus, status, notes } = body;
+
+    if (action !== 'create_subscription') {
+      return NextResponse.json(
+        { success: false, error: 'Invalid action' },
+        { status: 400 }
+      );
+    }
+
+    // Validation
+    if (!vendorId || !subscriptionPlanId || !amount) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields: vendorId, subscriptionPlanId, amount' },
+        { status: 400 }
+      );
+    }
+
+    const subscriptionHistoryCollection = await database.getSubscriptionHistoryCollection();
+    const usersCollection = await database.getUsersCollection();
+    const vendorsCollection = await database.getVendorsCollection();
+    const subscriptionPlansCollection = await database.getSubscriptionPlansCollection();
+
+    // Verify vendor exists
+    const vendor = await vendorsCollection.findOne({ _id: new ObjectId(vendorId) });
+    if (!vendor) {
+      return NextResponse.json(
+        { success: false, error: 'Vendor not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get vendor user info
+    const vendorUser = await usersCollection.findOne({ _id: vendor.user });
+    if (!vendorUser) {
+      return NextResponse.json(
+        { success: false, error: 'Vendor user not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify subscription plan exists
+    const subscriptionPlan = await subscriptionPlansCollection.findOne({ _id: new ObjectId(subscriptionPlanId) });
+    if (!subscriptionPlan) {
+      return NextResponse.json(
+        { success: false, error: 'Subscription plan not found' },
+        { status: 404 }
+      );
+    }
+
+    // Create subscription record
+    const now = new Date();
+    const endDate = new Date(now.getTime() + (subscriptionPlan.durationInDays * 24 * 60 * 60 * 1000));
+
+    const subscriptionData = {
+      user: vendor.user,
+      subscriptionPlan: new ObjectId(subscriptionPlanId),
+      
+      // Plan snapshot
+      planSnapshot: {
+        planName: subscriptionPlan.planName,
+        description: subscriptionPlan.description,
+        duration: subscriptionPlan.duration,
+        durationInDays: subscriptionPlan.durationInDays,
+        totalLeads: subscriptionPlan.totalLeads,
+        leadsPerMonth: subscriptionPlan.leadsPerMonth,
+        price: subscriptionPlan.price,
+        discountedPrice: subscriptionPlan.discountedPrice,
+        features: subscriptionPlan.features || []
+      },
+      
+      // Subscription period
+      startDate: now,
+      endDate: endDate,
+      
+      // Status
+      status: status || 'active',
+      isActive: status === 'active',
+      
+      // Usage
+      usage: {
+        leadsConsumed: 0,
+        leadsRemaining: subscriptionPlan.totalLeads,
+        monthlyUsage: [],
+        averageLeadsPerMonth: 0,
+        totalJobsCompleted: 0,
+        conversionRate: 0
+      },
+      
+      // Payment
+      payment: {
+        amount: parseFloat(amount),
+        currency: 'INR',
+        paymentMethod: paymentMethod || 'online',
+        transactionId: transactionId || '',
+        paymentStatus: paymentStatus || 'completed',
+        paymentDate: paymentStatus === 'completed' ? now : null
+      },
+      
+      // History
+      history: [{
+        action: 'purchased',
+        date: now,
+        performedBy: new ObjectId(adminUserId),
+        reason: 'Manually created by admin',
+        newStatus: status || 'active',
+        metadata: { notes: notes || '' }
+      }],
+      
+      // Admin notes
+      adminNotes: notes ? [{
+        note: notes,
+        addedBy: new ObjectId(adminUserId),
+        addedAt: now,
+        isInternal: true
+      }] : [],
+      
+      createdAt: now,
+      updatedAt: now
+    };
+
+    // Insert subscription
+    const result = await subscriptionHistoryCollection.insertOne(subscriptionData);
+
+    // Fetch the created subscription with populated data
+    const createdSubscription = await subscriptionHistoryCollection.aggregate([
+      { $match: { _id: result.insertedId } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userInfo',
+          pipeline: [
+            { $project: { name: 1, email: 1, phone: 1, fcmToken: 1 } }
+          ]
+        }
+      },
+      { $unwind: '$userInfo' }
+    ]).toArray();
+
+    // Send notification to vendor about the new subscription
+    let notificationResult = null;
+    try {
+      if (createdSubscription[0]?.userInfo) {
+        // Convert MongoDB ObjectId to Mongoose ObjectId for notification
+        const mongooseUserId = new mongoose.Types.ObjectId(vendorUser._id);
+        const mongooseAdminId = new mongoose.Types.ObjectId(adminUserId);
+        
+        // Get user with FCM token for notification
+        const userForNotification = await User.findById(mongooseUserId).select('name email phone fcmToken').lean();
+        
+        if (userForNotification) {
+          notificationResult = await sendSubscriptionNotification(
+            userForNotification, 
+            subscriptionData, 
+            mongooseAdminId
+          );
+        }
+      }
+    } catch (notificationError) {
+      console.error('Failed to send subscription notification:', notificationError);
+      // Don't fail the subscription creation if notifications fail
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Subscription created successfully',
+      data: {
+        subscription: createdSubscription[0],
+        notification: notificationResult ? {
+          sent: notificationResult.sent,
+          notificationId: notificationResult.notificationId,
+          error: notificationResult.error || null,
+          reason: notificationResult.reason || null
+        } : {
+          sent: false,
+          error: 'Failed to send notification'
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating subscription:', error);
+
+    if (error.message.includes('Access denied') || error.message.includes('Unauthorized')) {
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to create subscription',
         details: error.message 
       },
       { status: 500 }

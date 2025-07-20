@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
+import vendorService from "@/lib/services/vendorService"
+import subscriptionService from "@/lib/services/subscriptionService"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +17,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   Table,
   TableBody,
@@ -56,7 +70,9 @@ import {
   DollarSign,
   Users,
   TrendingUp,
-  FileText
+  FileText,
+  Check,
+  ChevronsUpDown
 } from "lucide-react"
 
 const PAYMENT_STATUS_CONFIG = {
@@ -96,10 +112,28 @@ export default function SubscriptionHistoryPage() {
   const [verificationDialog, setVerificationDialog] = useState({ open: false, subscription: null })
   const [rejectionDialog, setRejectionDialog] = useState({ open: false, subscription: null })
   const [detailsDialog, setDetailsDialog] = useState({ open: false, subscription: null })
+  const [createDialog, setCreateDialog] = useState({ open: false })
   
   // Form data
   const [verificationNotes, setVerificationNotes] = useState("")
   const [transactionId, setTransactionId] = useState("")
+  
+  // Create subscription form data
+  const [vendors, setVendors] = useState([])
+  const [subscriptionPlans, setSubscriptionPlans] = useState([])
+  const [loadingVendorsAndPlans, setLoadingVendorsAndPlans] = useState(false)
+  const [vendorSearchOpen, setVendorSearchOpen] = useState(false)
+  const [planSearchOpen, setPlanSearchOpen] = useState(false)
+  const [createFormData, setCreateFormData] = useState({
+    vendorId: "",
+    subscriptionPlanId: "",
+    paymentMethod: "online",
+    transactionId: "",
+    amount: "",
+    paymentStatus: "completed",
+    status: "active",
+    notes: ""
+  })
 
   const loadSubscriptions = async () => {
     try {
@@ -136,7 +170,62 @@ export default function SubscriptionHistoryPage() {
 
   useEffect(() => {
     loadSubscriptions()
+    loadVendorsAndPlans()
   }, [currentPage, search, statusFilter, paymentStatusFilter, paymentMethodFilter])
+
+  // Load vendors and subscription plans for create dialog
+  const loadVendorsAndPlans = async () => {
+    try {
+      setLoadingVendorsAndPlans(true)
+      console.log("Loading vendors and plans...")
+      
+      // Load vendors using vendor service
+      const vendorsResult = await vendorService.getVendors({
+        limit: 1000,
+        search: search.trim(),
+        status: '' // Load all statuses, filter client-side if needed
+      })
+      console.log("Vendors result:", vendorsResult)
+      
+      if (vendorsResult.success && vendorsResult.vendors) {
+        // Filter out vendors that don't have proper user data
+        const validVendors = vendorsResult.vendors.filter(vendor => 
+          vendor.userData && vendor.userData.name && vendor.userData.email
+        )
+        setVendors(validVendors)
+        console.log("Loaded vendors:", validVendors.length, "out of", vendorsResult.vendors.length, "total")
+      } else {
+        console.error("Failed to load vendors:", vendorsResult.error)
+        toast.error(vendorsResult.error || "Failed to load vendors")
+        setVendors([])
+      }
+
+      // Load subscription plans using subscription service
+      try {
+        const plansResult = await subscriptionService.getAllPlans({ limit: 100 })
+        console.log("Plans result:", plansResult)
+        
+        if (plansResult.success && plansResult.data && plansResult.data.plans) {
+          // Filter to only active plans for the dropdown
+          const activePlans = plansResult.data.plans.filter(plan => plan.isActive !== false)
+          setSubscriptionPlans(activePlans)
+          console.log("Loaded plans:", activePlans.length, "out of", plansResult.data.plans.length, "total")
+        } else {
+          console.error("Invalid plans response:", plansResult)
+          setSubscriptionPlans([])
+        }
+      } catch (plansError) {
+        console.error("Failed to load subscription plans:", plansError)
+        toast.error(plansError.message || "Failed to load subscription plans")
+        setSubscriptionPlans([])
+      }
+    } catch (error) {
+      console.error("Error loading vendors and plans:", error)
+      toast.error("Failed to load vendors and subscription plans")
+    } finally {
+      setLoadingVendorsAndPlans(false)
+    }
+  }
 
   const handleVerifyAndActivate = async () => {
     if (!verificationDialog.subscription) return
@@ -210,6 +299,55 @@ export default function SubscriptionHistoryPage() {
     }
   }
 
+  const handleCreateSubscription = async () => {
+    try {
+      setProcessing(true)
+      
+      // Validation
+      if (!createFormData.vendorId || !createFormData.subscriptionPlanId || !createFormData.amount) {
+        toast.error("Please fill in all required fields")
+        return
+      }
+
+      const response = await fetch('/api/admin/subscriptions/history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'create_subscription',
+          ...createFormData,
+          amount: parseFloat(createFormData.amount)
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success("Subscription created successfully")
+        setCreateDialog({ open: false })
+        setCreateFormData({
+          vendorId: "",
+          subscriptionPlanId: "",
+          paymentMethod: "online",
+          transactionId: "",
+          amount: "",
+          paymentStatus: "completed",
+          status: "active",
+          notes: ""
+        })
+        loadSubscriptions()
+      } else {
+        toast.error(data.error || "Failed to create subscription")
+      }
+    } catch (error) {
+      console.error("Error creating subscription:", error)
+      toast.error("Failed to create subscription")
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -237,6 +375,12 @@ export default function SubscriptionHistoryPage() {
           <p className="text-muted-foreground">Manage and verify vendor subscriptions</p>
         </div>
         <div className="flex items-center space-x-2">
+          <Button 
+            variant="default"
+            onClick={() => setCreateDialog({ open: true })}
+          >
+            Create Subscription
+          </Button>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
@@ -685,13 +829,13 @@ export default function SubscriptionHistoryPage() {
       <Dialog open={detailsDialog.open} onOpenChange={(open) => {
         setDetailsDialog({ open, subscription: open ? detailsDialog.subscription : null })
       }}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Subscription Details</DialogTitle>
           </DialogHeader>
           
           {detailsDialog.subscription && (
-            <div className="space-y-6">
+            <div className="space-y-6 overflow-y-auto flex-1 pr-2">
               {/* User & Plan Info */}
               <div className="grid grid-cols-2 gap-6">
                 <Card>
@@ -795,6 +939,272 @@ export default function SubscriptionHistoryPage() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Subscription Dialog */}
+      <Dialog open={createDialog.open} onOpenChange={(open) => {
+        setCreateDialog({ open })
+        if (open) {
+          loadVendorsAndPlans()
+        } else {
+          setCreateFormData({
+            vendorId: "",
+            subscriptionPlanId: "",
+            paymentMethod: "online",
+            transactionId: "",
+            amount: "",
+            paymentStatus: "completed",
+            status: "active",
+            notes: ""
+          })
+          setVendorSearchOpen(false)
+          setPlanSearchOpen(false)
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Create New Subscription</DialogTitle>
+            <DialogDescription>
+              Manually create a subscription record for a vendor
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+            {/* Vendor Selection */}
+            <div className="space-y-2">
+              <Label>Vendor *</Label>
+              <Popover open={vendorSearchOpen} onOpenChange={setVendorSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={vendorSearchOpen}
+                    className="w-full justify-between"
+                    disabled={loadingVendorsAndPlans}
+                  >
+                    {createFormData.vendorId
+                      ? vendors.find((vendor) => vendor._id === createFormData.vendorId)
+                          ? `${vendors.find((vendor) => vendor._id === createFormData.vendorId)?.businessName || 
+                               vendors.find((vendor) => vendor._id === createFormData.vendorId)?.userData?.name || 'Unknown'} - ${
+                               vendors.find((vendor) => vendor._id === createFormData.vendorId)?.userData?.email || 'No email'}`
+                          : "Select vendor..."
+                      : loadingVendorsAndPlans 
+                        ? "Loading vendors..." 
+                        : "Select vendor..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Search vendors..." />
+                    <CommandEmpty>
+                      {loadingVendorsAndPlans ? "Loading vendors..." : "No vendors found."}
+                    </CommandEmpty>
+                    <CommandGroup className="max-h-64 overflow-y-auto">
+                      {vendors.map((vendor) => (
+                        <CommandItem
+                          key={vendor._id}
+                          value={`${vendor.businessName || vendor.userData?.name || 'Unknown'} ${vendor.userData?.email || ''}`}
+                          onSelect={() => {
+                            setCreateFormData(prev => ({ ...prev, vendorId: vendor._id }))
+                            setVendorSearchOpen(false)
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              createFormData.vendorId === vendor._id ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {vendor.businessName || vendor.userData?.name || 'Unknown'}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {vendor.userData?.email || 'No email'}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {vendors.length === 0 && !loadingVendorsAndPlans && (
+                <p className="text-sm text-red-600">No active vendors found. Please create vendors first.</p>
+              )}
+            </div>
+
+            {/* Subscription Plan Selection */}
+            <div className="space-y-2">
+              <Label>Subscription Plan *</Label>
+              <Popover open={planSearchOpen} onOpenChange={setPlanSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={planSearchOpen}
+                    className="w-full justify-between"
+                    disabled={loadingVendorsAndPlans}
+                  >
+                    {createFormData.subscriptionPlanId
+                      ? subscriptionPlans.find((plan) => plan._id === createFormData.subscriptionPlanId)
+                          ? `${subscriptionPlans.find((plan) => plan._id === createFormData.subscriptionPlanId)?.planName} - ${
+                               formatCurrency(subscriptionPlans.find((plan) => plan._id === createFormData.subscriptionPlanId)?.effectivePrice || 
+                                             subscriptionPlans.find((plan) => plan._id === createFormData.subscriptionPlanId)?.price || 0)} (${
+                               subscriptionPlans.find((plan) => plan._id === createFormData.subscriptionPlanId)?.duration})`
+                          : "Select subscription plan..."
+                      : loadingVendorsAndPlans 
+                        ? "Loading plans..." 
+                        : "Select subscription plan..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Search subscription plans..." />
+                    <CommandEmpty>
+                      {loadingVendorsAndPlans ? "Loading plans..." : "No subscription plans found."}
+                    </CommandEmpty>
+                    <CommandGroup className="max-h-64 overflow-y-auto">
+                      {subscriptionPlans.map((plan) => (
+                        <CommandItem
+                          key={plan._id}
+                          value={`${plan.planName} ${plan.duration}`}
+                          onSelect={() => {
+                            setCreateFormData(prev => ({ 
+                              ...prev, 
+                              subscriptionPlanId: plan._id,
+                              amount: (plan.effectivePrice || plan.price || "").toString()
+                            }))
+                            setPlanSearchOpen(false)
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              createFormData.subscriptionPlanId === plan._id ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          <div className="flex flex-col">
+                            <span className="font-medium">{plan.planName}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {formatCurrency(plan.effectivePrice || plan.price || 0)} • {plan.duration} • {plan.totalLeads} leads
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {subscriptionPlans.length === 0 && !loadingVendorsAndPlans && (
+                <p className="text-sm text-red-600">No subscription plans found. Please create subscription plans first.</p>
+              )}
+            </div>
+
+            {/* Payment Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <Select 
+                  value={createFormData.paymentMethod} 
+                  onValueChange={(value) => setCreateFormData(prev => ({ ...prev, paymentMethod: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="online">Online Payment</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Payment Status</Label>
+                <Select 
+                  value={createFormData.paymentStatus} 
+                  onValueChange={(value) => setCreateFormData(prev => ({ ...prev, paymentStatus: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="submitted">Submitted</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Amount *</Label>
+                <Input
+                  type="number"
+                  value={createFormData.amount}
+                  onChange={(e) => setCreateFormData(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Transaction ID</Label>
+                <Input
+                  value={createFormData.transactionId}
+                  onChange={(e) => setCreateFormData(prev => ({ ...prev, transactionId: e.target.value }))}
+                  placeholder="Enter transaction ID"
+                />
+              </div>
+            </div>
+
+            {/* Subscription Status */}
+            <div className="space-y-2">
+              <Label>Subscription Status</Label>
+              <Select 
+                value={createFormData.status} 
+                onValueChange={(value) => setCreateFormData(prev => ({ ...prev, status: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea
+                value={createFormData.notes}
+                onChange={(e) => setCreateFormData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Add any notes about this subscription..."
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => setCreateDialog({ open: false })}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateSubscription} 
+              disabled={processing || !createFormData.vendorId || !createFormData.subscriptionPlanId || !createFormData.amount}
+            >
+              {processing ? "Creating..." : "Create Subscription"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -42,6 +42,7 @@ import { getSession } from 'next-auth/react'
 export default function CreateLeadDialog({ 
   isOpen, 
   onClose,
+  onSuccess,
 }) {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -178,6 +179,11 @@ export default function CreateLeadDialog({
       if (result.success) {
         setSubmitted(true)
         toast.success(result.message || 'Lead has been created successfully!')
+        
+        // Call onSuccess callback to refresh data
+        if (onSuccess) {
+          onSuccess();
+        }
         
         // Optional: Track successful submission
         if (typeof gtag !== 'undefined') {

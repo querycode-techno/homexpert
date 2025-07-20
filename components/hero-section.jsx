@@ -17,7 +17,7 @@ export function HeroSection() {
           <div className="flex flex-col justify-center space-y-6">
             <div className="space-y-4">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl text-blue-800">
-                Your Home Services <span className="text-green-500">Expert</span>
+                Your Home, <span className="text-green-500">Our Expert</span>
               </h1>
               <p className="max-w-[600px] text-text-secondary text-lg md:text-xl leading-relaxed">
                 Connect with trusted professionals for all your home service needs. Quality service, guaranteed

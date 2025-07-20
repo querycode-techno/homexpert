@@ -336,9 +336,15 @@ function ServicesPageContent() {
                           <h3 className="font-medium text-sm leading-tight flex-1">
                             {subService.name}
                           </h3>
-                          <Badge variant="secondary" className="ml-2 text-xs">
-                            {formatPrice(subService.price)}
-                          </Badge>
+                          <div className="flex items-center">
+                          <span className="text-xs text-muted-foreground">
+                              Starting from:
+                            </span>
+                            <Badge variant="secondary" className="ml-2 text-xs">
+                              {formatPrice(subService.price)}
+                            </Badge>
+                            
+                          </div>
                         </div>
                         
                         {subService.note && (
