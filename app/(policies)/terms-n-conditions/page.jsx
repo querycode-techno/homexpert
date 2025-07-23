@@ -9,7 +9,7 @@ export const metadata = {
 const policyContent = {
   title: "Terms of Use",
   subtitle: "",
-  effectiveDate: "2025-07-02",
+  effectiveDate: "2025-07-15",
   sections: [
     {
       type: "intro",

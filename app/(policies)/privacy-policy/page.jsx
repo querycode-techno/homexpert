@@ -9,7 +9,7 @@ export const metadata = {
 const policyContent = {
   title: "Privacy Policy",
   subtitle: "Protecting Your Personal Data",
-  effectiveDate: "2025-07-02",
+  effectiveDate: "2025-07-15",
   sections: [
     {
       type: "intro",
