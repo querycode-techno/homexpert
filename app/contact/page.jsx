@@ -17,22 +17,22 @@ export default function ContactPage() {
     {
       icon: <MapPin className="h-6 w-6 text-primary" />,
       title: "Address",
-      details: ["123 Service Street", "Mumbai, Maharashtra 400001", "India"]
+      details: ["HomesXpert ", "Noida Sector 64 - Uttar Pardesh, 201301", "India"]
     },
     {
       icon: <Phone className="h-6 w-6 text-primary" />,
       title: "Phone",
-      details: ["+91 98765 43210", "+91 87654 32109"]
+      details: ["+91 9369-04-9369", "+91 9369-04-9369"]
     },
     {
       icon: <Mail className="h-6 w-6 text-primary" />,
       title: "Email",
-      details: ["info@homexpert.com", "support@homexpert.com"]
+      details: ["support@homesxpert.in"]
     },
     {
       icon: <Clock className="h-6 w-6 text-primary" />,
       title: "Business Hours",
-      details: ["Monday - Friday: 9:00 AM - 6:00 PM", "Saturday: 10:00 AM - 4:00 PM", "Sunday: Closed"]
+      details: ["All Day open", "Monday - Sunday: 24/7"]
     }
   ]
 
