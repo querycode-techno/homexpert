@@ -54,27 +54,12 @@ export function Footer() {
             <h3 className="text-lg font-medium">Company</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
+                <Link href="/about-us" className="text-sm text-text-secondary hover:text-primary">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
-                  Press
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-sm text-text-secondary hover:text-primary">
+                <Link href="/contact" className="text-sm text-text-secondary hover:text-primary">
                   Contact
                 </Link>
               </li>
