@@ -14,6 +14,9 @@ export function Header() {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/services", label: "Services" },
+    { href: "/privacy-policy", label: "Privacy Policy" },
+    { href: "/terms-n-service", label: "Terms of Service" },
+    { href: "/refund-policy", label: "Refund Policy" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
   ]
