@@ -17,12 +17,12 @@ export default function ContactPage() {
     {
       icon: <MapPin className="h-6 w-6 text-primary" />,
       title: "Address",
-      details: ["HomesXpert ", "Noida Sector 64 - Uttar Pardesh, 201301", "India"]
+      details: ["HomesXpert Services", "B53 Sector 64 - Noida, Uttar Pardesh, 201301", "India"]
     },
     {
       icon: <Phone className="h-6 w-6 text-primary" />,
       title: "Phone",
-      details: ["+91 9369-04-9369", "+91 9369-04-9369"]
+      details: ["+91 9369-04-9369"]
     },
     {
       icon: <Mail className="h-6 w-6 text-primary" />,

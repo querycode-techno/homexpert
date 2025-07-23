@@ -15,7 +15,7 @@ export function Header() {
     { href: "/", label: "Home" },
     { href: "/services", label: "Services" },
     { href: "/privacy-policy", label: "Privacy Policy" },
-    { href: "/terms-n-service", label: "Terms of Service" },
+    { href: "/terms-n-conditions", label: "Terms & Conditions" },
     { href: "/refund-policy", label: "Refund Policy" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },

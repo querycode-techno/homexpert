@@ -69,8 +69,8 @@ export function Footer() {
             <h3 className="text-lg font-medium">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/terms-n-service" className="text-sm text-text-secondary hover:text-primary">
-                  Terms of Service
+                <Link href="/terms-n-conditions" className="text-sm text-text-secondary hover:text-primary">
+                  Terms & Conditions
                 </Link>
               </li>
               <li>
@@ -113,7 +113,7 @@ export function Footer() {
         
         {/* Call Button */}
         <Link 
-          href="tel:+91-9369049369" 
+          href="tel:+91-9369049369"  //9369-04-9369
           className="group bg-blue-500 hover:bg-blue-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
           title="Call Now"
         >

@@ -2,78 +2,95 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 
 export const metadata = {
-  title: "Refund and Cancellation Policy - HomeXpert",
-  description: "Learn about HomeXpert's refund and cancellation policy for services and bookings",
+  title: "HomesXpert Lead Subscription – Refund & Cancellation Policy - HomeXpert",
+  description: "Learn about HomeXpert's lead subscription refund and cancellation policy for vendors and service professionals",
 }
 
 const policyContent = {
-  title: "Refund and Cancellation Policy",
+  title: "HomesXpert Lead Subscription – Refund & Cancellation Policy",
   subtitle: "",
-  effectiveDate: "2025-07-02",
+  effectiveDate: "2025-01-15",
+  lastUpdated: "2025-01-15",
   sections: [
     {
       type: "intro",
-      content: "This Refund and Cancellation Policy outlines the conditions under which refunds may be granted by HomesXpert Services Pvt. Ltd. (\"HomesXpert,\" \"we,\" \"us,\" or \"our\")."
+      content: "This policy outlines the conditions under which refunds may be considered for vendors or service professionals (\"you\" or \"vendor\") who subscribe to lead packages on HomesXpert.in (\"we,\" \"our,\" or \"the Company\")."
     },
     {
       type: "section",
-      title: "1. General Policy",
-      content: "Refunds are issued solely at the discretion of HomesXpert and are governed by our Terms of Use. All refunds are processed as wallet credits to your HomesXpert account, which can be used for future services. Refunds to original payment methods are not supported unless explicitly stated."
+      title: "1. Our Responsibility",
+      content: "HomesXpert is responsible for providing contact details of potential customers who have shown genuine interest in the vendor's services and are located within the vendor's local service area. These are called valid leads.",
+      afterContent: "We do not guarantee sales or conversions from the leads. Follow-up, rate discussion, and service closure are the sole responsibility of the vendor."
     },
     {
       type: "section",
-      title: "2. What Qualifies for a Refund",
-      content: "You may be eligible for a refund in the following scenarios:",
+      title: "2. Valid Leads (Eligible & Chargeable)",
+      content: "A valid lead is defined as a customer who:",
       list: [
-        "Service Mismatch: If a customer books a service (e.g., home cleaning) but later switches to a completely unrelated one (e.g., electrical work)",
-        "Location Mismatch: If the customer's location changes and is outside your serviceable area",
-        "Duplicate Charges: If you are charged twice for the same lead or booking within 7 days"
+        "Has requested the type of service you offer (e.g., painter, plumber, carpenter, etc.)",
+        "Resides in your registered or agreed service area.",
+        "Has provided a working contact number that is reachable within 48 hours.",
+        "Was generated within 72 hours of the customer showing interest."
+      ]
+    },
+    {
+      type: "section",
+      title: "3. Invalid Leads (May Qualify for Replacement or Refund)",
+      content: "You may report a lead as invalid if it meets any of the following:",
+      list: [
+        "Switched Off/Invalid Number: Number does not ring or stays off for more than 48 hours.",
+        "Wrong Category: Lead asked for a completely different service you don't offer.",
+        "Wrong Location: Lead is from an area you don't serve, outside your registered pin code.",
+        "Duplicate/Fake: Repeated or spam entries with the same details.",
+        "Customer Denial: Customer clearly states they never requested the service."
       ],
-      afterList: "Refund requests must be submitted within 3 days of the original charge."
+      afterList: "⚠ Note: Leads where the customer delays service or stops responding do not qualify as invalid."
     },
     {
       type: "section",
-      title: "3. What Does Not Qualify for a Refund",
-      content: "Refunds will not be issued in the following cases:",
+      title: "4. Refund Conditions",
+      content: "We generally do not provide refunds, except in the rare case where HomesXpert fails to fulfill its responsibility to deliver valid leads as per the plan.",
+      afterContent: "Refunds will be provided as wallet credits only, which can be used for future plans. Direct refunds to bank or UPI accounts are not issued."
+    },
+    {
+      type: "section",
+      title: "5. Plan Validity & Lead Carry Forward",
       list: [
-        "The customer chooses not to proceed with the service",
-        "No outcome or ROI from the service connection",
-        "Service expectations are subjective or performance-related",
-        "You failed to respond or follow up with the customer"
+        "By default, all lead plans are valid for 30 days from the date of activation.",
+        "If longer validity or lead carry-forward is required, it must be mutually agreed before payment.",
+        "Any unused or unclaimed leads will be carried forward to the next plan, only if this was pre-agreed."
       ]
     },
     {
       type: "section",
-      title: "4. How to Request a Refund",
-      content: "To request a refund:",
+      title: "6. Refund Process",
+      content: "We are confident in the quality of our leads. However, in the rare case that we are unable to provide the promised number of valid leads, the company may issue a partial refund after deducting applicable processing charges.",
+      afterContent: "To request a refund or report invalid leads:",
       list: [
-        "Log into your HomesXpert Partner account",
-        "Go to the Wallet or Lead Detail page",
-        "Submit your refund request with full details within 3 days"
+        "Drop a mail to support@homesxpert.in with the lead details and your concern."
+      ],
+      afterList: "Requests are reviewed within 2–5 working days and refunds, if approved, are issued as wallet credits."
+    },
+    {
+      type: "section",
+      title: "7. No Refund Scenarios",
+      content: "Refunds will not be issued if:",
+      list: [
+        "The vendor fails to call or follow up promptly.",
+        "The customer delays service, declines due to pricing, or changes their mind.",
+        "Disputes arise after the service is completed.",
+        "The vendor is unavailable or rejects the lead.",
+        "The plan expires and lead quota is unused without prior carry-forward agreement."
       ]
     },
     {
       type: "section",
-      title: "5. Refund Processing",
-      list: [
-        "Refunds are typically reviewed within 1–2 business days",
-        "In rare cases, it may take up to 5 business days for resolution",
-        "Approved refunds will be credited to your HomesXpert Wallet"
-      ]
-    },
-    {
-      type: "section",
-      title: "6. Discretionary Review",
-      content: "Each request is reviewed case-by-case. HomesXpert reserves the right to approve or deny any refund based on the circumstances provided."
-    },
-    {
-      type: "section",
-      title: "7. Final Authority",
-      content: "In the event of a conflict between this policy and the Terms of Use, the Terms of Use shall prevail."
+      title: "8. Final Decision",
+      content: "All refund requests are reviewed on a case-by-case basis. The company reserves the right to accept or reject any claim. The decision of HomesXpert will be final and binding."
     },
     {
       type: "contact",
-      content: "For any questions, contact: support@homesxpert.in"
+      content: "For support, contact us at support@homesxpert.in"
     },
     {
       type: "footer",
@@ -91,12 +108,17 @@ export default function RefundPolicyPage() {
         <section className="py-20 bg-gradient-to-br from-primary/5 to-secondary/5">
           <div className="container px-4 md:px-6">
             <div className="text-center space-y-4">
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-6xl">
+              <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl">
                 {policyContent.title}
               </h1>
-              <p className="text-sm text-text-secondary">
-                Effective Date: {policyContent.effectiveDate}
-              </p>
+              <div className="space-y-1">
+                <p className="text-sm text-text-secondary">
+                  Effective Date: {policyContent.effectiveDate}
+                </p>
+                <p className="text-sm text-text-secondary">
+                  Last Updated: {policyContent.lastUpdated}
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -125,6 +147,11 @@ export default function RefundPolicyPage() {
                           {section.content}
                         </p>
                       )}
+                      {section.afterContent && (
+                        <p className="text-text-secondary leading-relaxed">
+                          {section.afterContent}
+                        </p>
+                      )}
                       {section.list && (
                         <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4">
                           {section.list.map((item, idx) => (
@@ -133,7 +160,7 @@ export default function RefundPolicyPage() {
                         </ul>
                       )}
                       {section.afterList && (
-                        <p className="text-text-secondary leading-relaxed">
+                        <p className="text-text-secondary leading-relaxed font-medium">
                           {section.afterList}
                         </p>
                       )}
