@@ -9,8 +9,8 @@ export const metadata = {
 const policyContent = {
   title: "HomesXpert Lead Subscription – Refund & Cancellation Policy",
   subtitle: "",
-  effectiveDate: "2025-01-15",
-  lastUpdated: "2025-01-15",
+  effectiveDate: "2025-07-15",
+  lastUpdated: "2025-07-15",
   sections: [
     {
       type: "intro",
