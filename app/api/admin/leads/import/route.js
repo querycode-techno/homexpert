@@ -182,18 +182,20 @@ export async function POST(request) {
           continue;
         }
 
-        // Check for duplicates (same as main API)
-        const existingLead = await Lead.findOne({
-          customerPhone: customerPhone,
-          service: service,
-          createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-        }).lean();
+                 // Check for duplicates (same as main API) - only if not skipping
+         if (!options.skipDuplicates) {
+           const existingLead = await Lead.findOne({
+             customerPhone: customerPhone,
+             service: service,
+             createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+           }).lean();
 
-        if (existingLead) {
-          results.errors.push(`Row ${rowNum}: Duplicate lead (similar lead exists within 24 hours)`);
-          results.failed++;
-          continue;
-        }
+           if (existingLead) {
+             results.errors.push(`Row ${rowNum}: Duplicate lead (similar lead exists within 24 hours)`);
+             results.failed++;
+             continue;
+           }
+         }
 
                  // Create lead (following exact structure from main API)
          const leadData = {

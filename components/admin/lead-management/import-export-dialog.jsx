@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Upload, Download, FileText, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
 
 export function ImportExportDialog({ 
@@ -44,6 +45,7 @@ export function ImportExportDialog({
   const [selectedUser, setSelectedUser] = useState('current')
   const [users, setUsers] = useState([])
   const [loadingUsers, setLoadingUsers] = useState(false)
+  const [skipDuplicates, setSkipDuplicates] = useState(false)
   const fileInputRef = useRef(null)
 
   // Fetch users when dialog opens
@@ -82,9 +84,10 @@ export function ImportExportDialog({
   // Reset state when dialog closes
   const handleOpenChange = (open) => {
     if (!open) {
-      setSelectedFile(null)
-      setImportResults(null)
-      setSelectedUser('current')
+             setSelectedFile(null)
+       setImportResults(null)
+       setSelectedUser('current')
+       setSkipDuplicates(false)
     }
     onOpenChange(open)
   }
@@ -120,16 +123,17 @@ export function ImportExportDialog({
        const formData = new FormData()
        formData.append('file', selectedFile)
        
-                               // Add options including createdBy
-         const options = {}
-         if (selectedUser === 'current') {
-           // Use current user's ID
-           options.createdBy = session?.user?.id || session?.user?.userId
-         } else if (selectedUser) {
-           // Use selected user's ID
-           options.createdBy = selectedUser
-         }
-         formData.append('options', JSON.stringify(options))
+                                                               // Add options including createdBy and skipDuplicates
+          const options = {}
+          if (selectedUser === 'current') {
+            // Use current user's ID
+            options.createdBy = session?.user?.id || session?.user?.userId
+          } else if (selectedUser) {
+            // Use selected user's ID
+            options.createdBy = selectedUser
+          }
+          options.skipDuplicates = skipDuplicates
+          formData.append('options', JSON.stringify(options))
 
        const response = await fetch('/api/admin/leads/import', {
          method: 'POST',
@@ -282,10 +286,21 @@ export function ImportExportDialog({
                         Choose who should be marked as the creator of imported leads
                         {!['admin', 'super_admin'].includes(session?.user?.role?.name?.toLowerCase()) && 
                           ' (Limited to current user based on your role)'}
-                      </p>
-                   </div>
+                                             </p>
+                    </div>
 
-                   <div className="flex gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="skip-duplicates" 
+                        checked={skipDuplicates} 
+                        onCheckedChange={setSkipDuplicates}
+                      />
+                      <Label htmlFor="skip-duplicates" className="text-sm">
+                        Skip duplicate checking (import all leads)
+                      </Label>
+                    </div>
+
+                    <div className="flex gap-2">
                     <Button
                       onClick={handleImport}
                       disabled={!selectedFile || isImporting}
