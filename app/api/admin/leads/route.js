@@ -351,6 +351,34 @@ export async function GET(request) {
       }
     });
 
+    // Lookup created by user information
+    pipeline.push({
+      $lookup: {
+        from: 'users',
+        localField: 'createdBy',
+        foreignField: '_id',
+        as: 'createdByUser',
+        pipeline: [
+          {
+            $lookup: {
+              from: 'roles',
+              localField: 'role',
+              foreignField: '_id',
+              as: 'roleData'
+            }
+          },
+          { $unwind: '$roleData' },
+          {
+            $project: {
+              name: 1,
+              email: 1,
+              roleName: '$roleData.name'
+            }
+          }
+        ]
+      }
+    });
+
     // Add computed fields
     pipeline.push({
       $addFields: {
@@ -362,7 +390,8 @@ export async function GET(request) {
             { $subtract: [new Date(), '$createdAt'] },
             86400000 // milliseconds in a day
           ]
-        }
+        },
+        createdByUser: { $arrayElemAt: ['$createdByUser', 0] }
       }
     });
 
@@ -399,6 +428,7 @@ export async function GET(request) {
         createdAt: 1,
         updatedAt: 1,
         availableToVendors: 1,
+        createdByUser: 1,
         leadProgressHistory: { $slice: ['$leadProgressHistory', -3] }, // Last 3 entries
         followUps: { $slice: ['$followUps', -2] }, // Last 2 follow-ups
         notes: { $slice: ['$notes', -2] } // Last 2 notes

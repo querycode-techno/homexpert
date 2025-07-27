@@ -12,6 +12,7 @@ import { LeadDetailsDialog } from "./lead-details-dialog";
 import { BulkActionsDialog } from "./bulk-actions-dialog";
 import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
 import { EditLeadDialog } from "./edit-lead-dialog";
+import { ImportExportDialog } from "./import-export-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -66,6 +67,7 @@ export function LeadManagement() {
   const [bulkActionsDialogOpen, setBulkActionsDialogOpen] = useState(false);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [editLeadDialogOpen, setEditLeadDialogOpen] = useState(false);
+  const [importExportDialogOpen, setImportExportDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [bulkAction, setBulkAction] = useState("");
   const [isLeadsCreationOpen, setIsLeadsCreationOpen] = useState(false);
@@ -73,8 +75,7 @@ export function LeadManagement() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState(null);
 
-  // File input ref for import
-  const leadFileInputRef = useRef(null);
+
 
   // Update URL with new parameters
   const updateURL = (newParams) => {
@@ -382,70 +383,15 @@ export function LeadManagement() {
     fetchLeads();
   };
 
-  // Export functionality using lead service
-  const handleLeadExport = async () => {
-    try {
-      const result = await leadService.exportLeads();
-      if (result.success) {
-        toast.success("Lead data has been exported to CSV.");
-      } else {
-        toast.error(`Export Error: ${result.error}`);
-      }
-    } catch (err) {
-      toast.error(`Export Error: ${err.message}`);
+  // Handle import/export completion
+  const handleImportComplete = (results) => {
+    if (results.successful > 0) {
+      fetchLeads(); // Refresh the leads list
     }
   };
 
-  // Import functionality using lead service
-  const handleLeadImport = () => {
-    leadFileInputRef.current?.click();
-  };
-
-  // Download template functionality
-  const handleDownloadTemplate = () => {
-    try {
-      const result = leadService.downloadTemplate();
-      if (result.success) {
-        toast.success("CSV template downloaded successfully.");
-      } else {
-        toast.error("Failed to download template.");
-      }
-    } catch (err) {
-      toast.error(`Download Error: ${err.message}`);
-    }
-  };
-
-  const handleLeadFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        setLoading(true);
-        const result = await leadService.importLeads(file);
-        
-        if (result.success) {
-          toast.success(result.message);
-          if (result.results) {
-            const { successful, failed, errors } = result.results;
-            console.log('Import results:', { successful, failed, errors });
-            
-            if (failed > 0) {
-              toast.warning(`${failed} leads failed to import. Check console for details.`);
-              console.warn('Import errors:', errors);
-            }
-          }
-          // Refresh lead list after import
-          fetchLeads();
-        } else {
-          toast.error(`Import Error: ${result.error}`);
-        }
-      } catch (err) {
-        toast.error(`Import Error: ${err.message}`);
-      } finally {
-        setLoading(false);
-        // Reset file input
-        e.target.value = '';
-      }
-    }
+  const handleExportComplete = (results) => {
+    // Export completion is handled by the dialog component
   };
 
   return (
@@ -480,18 +426,18 @@ export function LeadManagement() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleLeadImport}>
+                              <DropdownMenuItem onClick={() => setImportExportDialogOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" />
                 Import CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownloadTemplate}>
+                              <DropdownMenuItem onClick={() => setImportExportDialogOpen(true)}>
                 <Download className="h-4 w-4 mr-2" />
                 Download Template
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="outline" onClick={handleLeadExport} disabled={loading}>
+                      <Button variant="outline" onClick={() => setImportExportDialogOpen(true)} disabled={loading}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -613,13 +559,13 @@ export function LeadManagement() {
         }}
       />
 
-      {/* Hidden file input */}
-      <input 
-        type="file" 
-        ref={leadFileInputRef} 
-        onChange={handleLeadFileChange} 
-        accept=".csv" 
-        className="hidden" 
+      {/* Import/Export Dialog */}
+      <ImportExportDialog
+        open={importExportDialogOpen}
+        onOpenChange={setImportExportDialogOpen}
+        currentFilters={filters}
+        onImportComplete={handleImportComplete}
+        onExportComplete={handleExportComplete}
       />
     </div>
   );

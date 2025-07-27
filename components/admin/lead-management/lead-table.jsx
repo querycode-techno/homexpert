@@ -22,7 +22,8 @@ import {
   Clock,
   Users,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  User
 } from "lucide-react"
 import { format, formatDistanceToNow } from "date-fns"
 
@@ -121,6 +122,7 @@ function LeadTableSkeleton() {
           </div>
           <Skeleton className="h-6 w-20" />
           <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-6 w-24" />
           <Skeleton className="h-8 w-8" />
         </div>
       ))}
@@ -253,6 +255,21 @@ function LeadTableRow({
         )}
       </TableCell>
 
+      {/* Created By */}
+      <TableCell>
+        <div className="flex items-center space-x-2">
+          <User className="h-3 w-3 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium truncate">
+              {lead.createdByUser?.name || 'Unknown'}
+            </div>
+            <div className="text-xs text-muted-foreground truncate">
+              {lead.createdByUser?.roleName || 'N/A'}
+            </div>
+          </div>
+        </div>
+      </TableCell>
+
       {/* Actions */}
       <TableCell className="w-12">
         <DropdownMenu>
@@ -383,7 +400,9 @@ export function LeadTable({
                 <TableHead className="w-12">
                   <Checkbox
                     checked={allSelected}
-                    indeterminate={indeterminate}
+                    ref={(el) => {
+                      if (el) el.indeterminate = indeterminate;
+                    }}
                     onCheckedChange={(checked) => onSelectAll(checked)}
                   />
                 </TableHead>
@@ -392,13 +411,14 @@ export function LeadTable({
                 <TableHead className="w-48">Service</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Assignment</TableHead>
+                <TableHead>Created By</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
+                  <TableCell colSpan={8} className="h-24 text-center">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="text-muted-foreground">No leads found</div>
                       <div className="text-sm text-muted-foreground">
