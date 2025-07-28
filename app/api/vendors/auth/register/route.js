@@ -162,7 +162,7 @@ export async function POST(request) {
 
     // Generate tokens
     const accessToken = jwt.sign(tokenPayload, JWT_SECRET, { 
-      expiresIn: '24h',
+      expiresIn: '30d',
       issuer: 'homexpert-vendor',
       audience: 'vendor-mobile-app'
     });
@@ -171,7 +171,7 @@ export async function POST(request) {
       { userId: userResult.insertedId.toString(), type: 'refresh' }, 
       JWT_SECRET, 
       { 
-        expiresIn: '7d',
+        expiresIn: '30d',
         issuer: 'homexpert-vendor',
         audience: 'vendor-mobile-app'
       }
@@ -202,7 +202,7 @@ export async function POST(request) {
         tokens: {
           accessToken,
           refreshToken,
-          expiresIn: 86400 // 24 hours in seconds
+          expiresIn: 2592000 // 30 days in seconds
         },
         message: "Registration successful! Your account is pending verification. You can still access your dashboard."
       }
