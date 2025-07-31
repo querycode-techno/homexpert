@@ -419,9 +419,13 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const leadIds = searchParams.get('leadIds')?.split(',') || [];
-    const service = searchParams.get('service');
-    const city = searchParams.get('city');
+    const serviceFilter = searchParams.get('service');
+    const cityFilter = searchParams.get('city');
     const assignmentType = searchParams.get('type') || 'manual';
+    const page = parseInt(searchParams.get('page')) || 1;
+    const limit = parseInt(searchParams.get('limit')) || 20;
+    const search = searchParams.get('search') || '';
+    const skip = (page - 1) * limit;
 
     if (leadIds.length === 0) {
       return NextResponse.json(
@@ -460,9 +464,20 @@ export async function GET(request) {
       role: vendorRole._id
     };
 
+    // Add search functionality
+    if (search && search.trim()) {
+      const searchRegex = { $regex: search.trim(), $options: 'i' };
+      userQuery.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { phone: { $regex: search.trim() } },
+        { 'address.city': searchRegex }
+      ];
+    }
+
     // Optional: Filter by city if specifically requested (but not by default)
-    if (city && city !== 'all') {
-      userQuery['address.city'] = city;
+    if (cityFilter && cityFilter !== 'all') {
+      userQuery['address.city'] = cityFilter;
     }
     // Note: Removed automatic city filtering from leads to show all vendors
 
@@ -479,12 +494,50 @@ export async function GET(request) {
       },
       { $unwind: '$roleData' },
       {
+        $lookup: {
+          from: 'vendors',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'vendorData'
+        }
+      },
+      {
         $addFields: {
-          businessName: '$name', // Use user name as business name
-          services: [], // Can be populated from user profile if needed
-          rating: 4.5, // Default rating, can be calculated from reviews
-          totalJobs: 0, // Can be calculated from completed bookings
-          status: 'active', // Users are considered active if they exist
+          businessName: { 
+            $cond: [
+              { $gt: [{ $size: '$vendorData' }, 0] },
+              { $arrayElemAt: ['$vendorData.businessName', 0] },
+              '$name'
+            ]
+          },
+          services: { 
+            $cond: [
+              { $gt: [{ $size: '$vendorData' }, 0] },
+              { $arrayElemAt: ['$vendorData.services', 0] },
+              []
+            ]
+          },
+          rating: { 
+            $cond: [
+              { $gt: [{ $size: '$vendorData' }, 0] },
+              { $arrayElemAt: ['$vendorData.rating', 0] },
+              4.5
+            ]
+          },
+          totalJobs: { 
+            $cond: [
+              { $gt: [{ $size: '$vendorData' }, 0] },
+              { $arrayElemAt: ['$vendorData.totalJobs', 0] },
+              0
+            ]
+          },
+          status: { 
+            $cond: [
+              { $gt: [{ $size: '$vendorData' }, 0] },
+              { $arrayElemAt: ['$vendorData.status', 0] },
+              'active'
+            ]
+          },
           matchScore: {
             $add: [
               2.0, // Base score for all vendors
@@ -493,6 +546,27 @@ export async function GET(request) {
           }
         }
       },
+      // Add search and filter stages after lookup
+      ...((search && search.trim()) || serviceFilter || cityFilter ? [{
+        $match: {
+          $and: [
+            // Search filter
+            ...(search && search.trim() ? [{
+              $or: [
+                { name: { $regex: search.trim(), $options: 'i' } },
+                { email: { $regex: search.trim(), $options: 'i' } },
+                { phone: { $regex: search.trim() } },
+                { 'address.city': { $regex: search.trim(), $options: 'i' } },
+                { services: { $in: [{ $regex: search.trim(), $options: 'i' }] } }
+              ]
+            }] : []),
+            // Service filter
+            ...(serviceFilter ? [{ services: serviceFilter }] : []),
+            // City filter  
+            ...(cityFilter ? [{ 'address.city': cityFilter }] : [])
+          ]
+        }
+      }] : []),
       {
         $project: {
           _id: 1,
@@ -514,8 +588,13 @@ export async function GET(request) {
         }
       },
       { $sort: { matchScore: -1, name: 1 } },
-      { $limit: 200 }
+      { $skip: skip },
+      { $limit: limit }
     ]);
+
+    // Get total count for pagination
+    const totalCount = await User.countDocuments(userQuery);
+    const hasMore = skip + limit < totalCount;
 
     // Debug: If no vendors found, check what vendors exist
     if (suggestedVendors.length === 0) {
@@ -556,11 +635,19 @@ export async function GET(request) {
           status: lead.status
         })),
         suggestedVendors,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          hasMore,
+          totalPages: Math.ceil(totalCount / limit)
+        },
         stats,
         filters: {
-          service,
-          city,
-          assignmentType
+          service: serviceFilter,
+          city: cityFilter,
+          assignmentType,
+          search
         }
       }
     });

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Upload, X, Eye, Download, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Upload, X, Download, CheckCircle, XCircle } from 'lucide-react';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 
 const DocumentUpload = ({ 
@@ -191,16 +191,6 @@ const DocumentUpload = ({
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {document?.docImageUrl && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => window.open(document.docImageUrl, '_blank')}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  )}
                   <Button
                     type="button"
                     variant="ghost"

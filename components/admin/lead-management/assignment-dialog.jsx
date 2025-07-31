@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Star, Users, Search, UserPlus } from "lucide-react"
 
@@ -21,6 +22,14 @@ export function AssignmentDialog({
   const [vendors, setVendors] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [totalVendors, setTotalVendors] = useState(0)
+  const [serviceFilter, setServiceFilter] = useState('')
+  const [cityFilter, setCityFilter] = useState('')
+  const [availableServices, setAvailableServices] = useState([])
+  const [availableCities, setAvailableCities] = useState([])
 
   // Fetch vendors when dialog opens
   useEffect(() => {
@@ -34,33 +43,91 @@ export function AssignmentDialog({
     if (!open) {
       setSelectedVendors([])
       setSearchTerm('')
+      setServiceFilter('')
+      setCityFilter('')
+      setCurrentPage(1)
+      setHasMore(true)
+      setVendors([])
+      setTotalVendors(0)
+      setAvailableServices([])
+      setAvailableCities([])
     }
   }, [open])
 
-  const fetchVendors = async () => {
-    setLoading(true)
+  // Handle search with debouncing
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (open && selectedLeads.length > 0) {
+        setCurrentPage(1)
+        fetchVendors(1, searchTerm, serviceFilter, cityFilter, true)
+      }
+    }, 500)
+
+    return () => clearTimeout(delayedSearch)
+  }, [searchTerm, serviceFilter, cityFilter, open, selectedLeads])
+
+  // Load more vendors
+  const loadMoreVendors = () => {
+    if (hasMore && !loadingMore && !loading) {
+      fetchVendors(currentPage + 1, searchTerm, serviceFilter, cityFilter, false)
+    }
+  }
+
+  const fetchVendors = async (page = 1, search = '', service = '', city = '', reset = false) => {
+    if (page === 1) {
+      setLoading(true)
+    } else {
+      setLoadingMore(true)
+    }
+    
     try {
-      const response = await fetch(`/api/admin/leads/assign?leadIds=${selectedLeads.join(',')}`)
+      const params = new URLSearchParams({
+        leadIds: selectedLeads.join(','),
+        page: page.toString(),
+        limit: '20',
+        search: search
+      });
+      
+      if (service) params.append('service', service);
+      if (city) params.append('city', city);
+      
+      const response = await fetch(`/api/admin/leads/assign?${params}`)
       const result = await response.json()
       console.log(result);
       
-      if (result.success) {
-        setVendors(result.data.suggestedVendors || [])
+              if (result.success) {
+          const newVendors = result.data.suggestedVendors || []
+          
+          if (reset || page === 1) {
+            setVendors(newVendors)
+            // Extract unique services and cities for filters
+            const services = [...new Set(newVendors.flatMap(v => v.services || []))].sort()
+            const cities = [...new Set(newVendors.map(v => v.address?.city).filter(Boolean))].sort()
+            setAvailableServices(services)
+            setAvailableCities(cities)
+          } else {
+            setVendors(prev => [...prev, ...newVendors])
+          }
+          
+          setHasMore(result.data.pagination?.hasMore || false)
+          setTotalVendors(result.data.pagination?.total || 0)
+          setCurrentPage(page)
       } else {
         toast.error('Failed to fetch vendors')
-        setVendors([])
+        if (page === 1) setVendors([])
       }
     } catch (error) {
       console.error('Error fetching vendors:', error)
       toast.error('Failed to fetch vendors')
-      setVendors([])
+      if (page === 1) setVendors([])
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
   const handleAssign = async (assignToAll = false) => {
-    const vendorsToAssign = assignToAll ? filteredVendors.map(v => v._id) : selectedVendors
+    const vendorsToAssign = assignToAll ? vendors.map(v => v._id) : selectedVendors
     
     
     if (vendorsToAssign.length === 0) {
@@ -104,22 +171,8 @@ export function AssignmentDialog({
     )
   }
 
-  // Enhanced filtering - search across multiple fields
-  const filteredVendors = vendors.filter(vendor => {
-    if (!searchTerm.trim()) return true
-    
-    const searchLower = searchTerm.toLowerCase()
-    return (
-      vendor.businessName?.toLowerCase().includes(searchLower) ||
-      vendor.userData?.name?.toLowerCase().includes(searchLower) ||
-      vendor.userData?.email?.toLowerCase().includes(searchLower) ||
-      vendor.userData?.phone?.includes(searchTerm) ||
-      vendor.services?.some(service => 
-        service.toLowerCase().includes(searchLower)
-      ) ||
-      vendor.address?.city?.toLowerCase().includes(searchLower)
-    )
-  })
+  // Use vendors directly since filtering is now done server-side
+  const filteredVendors = vendors
 
   const VendorList = () => {
     if (loading) {
@@ -193,8 +246,24 @@ export function AssignmentDialog({
                 </div>
               )}
               {vendor.services && vendor.services.length > 0 && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  🔧 {vendor.services.slice(0, 3).join(', ')}{vendor.services.length > 3 ? '...' : ''}
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {vendor.services.slice(0, 3).map((service, index) => (
+                    <Badge 
+                      key={index} 
+                      variant="secondary" 
+                      className="text-xs px-2 py-1"
+                    >
+                      {service}
+                    </Badge>
+                  ))}
+                  {vendor.services.length > 3 && (
+                    <Badge 
+                      variant="outline" 
+                      className="text-xs px-2 py-1"
+                    >
+                      +{vendor.services.length - 3} more
+                    </Badge>
+                  )}
                 </div>
               )}
             </div>
@@ -209,6 +278,34 @@ export function AssignmentDialog({
             </div>
           </div>
         ))}
+        
+        {/* Load More Button */}
+        {hasMore && vendors.length > 0 && (
+          <div className="flex justify-center py-4">
+            <Button
+              variant="outline"
+              onClick={loadMoreVendors}
+              disabled={loadingMore || loading}
+              className="w-full max-w-xs"
+            >
+              {loadingMore ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                  Loading...
+                </>
+              ) : (
+                `Load More (${vendors.length} of ${totalVendors})`
+              )}
+            </Button>
+          </div>
+        )}
+        
+        {/* End of List Indicator */}
+        {!hasMore && vendors.length > 0 && (
+          <div className="text-center py-4 text-sm text-muted-foreground">
+            All vendors loaded ({totalVendors} total)
+          </div>
+        )}
       </div>
     )
   }
@@ -226,15 +323,63 @@ export function AssignmentDialog({
         </DialogHeader>
 
         <div className="flex-1 flex flex-col space-y-4 min-h-0 overflow-hidden">
-          {/* Search */}
-          <div className="relative flex-shrink-0">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search vendors by name, service, or city..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
+          {/* Search and Filters */}
+          <div className="flex-shrink-0 space-y-3">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, phone and email, city, services..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            {/* Filters */}
+            <div className="flex gap-3">
+              <Select value={serviceFilter || "all"} onValueChange={(value) => setServiceFilter(value === "all" ? "" : value)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by service" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Services</SelectItem>
+                  {availableServices.map((service) => (
+                    <SelectItem key={service} value={service}>
+                      {service}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={cityFilter || "all"} onValueChange={(value) => setCityFilter(value === "all" ? "" : value)}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Filter by city" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  {availableCities.map((city) => (
+                    <SelectItem key={city} value={city}>
+                      {city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* Clear Filters */}
+              {(serviceFilter || cityFilter) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setServiceFilter('')
+                    setCityFilter('')
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Assignment Options */}
@@ -248,6 +393,11 @@ export function AssignmentDialog({
               ) : (
                 <span className="text-sm text-muted-foreground">
                   No vendors selected
+                </span>
+              )}
+              {totalVendors > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  ({vendors.length} of {totalVendors} loaded)
                 </span>
               )}
             </div>
@@ -264,10 +414,10 @@ export function AssignmentDialog({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setSelectedVendors(filteredVendors.map(v => v._id))}
-                disabled={filteredVendors.length === 0}
+                onClick={() => setSelectedVendors(vendors.map(v => v._id))}
+                disabled={vendors.length === 0}
               >
-                Select All ({filteredVendors.length})
+                Select All Loaded ({vendors.length})
               </Button>
             </div>
           </div>
@@ -291,11 +441,11 @@ export function AssignmentDialog({
             <Button 
               variant="outline"
               onClick={() => handleAssign(true)}
-              disabled={filteredVendors.length === 0 || loading}
+              disabled={vendors.length === 0 || loading}
               className="w-full sm:w-auto"
             >
               <UserPlus className="h-4 w-4 mr-2" />
-              Assign to All ({filteredVendors.length})
+              Assign to All Loaded ({vendors.length})
             </Button>
             
             <Button 

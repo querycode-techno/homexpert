@@ -8,7 +8,7 @@ export async function GET(request, { params }) {
   try {
     await requireAdmin();
 
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ObjectId
     if (!ObjectId.isValid(id)) {
@@ -22,10 +22,34 @@ export async function GET(request, { params }) {
     }
 
     const vendorsCollection = await database.getVendorsCollection();
+    const usersCollection = await database.getUsersCollection();
 
-    // Get vendor with user data
+    console.log('DEBUG VENDOR GET: Looking for vendor with ID:', id);
+    
+    // Try to find vendor by _id first (in case id is vendor's _id)
+    let targetVendor = await vendorsCollection.findOne({ _id: new ObjectId(id) });
+    console.log('DEBUG VENDOR GET: Vendor found by _id?', !!targetVendor);
+    
+    // If not found by _id, try to find by user field (in case id is user's _id)
+    if (!targetVendor) {
+      targetVendor = await vendorsCollection.findOne({ user: new ObjectId(id) });
+      console.log('DEBUG VENDOR GET: Vendor found by user field?', !!targetVendor);
+    }
+    
+    if (!targetVendor) {
+      console.log('DEBUG VENDOR GET: No vendor found for ID:', id);
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Vendor not found' 
+        },
+        { status: 404 }
+      );
+    }
+
+    // Get vendor with user data using the found vendor's _id
     const vendor = await vendorsCollection.aggregate([
-      { $match: { _id: new ObjectId(id) } },
+      { $match: { _id: targetVendor._id } },
       {
         $lookup: {
           from: 'users',
@@ -60,7 +84,7 @@ export async function GET(request, { params }) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Vendor not found' 
+          error: 'Vendor not found after aggregation' 
         },
         { status: 404 }
       );
@@ -99,7 +123,7 @@ export async function PUT(request, { params }) {
     const adminUserId = session.user.id;
     const adminRole = session.role;
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     // Validate ObjectId
@@ -117,15 +141,114 @@ export async function PUT(request, { params }) {
     const usersCollection = await database.getUsersCollection();
 
     // Check if vendor exists
-    const existingVendor = await vendorsCollection.findOne({ _id: new ObjectId(id) });
+    console.log('DEBUG VENDOR UPDATE: Looking for vendor with ID:', id);
+    console.log('DEBUG VENDOR UPDATE: ObjectId valid?', ObjectId.isValid(id));
+    
+    // Try to find vendor by _id first (in case id is vendor's _id)
+    let existingVendor = await vendorsCollection.findOne({ _id: new ObjectId(id) });
+    console.log('DEBUG VENDOR UPDATE: Vendor found by _id?', !!existingVendor);
+    
+    // If not found by _id, try to find by user field (in case id is user's _id)
     if (!existingVendor) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Vendor not found' 
-        },
-        { status: 404 }
-      );
+      existingVendor = await vendorsCollection.findOne({ user: new ObjectId(id) });
+      console.log('DEBUG VENDOR UPDATE: Vendor found by user field?', !!existingVendor);
+    }
+    
+    // Also check if this ID exists in users collection (since vendor list now shows all vendor users)
+    const existingUser = await usersCollection.findOne({ _id: new ObjectId(id) });
+    console.log('DEBUG VENDOR UPDATE: User found in users collection?', !!existingUser);
+    
+    if (existingUser) {
+      console.log('DEBUG VENDOR UPDATE: User details:', {
+        id: existingUser._id.toString(),
+        name: existingUser.name,
+        email: existingUser.email,
+        role: existingUser.role
+      });
+    }
+    
+    if (!existingVendor) {
+      console.log('DEBUG VENDOR UPDATE: Vendor not found for ID:', id);
+      
+      // Check if this is a user with vendor role who needs a vendor profile created
+      if (existingUser) {
+        console.log('DEBUG VENDOR UPDATE: User exists but no vendor profile. Creating vendor profile...');
+        
+        // Get vendor role to verify this user has vendor role
+        const rolesCollection = await database.getRolesCollection();
+        const vendorRole = await rolesCollection.findOne({ name: 'vendor' });
+        
+        if (vendorRole && existingUser.role.toString() === vendorRole._id.toString()) {
+          // Create a basic vendor profile for this user
+          const defaultVendorData = {
+            user: new ObjectId(id),
+            businessName: existingUser.name || 'Business Name Required',
+            services: [], // Empty services array
+            address: {
+              street: existingUser.address?.street || '',
+              area: existingUser.address?.area || '',
+              city: existingUser.address?.city || '',
+              state: existingUser.address?.state || '',
+              pincode: existingUser.address?.pincode || '',
+              serviceAreas: []
+            },
+            documents: {
+              identity: {
+                type: "",
+                number: "",
+                docImageUrl: ""
+              },
+              business: {
+                type: "",
+                number: "",
+                docImageUrl: ""
+              }
+            },
+            verified: {
+              isVerified: false
+            },
+            status: 'incomplete', // Special status for auto-created profiles
+            rating: 0,
+            totalJobs: 0,
+            onboardedBy: new ObjectId(adminUserId),
+            history: [{
+              action: 'registered',
+              date: new Date(),
+              performedBy: new ObjectId(adminUserId),
+              notes: `Vendor profile auto-created during edit by ${session.user.name || 'admin'}`
+            }],
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          
+          // Insert the vendor profile
+          const vendorResult = await vendorsCollection.insertOne(defaultVendorData);
+          console.log('DEBUG VENDOR UPDATE: Created vendor profile with ID:', vendorResult.insertedId);
+          
+          // Fetch the newly created vendor for the update process
+          const newVendor = await vendorsCollection.findOne({ _id: vendorResult.insertedId });
+          
+          // Update existingVendor to point to the newly created vendor
+          existingVendor = newVendor;
+          console.log('DEBUG VENDOR UPDATE: Using newly created vendor profile for update');
+        } else {
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'User does not have vendor role' 
+            },
+            { status: 403 }
+          );
+        }
+      } else {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'User not found' 
+          },
+          { status: 404 }
+        );
+      }
     }
 
     // Prepare update data
@@ -307,14 +430,14 @@ export async function PUT(request, { params }) {
 
     if (Object.keys(updateData).length > 0) {
       await vendorsCollection.updateOne(
-        { _id: new ObjectId(id) },
+        { _id: existingVendor._id },
         { $set: updateData }
       );
     }
 
     // Fetch updated vendor with user data
     const updatedVendor = await vendorsCollection.aggregate([
-      { $match: { _id: new ObjectId(id) } },
+      { $match: { _id: existingVendor._id } },
       {
         $lookup: {
           from: 'users',

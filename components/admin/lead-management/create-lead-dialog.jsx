@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/select'
 import { createNotification } from '@/lib/services/notificationService'
 import { getSession } from 'next-auth/react'
+import { SearchableStateCityInput } from '@/components/ui/searchable-state-city-input'
 
 
 export default function CreateLeadDialog({ 
@@ -509,25 +510,24 @@ export default function CreateLeadDialog({
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      placeholder="Your city"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      name="state"
-                      value={formData.state}
-                      onChange={handleInputChange}
-                      placeholder="Your state"
+                  <div className="md:col-span-2">
+                    <SearchableStateCityInput
+                      selectedState={formData.state}
+                      selectedCity={formData.city}
+                      onStateChange={(value) => setFormData(prev => ({ 
+                        ...prev, 
+                        state: value
+                      }))}
+                      onCityChange={(value) => setFormData(prev => ({ 
+                        ...prev, 
+                        city: value 
+                      }))}
+                      showLabels={true}
+                      stateLabel="State"
+                      cityLabel="City"
+                      statePlaceholder="Search and select state..."
+                      cityPlaceholder="Search and select city..."
+                      layout="horizontal"
                     />
                   </div>
                   

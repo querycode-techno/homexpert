@@ -18,6 +18,7 @@ import vendorService from "@/lib/services/vendorService"
 // Import vendor components
 import { VendorList, VendorForm } from "./vendor"
 import { VendorDetailsDialog } from "./vendor/vendor-details-dialog"
+import { VendorStats } from "./vendor/vendor-stats"
 
 export function VendorManagement() {
   const router = useRouter()
@@ -93,10 +94,19 @@ export function VendorManagement() {
     router.push(newURL, { scroll: false })
   }
 
-  // Load vendors when URL parameters change
+  // Load vendors when non-search parameters change (full reload with stats)
   useEffect(() => {
-    fetchVendors()
-  }, [currentPage, currentSearch, currentStatus, currentCity, currentService, currentVerified])
+    fetchVendors(false) // Full reload including stats
+  }, [currentPage, currentStatus, currentCity, currentService, currentVerified])
+  
+  // Handle search separately (table only, no stats reload)
+  useEffect(() => {
+    if (currentSearch !== '') {
+      fetchVendors(true) // Search only, don't reload stats
+    } else {
+      fetchVendors(false) // If search is cleared, do full reload
+    }
+  }, [currentSearch])
 
   // Sync local state with URL parameters
   useEffect(() => {
@@ -110,7 +120,7 @@ export function VendorManagement() {
   }, [currentSearch, currentStatus, currentCity, currentService, currentVerified])
 
   // Fetch vendors using the vendor service
-  const fetchVendors = async () => {
+  const fetchVendors = async (searchOnly = false) => {
     try {
       setLoading(true)
       const params = {
@@ -128,7 +138,11 @@ export function VendorManagement() {
       if (result.success) {
         setVendors(result.vendors)
         setPagination(result.pagination)
-        setStats(result.stats)
+        
+        // Only update stats if not a search-only operation
+        if (!searchOnly) {
+          setStats(result.stats)
+        }
       } else {
         toast.error(`Error: ${result.error}`)
       }
@@ -161,9 +175,33 @@ export function VendorManagement() {
     }
   }
 
-  const handleEditVendor = (vendor) => {
-    setCurrentVendor(vendor)
-    setIsEditVendorOpen(true)
+  const handleEditVendor = async (vendor) => {
+    try {
+      // Show loading toast to indicate data is being fetched
+      const loadingToast = toast.loading('Loading vendor details...')
+      
+      console.log('Editing vendor:', vendor._id)
+      
+      // Fetch complete vendor details by ID
+      const result = await vendorService.getVendor(vendor._id)
+      
+      // Dismiss loading toast
+      toast.dismiss(loadingToast)
+      
+      if (result.success) {
+        console.log('Fetched complete vendor data for editing:', result.vendor)
+        setCurrentVendor(result.vendor)
+        // Only open dialog after data is successfully loaded
+        setIsEditVendorOpen(true)
+        toast.success('Vendor details loaded successfully')
+      } else {
+        console.error('Failed to fetch vendor:', result.error)
+        toast.error(`Error fetching vendor details: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error fetching vendor for edit:', error)
+      toast.error('Failed to fetch vendor details')
+    }
   }
 
   const handleUpdateVendor = async (formData) => {
@@ -359,10 +397,12 @@ export function VendorManagement() {
         <p className="text-muted-foreground">Manage your vendors, their subscriptions, and lead quotas.</p>
       </div>
 
+      {/* Vendor Stats - separate from search-affected area */}
+      <VendorStats stats={stats} />
+
       {/* Vendor Management */}
       <VendorList
         vendors={vendors}
-        stats={stats}
         loading={loading}
         pagination={pagination}
         onAddVendor={() => setIsAddVendorOpen(true)}

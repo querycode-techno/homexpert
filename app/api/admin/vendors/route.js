@@ -108,46 +108,121 @@ export async function GET(request) {
     // Debug the query object
     console.log('DEBUG VENDORS: Query object:', JSON.stringify(query, null, 2));
     
-    // Get total count for pagination
-    const total = await vendorsCollection.countDocuments(query);
-    console.log('DEBUG VENDORS: Total count with query:', total);
+    // Check if we want to show ALL users with vendor role (including those without vendor profiles)
+    // or only actual vendors (with vendor profiles)
+    const showAllVendorUsers = true; // Set to true to include users without vendor profiles
 
-    // Get vendors with user data - using LEFT JOIN approach to see what happens
-    const vendorsWithDebug = await vendorsCollection.aggregate([
-      { $match: query },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'user',
-          foreignField: '_id',
-          as: 'userData',
-          pipeline: [
-            { $project: { password: 0 } }
-          ]
-        }
-      },
-      {
-        $addFields: {
-          userDataCount: { $size: '$userData' },
-          hasUserData: { $gt: [{ $size: '$userData' }, 0] }
-        }
-      },
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit }
-    ]).toArray();
+    let vendors;
+    let total;
+    
+    if (showAllVendorUsers) {
+      // Start from users collection to get ALL users with vendor role
+      const rolesCollection = await database.getRolesCollection();
+      const vendorRole = await rolesCollection.findOne({ name: 'vendor' });
+      
+      if (!vendorRole) {
+        throw new Error('Vendor role not found');
+      }
 
-    console.log('DEBUG VENDORS: Vendors with lookup results:', vendorsWithDebug.map(v => ({
-      id: v._id,
-      businessName: v.businessName,
-      userRef: v.user,
-      userDataCount: v.userDataCount,
-      hasUserData: v.hasUserData,
-      userData: v.userData.length > 0 ? v.userData[0].name : 'No user data'
-    })));
+      // Build user query
+      let userQuery = { role: vendorRole._id };
+      
+      // Add search to user fields
+      if (search) {
+        userQuery.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { phone: { $regex: search, $options: 'i' } },
+          { 'address.city': { $regex: search, $options: 'i' } }
+        ];
+      }
 
-    // Now get the vendors using the original approach with $unwind
-    const vendors = await vendorsCollection.aggregate([
+      // Get total count for users with vendor role
+      total = await usersCollection.countDocuments(userQuery);
+      console.log('DEBUG VENDORS: Total vendor users count:', total);
+
+      vendors = await usersCollection.aggregate([
+        { $match: userQuery },
+        {
+          $lookup: {
+            from: 'vendors',
+            localField: '_id',
+            foreignField: 'user',
+            as: 'vendorData'
+          }
+        },
+        {
+          $addFields: {
+            // If vendor data exists, use it; otherwise create default values
+            businessName: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.businessName', 0] },
+                '$name' // Use user name as fallback
+              ]
+            },
+            services: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.services', 0] },
+                [] // Empty services array
+              ]
+            },
+            status: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.status', 0] },
+                'incomplete' // Special status for users without vendor profile
+              ]
+            },
+            verified: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.verified', 0] },
+                { isVerified: false }
+              ]
+            },
+            rating: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.rating', 0] },
+                0
+              ]
+            },
+            totalJobs: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.totalJobs', 0] },
+                0
+              ]
+            },
+            userData: {
+              _id: '$_id',
+              name: '$name',
+              email: '$email',
+              phone: '$phone',
+              profileImage: '$profileImage'
+            },
+            address: '$address',
+            createdAt: '$createdAt'
+          }
+        },
+        { $project: { vendorData: 0, password: 0 } },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit }
+      ]).toArray();
+
+      console.log('DEBUG VENDORS: Showing ALL vendor users (including incomplete profiles)');
+    } else {
+      // Original approach: only show actual vendors (with vendor profiles)
+      console.log('DEBUG VENDORS: Showing only vendors with complete profiles');
+      
+      // Get total count for vendors
+      total = await vendorsCollection.countDocuments(query);
+      console.log('DEBUG VENDORS: Total vendors count:', total);
+      
+      vendors = await vendorsCollection.aggregate([
       { $match: query },
       {
         $lookup: {
@@ -181,6 +256,7 @@ export async function GET(request) {
       { $skip: skip },
       { $limit: limit }
     ]).toArray();
+    }
 
     // Debug logging
     console.log('DEBUG VENDORS: Found', vendors.length, 'vendors with filters:', { 
@@ -204,32 +280,75 @@ export async function GET(request) {
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
-    // Get summary stats (with same filtering as main query)
-    let statsQuery = {};
-    if (role.name !== 'admin') {
-      statsQuery.onboardedBy = new ObjectId(user.id);
-    }
-    
-    const stats = await vendorsCollection.aggregate([
-      { $match: statsQuery },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]).toArray();
-
-    const statusStats = {
+    // Get summary stats (with same logic as main vendor list)
+    let statusStats = {
       pending: 0,
       active: 0,
       suspended: 0,
-      inactive: 0
+      inactive: 0,
+      incomplete: 0
     };
 
-    stats.forEach(stat => {
-      statusStats[stat._id] = stat.count;
-    });
+    if (showAllVendorUsers) {
+      // Count all users with vendor role and their statuses
+      const rolesCollection = await database.getRolesCollection();
+      const vendorRole = await rolesCollection.findOne({ name: 'vendor' });
+      
+      if (vendorRole) {
+        const allVendorUsers = await usersCollection.aggregate([
+          { $match: { role: vendorRole._id } },
+          {
+            $lookup: {
+              from: 'vendors',
+              localField: '_id',
+              foreignField: 'user',
+              as: 'vendorData'
+            }
+          },
+          {
+            $addFields: {
+              status: {
+                $cond: [
+                  { $gt: [{ $size: '$vendorData' }, 0] },
+                  { $arrayElemAt: ['$vendorData.status', 0] },
+                  'incomplete'
+                ]
+              }
+            }
+          },
+          {
+            $group: {
+              _id: '$status',
+              count: { $sum: 1 }
+            }
+          }
+        ]).toArray();
+
+        allVendorUsers.forEach(stat => {
+          statusStats[stat._id] = stat.count;
+        });
+      }
+    } else {
+      // Original vendor-only stats
+      let statsQuery = {};
+      if (role.name !== 'admin') {
+        statsQuery.onboardedBy = new ObjectId(user.id);
+      }
+      
+      const stats = await vendorsCollection.aggregate([
+        { $match: statsQuery },
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 }
+          }
+        }
+      ]).toArray();
+
+      stats.forEach(stat => {
+        statusStats[stat._id] = stat.count;
+      });
+    }
 
     return NextResponse.json({
       success: true,

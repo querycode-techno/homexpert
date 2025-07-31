@@ -49,6 +49,8 @@ import {
 import DocumentUpload from "./document-upload"
 import { ServiceSelector } from "./service-selector"
 import { serviceUtils } from "@/lib/utils"
+import { SearchableSelect } from '@/components/ui/searchable-select'
+import { getStateOptions, getCityOptions } from '@/lib/utils/stateCityUtils'
 
 // Get service options from services.json
 const serviceOptions = serviceUtils.getAllServices()
@@ -60,45 +62,46 @@ const statusOptions = [
   { value: "inactive", label: "Inactive" }
 ]
 
-// Indian States List
-const INDIAN_STATES = [
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
-  'Andaman and Nicobar Islands',
-  'Chandigarh',
-  'Dadra and Nagar Haveli and Daman and Diu',
-  'Delhi',
-  'Jammu and Kashmir',
-  'Ladakh',
-  'Lakshadweep',
-  'Puducherry'
-];
+// Image Preview Component
+function ImagePreview({ isOpen, imageUrl, title, onClose }) {
+  if (!isOpen) return null
+
+  return (
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        // Only close if explicitly set to false, prevent interference with parent dialog
+        if (!open) {
+          onClose()
+        }
+      }}
+    >
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="px-6 pb-6">
+          <div className="relative bg-gray-50 rounded-lg overflow-hidden">
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-auto max-h-[70vh] object-contain"
+              onError={(e) => {
+                e.target.src = '/placeholder.svg'
+                e.target.alt = 'Image not found'
+              }}
+            />
+          </div>
+          <div className="flex justify-center mt-4">
+            <Button onClick={onClose} variant="outline">
+              Close
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export function VendorForm({
   isOpen,
@@ -113,6 +116,8 @@ export function VendorForm({
   const { isAdmin } = usePermissions()
   const [users, setUsers] = useState([])
   const [usersLoading, setUsersLoading] = useState(false)
+  const [formDataLoaded, setFormDataLoaded] = useState(false)
+  const [imagePreview, setImagePreview] = useState({ isOpen: false, imageUrl: '', title: '' })
   
   // Debug admin permission
   useEffect(() => {
@@ -207,6 +212,10 @@ export function VendorForm({
   // Populate form when editing
   useEffect(() => {
     if (isEdit && vendor) {
+      setFormDataLoaded(false) // Start loading
+      console.log('Populating vendor form with data:', vendor)
+      console.log('Documents data:', vendor.documents)
+      console.log('Verification data:', vendor.verified)
       form.reset({
         // User data
         name: vendor.userData?.name || "",
@@ -229,46 +238,138 @@ export function VendorForm({
           serviceAreas: vendor.address?.serviceAreas || []
         },
         
-        // Documents
+        // Documents - handle different data structures
         documents: {
-          identity: vendor.documents?.identity || { type: "", number: "", docImageUrl: "" },
-          business: vendor.documents?.business || { type: "", number: "", docImageUrl: "" }
+          identity: {
+            type: vendor.documents?.identity?.type || "",
+            number: vendor.documents?.identity?.number || "",
+            docImageUrl: vendor.documents?.identity?.docImageUrl || ""
+          },
+          business: {
+            type: vendor.documents?.business?.type || "",
+            number: vendor.documents?.business?.number || "",
+            docImageUrl: vendor.documents?.business?.docImageUrl || ""
+          }
         },
         
-        // Status and verification
+        // Status and verification - handle different data structures
         status: vendor.status || "pending",
         verified: {
-          isVerified: vendor.verified?.isVerified || false,
-          verificationNotes: vendor.verified?.verificationNotes || ""
+          isVerified: vendor.verified?.isVerified === true || vendor.verified?.status === 'verified',
+          verificationNotes: vendor.verified?.verificationNotes || vendor.verified?.notes || ""
         },
         
         // Admin-only field
         onboardedBy: vendor.onboardedBy?._id || vendor.onboardedBy || ""
       })
+      
+      // Debug: Log what form is watching after reset
+      setTimeout(() => {
+        console.log('Form watching documents after reset:', form.watch("documents"))
+        console.log('Form watching verification after reset:', form.watch("verified"))
+        setFormDataLoaded(true) // Mark as loaded after form reset completes
+      }, 100)
+    } else if (!isEdit) {
+      setFormDataLoaded(true) // For add mode, no data to load
     }
   }, [isEdit, vendor, form])
+
+  // Reset form data loaded state when dialog opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setFormDataLoaded(false)
+    }
+  }, [isOpen])
 
   const handleSubmit = (data) => {
     onSubmit(data)
   }
 
+  const openImagePreview = (imageUrl, title) => {
+    setImagePreview({ isOpen: true, imageUrl, title })
+  }
+
+  const closeImagePreview = () => {
+    setImagePreview({ isOpen: false, imageUrl: '', title: '' })
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             
-            {/* Personal Information */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Personal Information</h3>
+            {/* Show loading skeleton while form data is being populated */}
+            {isEdit && !formDataLoaded ? (
+              <div className="space-y-6">
+                {/* Personal Information Skeleton */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-40 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+                
+                {/* Business Information Skeleton */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-40 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                
+                {/* Address Information Skeleton */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-40 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+                
+                {/* Documents Skeleton */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-40 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <>
+                {/* Personal Information */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    <h3 className="text-lg font-semibold">Personal Information</h3>
+                  </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -449,46 +550,58 @@ export function VendorForm({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="address.city"
-                  rules={{ required: "City is required" }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter city" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="address.state"
+                    rules={{ required: "State is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <SearchableSelect
+                            options={getStateOptions()}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="Search and select state..."
+                            searchPlaceholder="Type to search states..."
+                            emptyMessage="No states found"
+                            showSearch={true}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="address.state"
-                  rules={{ required: "State is required" }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>State</FormLabel>
-                      <FormControl>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a state" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {INDIAN_STATES.map((state) => (
-                              <SelectItem key={state} value={state}>
-                                {state}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="address.city"
+                    rules={{ required: "City is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <SearchableSelect
+                            options={getCityOptions(form.watch('address.state'))}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder={
+                              !form.watch('address.state') 
+                                ? 'Select state first' 
+                                : 'Search and select city...'
+                            }
+                            searchPlaceholder="Type to search cities..."
+                            emptyMessage={!form.watch('address.state') ? "Please select a state first" : "No cities found"}
+                            disabled={!form.watch('address.state')}
+                            showSearch={getCityOptions(form.watch('address.state')).length > 10}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -511,10 +624,73 @@ export function VendorForm({
 
             {/* Documents */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Documents</h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  <h3 className="text-lg font-semibold">Documents</h3>
+                </div>
+                {isEdit && (
+                  <div className="flex gap-2">
+                    <Badge 
+                      variant={vendor?.documents?.identity?.docImageUrl ? 'default' : 'secondary'}
+                      className={vendor?.documents?.identity?.docImageUrl ? 'bg-green-500' : 'bg-gray-500'}
+                    >
+                      Identity: {vendor?.documents?.identity?.docImageUrl ? 'Uploaded' : 'Missing'}
+                    </Badge>
+                    <Badge 
+                      variant={vendor?.documents?.business?.docImageUrl ? 'default' : 'secondary'}
+                      className={vendor?.documents?.business?.docImageUrl ? 'bg-green-500' : 'bg-gray-500'}
+                    >
+                      Business: {vendor?.documents?.business?.docImageUrl ? 'Uploaded' : 'Missing'}
+                    </Badge>
+                  </div>
+                )}
               </div>
+
+              {/* Document Thumbnails Preview - Show if images exist */}
+              {isEdit && (vendor?.documents?.identity?.docImageUrl || vendor?.documents?.business?.docImageUrl) && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                  {vendor?.documents?.identity?.docImageUrl && (
+                    <div className="relative">
+                      <div 
+                        className="aspect-square bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => openImagePreview(vendor.documents.identity.docImageUrl, 'Identity Document')}
+                      >
+                        <img
+                          src={vendor.documents.identity.docImageUrl}
+                          alt="Identity Document"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = '/placeholder.svg'
+                            e.target.alt = 'Image not found'
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1 text-center">Identity Doc</p>
+                    </div>
+                  )}
+                  
+                  {vendor?.documents?.business?.docImageUrl && (
+                    <div className="relative">
+                      <div 
+                        className="aspect-square bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => openImagePreview(vendor.documents.business.docImageUrl, 'Business Document')}
+                      >
+                        <img
+                          src={vendor.documents.business.docImageUrl}
+                          alt="Business Document"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = '/placeholder.svg'
+                            e.target.alt = 'Image not found'
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1 text-center">Business Doc</p>
+                    </div>
+                  )}
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Identity Documents */}
@@ -559,7 +735,15 @@ export function VendorForm({
 
                 {/* Verification */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Verification</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Verification</h3>
+                    <Badge 
+                      variant={vendor?.verified?.status === 'verified' ? 'default' : 'secondary'}
+                      className={vendor?.verified?.status === 'verified' ? 'bg-green-500' : 'bg-orange-500'}
+                    >
+                      {vendor?.verified?.status || 'pending'}
+                    </Badge>
+                  </div>
                   
                   <FormField
                     control={form.control}
@@ -658,18 +842,32 @@ export function VendorForm({
                 )}
               </>
             )}
+            </>
+          )}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : isEdit ? "Update Vendor" : "Create Vendor"}
+              <Button type="submit" disabled={loading || (isEdit && !formDataLoaded)}>
+                {loading ? "Saving..." : 
+                 (isEdit && !formDataLoaded) ? "Loading..." :
+                 isEdit ? "Update Vendor" : "Create Vendor"}
               </Button>
             </DialogFooter>
+
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+    
+    {/* Image Preview Modal */}
+    <ImagePreview
+      isOpen={imagePreview.isOpen}
+      imageUrl={imagePreview.imageUrl}
+      title={imagePreview.title}
+      onClose={closeImagePreview}
+    />
+    </>
   )
 } 

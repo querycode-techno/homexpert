@@ -41,7 +41,6 @@ import {
   X
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { VendorStats } from "./vendor-stats"
 import { VendorFilters } from "./vendor-filters"
 
 const statusConfig = {
@@ -68,12 +67,17 @@ const statusConfig = {
     variant: "secondary",
     icon: AlertCircle,
     color: "text-gray-500"
+  },
+  incomplete: {
+    label: "Incomplete",
+    variant: "outline",
+    icon: AlertCircle,
+    color: "text-orange-500"
   }
 }
 
 export function VendorList({
   vendors = [],
-  stats = {},
   loading = false,
   pagination = {},
   onAddVendor,
@@ -99,10 +103,8 @@ export function VendorList({
   // Debounce timeout ref
   const searchTimeoutRef = useRef(null)
 
-  // Sync local state with props when they change
-  useEffect(() => {
-    setLocalSearchTerm(currentSearchTerm)
-  }, [currentSearchTerm])
+  // Note: Removed sync useEffect to prevent focus loss during typing
+  // The localSearchTerm is initialized from currentSearchTerm and managed independently
 
   useEffect(() => {
     setLocalFilters(currentFilters)
@@ -187,9 +189,6 @@ export function VendorList({
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <VendorStats stats={stats} />
-
       {/* Header and Actions */}
       <Card>
         <CardHeader>
@@ -248,7 +247,6 @@ export function VendorList({
                 value={localSearchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10"
-                disabled={loading}
               />
             </form>
             <Button
@@ -256,7 +254,6 @@ export function VendorList({
               onClick={() => setShowFilters(!showFilters)}
               className="whitespace-nowrap"
               type="button"
-              disabled={loading}
             >
               <Filter className="h-4 w-4 mr-2" />
               Filters
@@ -268,7 +265,6 @@ export function VendorList({
                 variant="outline" 
                 size="sm" 
                 onClick={clearFilters}
-                disabled={loading}
                 className="whitespace-nowrap"
                 type="button"
               >
@@ -285,7 +281,6 @@ export function VendorList({
                 filters={localFilters}
                 vendors={vendors}
                 onChange={handleFilterChange}
-                disabled={loading}
               />
             </div>
           )}

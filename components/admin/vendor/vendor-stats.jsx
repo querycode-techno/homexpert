@@ -16,10 +16,11 @@ export function VendorStats({ stats = {} }) {
     pending = 0,
     active = 0,
     suspended = 0,
-    inactive = 0
+    inactive = 0,
+    incomplete = 0
   } = stats
 
-  const total = pending + active + suspended + inactive
+  const total = pending + active + suspended + inactive + incomplete
 
   const statCards = [
     {
@@ -49,11 +50,18 @@ export function VendorStats({ stats = {} }) {
       icon: XCircle,
       color: "text-red-600",
       bgColor: "bg-red-50"
+    },
+    {
+      title: "Incomplete",
+      value: incomplete,
+      icon: AlertCircle,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50"
     }
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
       {statCards.map((stat, index) => {
         const Icon = stat.icon
         const percentage = total > 0 ? Math.round((stat.value / total) * 100) : 0

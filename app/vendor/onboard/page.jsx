@@ -40,45 +40,8 @@ import {
   SelectValue
 } from '@/components/ui/select'
 
-// Indian States List
-const INDIAN_STATES = [
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
-  'Andaman and Nicobar Islands',
-  'Chandigarh',
-  'Dadra and Nagar Haveli and Daman and Diu',
-  'Delhi',
-  'Jammu and Kashmir',
-  'Ladakh',
-  'Lakshadweep',
-  'Puducherry'
-];
+import { SearchableSelect } from '@/components/ui/searchable-select'
+import { getStateOptions, getCityOptions } from '@/lib/utils/stateCityUtils'
 
 export default function VendorOnboardPage() {
   const router = useRouter()
@@ -441,44 +404,56 @@ export default function VendorOnboardPage() {
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name="address.city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>City *</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter city" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="address.state"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>State *</FormLabel>
+                                <FormControl>
+                                  <SearchableSelect
+                                    options={getStateOptions()}
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                    placeholder="Search and select state..."
+                                    searchPlaceholder="Type to search states..."
+                                    emptyMessage="No states found"
+                                    showSearch={true}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <FormField
-                          control={form.control}
-                          name="address.state"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>State *</FormLabel>
-                              <FormControl>
-                                <Select onValueChange={(value) => field.onChange(value)} defaultValue={field.value}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a state" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {INDIAN_STATES.map((state) => (
-                                      <SelectItem key={state} value={state}>
-                                        {state}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                          <FormField
+                            control={form.control}
+                            name="address.city"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>City *</FormLabel>
+                                <FormControl>
+                                  <SearchableSelect
+                                    options={getCityOptions(form.watch('address.state'))}
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                    placeholder={
+                                      !form.watch('address.state') 
+                                        ? 'Select state first' 
+                                        : 'Search and select city...'
+                                    }
+                                    searchPlaceholder="Type to search cities..."
+                                    emptyMessage={!form.watch('address.state') ? "Please select a state first" : "No cities found"}
+                                    disabled={!form.watch('address.state')}
+                                    showSearch={getCityOptions(form.watch('address.state')).length > 10}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
 
                         <FormField
                           control={form.control}
