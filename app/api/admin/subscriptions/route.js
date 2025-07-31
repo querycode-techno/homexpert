@@ -176,7 +176,9 @@ export async function POST(request) {
       limitations = {},
       tags = [],
       notes,
-      tncLink
+      tncLink,
+      isCustom = false,
+      assignedToVendors = []
     } = body;
 
     // Validation
@@ -271,6 +273,8 @@ export async function POST(request) {
       discountedPrice: discountedPrice ? parseFloat(discountedPrice) : null,
       currency: 'INR',
       isActive: true,
+      isCustom: Boolean(isCustom),
+      assignedToVendors: assignedToVendors.map(id => new ObjectId(String(id))),
       features,
       limitations,
       tags,

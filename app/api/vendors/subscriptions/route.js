@@ -27,12 +27,31 @@ export async function GET(request) {
     });
 
           // Get all active subscription plans (regular + custom assigned to this vendor)
-      const plans = await subscriptionPlansCollection.find({
-        $or: [
-          { isCustom: false, isActive: true }, // Regular plans
-          { isCustom: true, isActive: true, assignedToVendors: new ObjectId(userId) } // Custom plans for this vendor
-        ]
-      }).sort({ price: 1 }).toArray();
+      //const plans = await subscriptionPlansCollection.find({
+      //   $or: [
+      //     { isCustom: false, isActive: true }, // Regular plans
+      //     { isCustom: true, isActive: true, assignedToVendors: new ObjectId(userId) } // Custom plans for this vendor
+      //   ]
+      // }).sort({ price: 1 }).toArray();
+
+      // Get all active subscription plans (all regular + assigned custom)
+const plans = await subscriptionPlansCollection.find({
+  $and: [
+    { isActive: true },
+    { $or: [
+      // All regular plans (not custom or missing isCustom field)
+      { $or: [
+        { isCustom: { $exists: false } }, // Old plans without isCustom field
+        { isCustom: false }               // Regular plans
+      ]},
+      // Custom plans only if assigned to this vendor
+      { 
+        isCustom: true, 
+        assignedToVendors: new ObjectId(userId) 
+      }
+    ]}
+  ]
+}).sort({ price: 1 }).toArray();
 
     // Format plans with additional information
     const formattedPlans = plans.map(plan => {

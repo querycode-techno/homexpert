@@ -135,7 +135,9 @@ export async function PUT(request, { params }) {
       tags = [],
       notes,
       tncLink,
-      isActive
+      isActive,
+      isCustom,
+      assignedToVendors
     } = body;
 
     // Validation
@@ -257,6 +259,10 @@ export async function PUT(request, { params }) {
     if (notes !== undefined) updateData.notes = notes || '';
     if (tncLink !== undefined) updateData.tncLink = tncLink || '';
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (isCustom !== undefined) updateData.isCustom = Boolean(isCustom);
+    if (assignedToVendors !== undefined) {
+      updateData.assignedToVendors = assignedToVendors.map(id => new ObjectId(String(id)));
+    }
 
     // Update the plan
     await subscriptionsCollection.updateOne(
