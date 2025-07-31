@@ -26,11 +26,13 @@ export async function GET(request) {
       sort: { createdAt: -1 } // Get the most recent one
     });
 
-    // Get all active subscription plans
-    const plans = await subscriptionPlansCollection
-      .find({ isActive: true })
-      .sort({ price: 1 })
-      .toArray();
+          // Get all active subscription plans (regular + custom assigned to this vendor)
+      const plans = await subscriptionPlansCollection.find({
+        $or: [
+          { isCustom: false, isActive: true }, // Regular plans
+          { isCustom: true, isActive: true, assignedToVendors: new ObjectId(userId) } // Custom plans for this vendor
+        ]
+      }).sort({ price: 1 }).toArray();
 
     // Format plans with additional information
     const formattedPlans = plans.map(plan => {

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Plus, X, Clock, Users, Tag } from "lucide-react"
+import { Plus, X, Clock, Users, Tag, Search } from "lucide-react"
 import { toast } from "sonner"
 import subscriptionService from "@/lib/services/subscriptionService"
 
@@ -26,6 +26,8 @@ export function SubscriptionForm({ plan, isOpen, onClose, onSuccess }) {
     discountedPrice: "",
     currency: "INR",
     isActive: true,
+    isCustom: false,
+    assignedToVendors: [],
     features: [],
     limitations: {
       maxActiveLeads: "",
@@ -39,6 +41,10 @@ export function SubscriptionForm({ plan, isOpen, onClose, onSuccess }) {
   
   const [newFeature, setNewFeature] = useState({ name: "", description: "", isIncluded: true })
   const [newTag, setNewTag] = useState("")
+  const [vendors, setVendors] = useState([])
+  const [loadingVendors, setLoadingVendors] = useState(false)
+  const [vendorSearch, setVendorSearch] = useState("")
+  const [filteredVendors, setFilteredVendors] = useState([])
 
   // Initialize form with plan data if editing
   useEffect(() => {
@@ -52,6 +58,8 @@ export function SubscriptionForm({ plan, isOpen, onClose, onSuccess }) {
         discountedPrice: plan.discountedPrice?.toString() || "",
         currency: plan.currency || "INR",
         isActive: plan.isActive ?? true,
+        isCustom: plan.isCustom || false,
+        assignedToVendors: plan.assignedToVendors || [],
         features: plan.features || [],
         limitations: {
           maxActiveLeads: plan.limitations?.maxActiveLeads?.toString() || "",
@@ -73,6 +81,8 @@ export function SubscriptionForm({ plan, isOpen, onClose, onSuccess }) {
         discountedPrice: "",
         currency: "INR",
         isActive: true,
+        isCustom: false,
+        assignedToVendors: [],
         features: [],
         limitations: {
           maxActiveLeads: "",
@@ -85,6 +95,54 @@ export function SubscriptionForm({ plan, isOpen, onClose, onSuccess }) {
       })
     }
   }, [plan])
+
+  // Fetch vendors when custom plan is enabled
+  useEffect(() => {
+    if (formData.isCustom && isOpen) {
+      fetchVendors()
+    }
+  }, [formData.isCustom, isOpen])
+
+  // Filter vendors based on search
+  useEffect(() => {
+    if (!vendorSearch.trim()) {
+      setFilteredVendors(vendors)
+    } else {
+      const searchTerm = vendorSearch.toLowerCase()
+      const filtered = vendors.filter(vendor => 
+        vendor.businessName?.toLowerCase().includes(searchTerm) ||
+        vendor.userData?.name?.toLowerCase().includes(searchTerm) ||
+        vendor.userData?.email?.toLowerCase().includes(searchTerm) ||
+        vendor.userData?.phone?.includes(searchTerm)
+      )
+      setFilteredVendors(filtered)
+    }
+  }, [vendors, vendorSearch])
+
+  // Fetch vendors from API
+  const fetchVendors = async () => {
+    try {
+      setLoadingVendors(true)
+      const response = await fetch('/api/admin/vendors?limit=1000') // Get all vendors
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          const vendorsList = data.data.vendors || []
+          setVendors(vendorsList)
+          setFilteredVendors(vendorsList)
+        } else {
+          toast.error('Failed to fetch vendors: ' + data.error)
+        }
+      } else {
+        toast.error('Failed to fetch vendors')
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error)
+      toast.error('Error fetching vendors')
+    } finally {
+      setLoadingVendors(false)
+    }
+  }
 
   // Handle form input changes
   const handleInputChange = (field, value) => {
@@ -141,6 +199,23 @@ export function SubscriptionForm({ plan, isOpen, onClose, onSuccess }) {
       ...prev,
       tags: prev.tags.filter(t => t !== tag)
     }))
+  }
+
+  // Handle vendor selection
+  const handleVendorSelection = (vendorId, isSelected) => {
+    setFormData(prev => ({
+      ...prev,
+      assignedToVendors: isSelected 
+        ? [...prev.assignedToVendors, vendorId]
+        : prev.assignedToVendors.filter(id => id !== vendorId)
+    }))
+  }
+
+  // Handle select all filtered vendors
+  const handleSelectAllFiltered = () => {
+    const filteredVendorIds = filteredVendors.map(vendor => vendor.userData._id)
+    const newSelection = [...new Set([...formData.assignedToVendors, ...filteredVendorIds])]
+    handleInputChange('assignedToVendors', newSelection)
   }
 
   // Validate form using service method
@@ -257,6 +332,133 @@ export function SubscriptionForm({ plan, isOpen, onClose, onSuccess }) {
                   rows={3}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Custom Plan Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Plan Type & Assignment
+              </CardTitle>
+              <CardDescription>
+                Configure if this is a custom plan for specific vendors
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isCustom"
+                  checked={formData.isCustom}
+                  onCheckedChange={(checked) => {
+                    handleInputChange('isCustom', checked)
+                    if (!checked) {
+                      handleInputChange('assignedToVendors', [])
+                    }
+                  }}
+                />
+                <Label htmlFor="isCustom" className="text-sm font-medium">
+                  Custom Plan (Assign to specific vendors)
+                </Label>
+              </div>
+
+              {formData.isCustom && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label>Assign to Vendors</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Select which vendors can see and purchase this plan
+                    </p>
+                    
+                    {/* Search Box */}
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search vendors by name, email, or phone..."
+                          value={vendorSearch}
+                          onChange={(e) => setVendorSearch(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      {filteredVendors.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSelectAllFiltered}
+                          className="px-3"
+                        >
+                          Select All
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {loadingVendors ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      <span className="ml-2 text-sm text-muted-foreground">Loading vendors...</span>
+                    </div>
+                  ) : (
+                    <div className="max-h-60 overflow-y-auto border rounded-md p-4 space-y-2">
+                      {filteredVendors.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          {vendors.length === 0 ? "No vendors available" : "No vendors match your search"}
+                        </p>
+                      ) : (
+                        filteredVendors.map((vendor) => (
+                          <div key={vendor.userData._id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`vendor-${vendor.userData._id}`}
+                              checked={formData.assignedToVendors.includes(vendor.userData._id)}
+                              onChange={(e) => handleVendorSelection(vendor.userData._id, e.target.checked)}
+                              className="rounded"
+                            />
+                            <Label 
+                              htmlFor={`vendor-${vendor.userData._id}`} 
+                              className="text-sm font-normal cursor-pointer flex-1"
+                            >
+                              <div>
+                                <div className="font-medium">{vendor.businessName}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {vendor.userData.name} • {vendor.userData.email} • {vendor.userData.phone}
+                                </div>
+                              </div>
+                            </Label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Search Results Summary */}
+                  {vendorSearch && (
+                    <div className="text-sm text-muted-foreground">
+                      Showing {filteredVendors.length} of {vendors.length} vendors
+                    </div>
+                  )}
+                  
+                  {/* Selection Summary */}
+                  {formData.assignedToVendors.length > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Selected: {formData.assignedToVendors.length} vendor(s)
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleInputChange('assignedToVendors', [])}
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
