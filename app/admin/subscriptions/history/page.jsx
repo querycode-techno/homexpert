@@ -74,7 +74,8 @@ import {
   Check,
   ChevronsUpDown,
   MoreHorizontal,
-  Trash2
+  Trash2,
+  TrendingUp
 } from "lucide-react"
 
 const PAYMENT_STATUS_CONFIG = {
@@ -117,10 +118,16 @@ export default function SubscriptionHistoryPage() {
   const [createDialog, setCreateDialog] = useState({ open: false })
   const [deleteDialog, setDeleteDialog] = useState({ open: false, subscription: null })
   const [cancelDialog, setCancelDialog] = useState({ open: false, subscription: null })
+  const [leadAdjustmentDialog, setLeadAdjustmentDialog] = useState({ open: false, subscription: null })
   
   // Form data
   const [verificationNotes, setVerificationNotes] = useState("")
   const [transactionId, setTransactionId] = useState("")
+  const [leadAdjustmentData, setLeadAdjustmentData] = useState({
+    type: "increase", // "increase" or "decrease"
+    amount: "",
+    reason: ""
+  })
   
   // Create subscription form data
   const [vendors, setVendors] = useState([])
@@ -461,6 +468,45 @@ export default function SubscriptionHistoryPage() {
     }
   }
 
+  const handleAdjustLeads = async () => {
+    if (!leadAdjustmentDialog.subscription || !leadAdjustmentData.amount || !leadAdjustmentData.reason) {
+      toast.error("Please fill in all fields")
+      return
+    }
+
+    try {
+      setProcessing(true)
+      const response = await fetch('/api/admin/subscriptions/history/adjust-leads', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscriptionId: leadAdjustmentDialog.subscription._id,
+          type: leadAdjustmentData.type,
+          amount: parseInt(leadAdjustmentData.amount),
+          reason: leadAdjustmentData.reason
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success(`Leads ${leadAdjustmentData.type === 'increase' ? 'increased' : 'decreased'} successfully`)
+        setLeadAdjustmentDialog({ open: false, subscription: null })
+        setLeadAdjustmentData({ type: "increase", amount: "", reason: "" })
+        loadSubscriptions()
+      } else {
+        toast.error(data.error || "Failed to adjust leads")
+      }
+    } catch (error) {
+      console.error("Error adjusting leads:", error)
+      toast.error("Failed to adjust leads")
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -683,6 +729,7 @@ export default function SubscriptionHistoryPage() {
                     <TableHead>Status</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Amount</TableHead>
+                    <TableHead>Lead Usage</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -751,6 +798,30 @@ export default function SubscriptionHistoryPage() {
                         </TableCell>
                         
                         <TableCell>
+                          <div className="space-y-1">
+                            <div className="text-sm">
+                              <span className="font-medium">{subscription.usage?.leadsConsumed || 0}</span>
+                              <span className="text-muted-foreground"> / {subscription.planSnapshot.totalLeads} consumed</span>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {subscription.usage?.leadsRemaining || 0} remaining
+                            </div>
+                            {subscription.status === 'active' && subscription.usage?.leadsConsumed > 0 && (
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div 
+                                  className="bg-blue-600 h-1.5 rounded-full" 
+                                  style={{ 
+                                    width: `${Math.min(100, ((subscription.usage.leadsConsumed / subscription.planSnapshot.totalLeads) * 100))}%` 
+                                  }}
+                                ></div>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        
+
+                        
+                        <TableCell>
                           <div className="text-sm">
                             {formatDate(subscription.createdAt)}
                           </div>
@@ -765,6 +836,18 @@ export default function SubscriptionHistoryPage() {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
+                            
+                            {subscription.status === 'active' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setLeadAdjustmentDialog({ open: true, subscription })}
+                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                              >
+                                <TrendingUp className="h-4 w-4 mr-1" />
+                                Adjust
+                              </Button>
+                            )}
                             
                             {subscription.payment.paymentMethod === 'bank_transfer' && 
                              (subscription.payment.paymentStatus === 'pending' || subscription.payment.paymentStatus === 'submitted') && (
@@ -1077,6 +1160,62 @@ export default function SubscriptionHistoryPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Lead History */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Lead History</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {detailsDialog.subscription.history && detailsDialog.subscription.history.length > 0 ? (
+                    <div className="space-y-3">
+                      {detailsDialog.subscription.history
+                        .filter(item => item.action === 'leads_increased' || item.action === 'leads_decreased')
+                        .map((item, index) => (
+                          <div key={index} className="flex items-start justify-between p-3 border rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <div className={`font-semibold text-lg ${
+                                  item.action === 'leads_increased' 
+                                    ? 'text-green-600' 
+                                    : 'text-red-600'
+                                }`}>
+                                  {item.action === 'leads_increased' ? '+' : '-'}
+                                  {item.metadata?.adjustmentAmount || 0} leads
+                                </div>
+                                <Badge variant="outline" className="text-xs">
+                                  {item.action === 'leads_increased' ? 'Increased' : 'Decreased'}
+                                </Badge>
+                              </div>
+                              {item.reason && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  <span className="font-medium">Reason:</span> {item.reason}
+                                </p>
+                              )}
+                              <div className="text-xs text-muted-foreground mt-2">
+                                {formatDate(item.date)}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      }
+                      {detailsDialog.subscription.history.filter(item => 
+                        item.action === 'leads_increased' || item.action === 'leads_decreased'
+                      ).length === 0 && (
+                        <div className="text-center py-6 text-muted-foreground">
+                          <div className="text-lg font-medium mb-2">No Lead Adjustments</div>
+                          <p className="text-sm">No lead increases or decreases have been made to this subscription.</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <div className="text-lg font-medium mb-2">No History Available</div>
+                      <p className="text-sm">No history records found for this subscription.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
         </DialogContent>
@@ -1442,6 +1581,115 @@ export default function SubscriptionHistoryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Lead Adjustment Dialog */}
+      <Dialog open={leadAdjustmentDialog.open} onOpenChange={(open) => {
+        setLeadAdjustmentDialog({ open, subscription: open ? leadAdjustmentDialog.subscription : null })
+        if (!open) {
+          setLeadAdjustmentData({ type: "increase", amount: "", reason: "" })
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adjust Subscription Leads</DialogTitle>
+            <DialogDescription>
+              Increase or decrease the number of leads available for this active subscription.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {leadAdjustmentDialog.subscription && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <Label className="font-medium">Vendor:</Label>
+                  <p>{leadAdjustmentDialog.subscription.userInfo?.name}</p>
+                </div>
+                <div>
+                  <Label className="font-medium">Plan:</Label>
+                  <p>{leadAdjustmentDialog.subscription.planSnapshot.planName}</p>
+                </div>
+                <div>
+                  <Label className="font-medium">Current Leads Consumed:</Label>
+                  <p>{leadAdjustmentDialog.subscription.usage?.leadsConsumed || 0}</p>
+                </div>
+                <div>
+                  <Label className="font-medium">Current Leads Remaining:</Label>
+                  <p>{leadAdjustmentDialog.subscription.usage?.leadsRemaining || 0}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Adjustment Type</Label>
+                  <div className="flex space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="increase"
+                        name="adjustmentType"
+                        value="increase"
+                        checked={leadAdjustmentData.type === "increase"}
+                        onChange={(e) => setLeadAdjustmentData(prev => ({ ...prev, type: e.target.value }))}
+                        className="rounded"
+                      />
+                      <Label htmlFor="increase" className="text-green-600 font-medium">Increase Leads</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="decrease"
+                        name="adjustmentType"
+                        value="decrease"
+                        checked={leadAdjustmentData.type === "decrease"}
+                        onChange={(e) => setLeadAdjustmentData(prev => ({ ...prev, type: e.target.value }))}
+                        className="rounded"
+                      />
+                      <Label htmlFor="decrease" className="text-red-600 font-medium">Decrease Leads</Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Number of Leads</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={leadAdjustmentData.amount}
+                    onChange={(e) => setLeadAdjustmentData(prev => ({ ...prev, amount: e.target.value }))}
+                    placeholder="Enter number of leads"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Reason for Adjustment</Label>
+                  <Textarea
+                    value={leadAdjustmentData.reason}
+                    onChange={(e) => setLeadAdjustmentData(prev => ({ ...prev, reason: e.target.value }))}
+                    placeholder="Provide reason for this lead adjustment..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setLeadAdjustmentDialog({ open: false, subscription: null })}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAdjustLeads} 
+              disabled={processing || !leadAdjustmentData.amount || !leadAdjustmentData.reason}
+              className={leadAdjustmentData.type === "increase" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+            >
+              {processing ? "Processing..." : `${leadAdjustmentData.type === "increase" ? "Increase" : "Decrease"} Leads`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 
