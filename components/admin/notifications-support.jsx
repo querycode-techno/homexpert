@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, Trash2, MoreHorizontal, CheckCircle } from "lucide-react"
+import { Search, Plus, Trash2, MoreHorizontal, CheckCircle, RefreshCw } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
@@ -25,16 +25,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { createNotification, deleteNotification, fetchAdminNotifications, markAsRead } from "@/lib/services/notificationService"
+import { createNotification, deleteNotification, fetchAdminNotifications, markAsRead, resendNotification, clearAllNotifications } from "@/lib/services/notificationService"
 import { getSession, useSession } from "next-auth/react"
 import { SupportTickets } from "./notification/support-tickets"
 import { formatToCustomDateTime } from "@/lib/dateFormateUtils"
+import { EnhancedNotificationForm } from "./notification/enhanced-notification-form"
 
 export function NotificationsSupport() {
   const [activeTab, setActiveTab] = useState("notifications")
@@ -44,6 +46,8 @@ export function NotificationsSupport() {
   const [currentNotification, setCurrentNotification] = useState(null)
   const [isDeleteNotificationOpen, setIsDeleteNotificationOpen] = useState(false)
   const [isCreateNotificationOpen, setIsCreateNotificationOpen] = useState(false)
+  const [isEnhancedNotificationOpen, setIsEnhancedNotificationOpen] = useState(false)
+  const [isClearAllNotificationsOpen, setIsClearAllNotificationsOpen] = useState(false)
   const [noficationLoading, setNotificationLoading] = useState(false);
 
   // Form states
@@ -217,6 +221,43 @@ export function NotificationsSupport() {
     toast.success("All notifications have been marked as read.")
   }
 
+  const handleResendNotification = async (notification) => {
+    try {
+      const userId = await getSession().then(session => session?.user?.id)
+      const result = await resendNotification(notification._id, userId)
+      
+      toast.success(`Notification resent successfully! Delivered: ${result.deliveredCount}, Failed: ${result.failedCount}, Total: ${result.totalRecipients}`)
+      
+      // Refresh notifications
+      const fetchNotis = async () => {
+        const userId = await getSession().then(session => session?.user?.id)
+        const notis = await fetchAdminNotifications(userId)
+        setNotifications(notis)
+      }
+      fetchNotis()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const handleClearAllNotifications = async () => {
+    try {
+      const userId = await getSession().then(session => session?.user?.id)
+      const result = await clearAllNotifications(userId)
+      
+      toast.success(`All notifications cleared successfully! Deleted: ${result.deletedNotifications} notifications`)
+      
+      // Clear notifications from state
+      setNotifications([])
+      setFilteredNotifications([])
+      
+      // Close dialog
+      setIsClearAllNotificationsOpen(false)
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
   const getNotificationTypeColor = (type) => {
     switch (type) {
       case "Info":
@@ -259,10 +300,10 @@ export function NotificationsSupport() {
                 
                 <Dialog open={isCreateNotificationOpen} onOpenChange={setIsCreateNotificationOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm" className="h-8 gap-1">
+                    {/* <Button size="sm" className="h-8 gap-1">
                       <Plus className="h-4 w-4" />
-                      <span>Create Notification</span>
-                    </Button>
+                      <span>Send Notification to All</span>
+                    </Button> */}
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
@@ -347,6 +388,53 @@ export function NotificationsSupport() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+                
+                <Dialog open={isEnhancedNotificationOpen} onOpenChange={setIsEnhancedNotificationOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="h-8 gap-1" variant="default">
+                      <Plus className="h-4 w-4" />
+                      <span>Send Notification to Specific</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <EnhancedNotificationForm 
+                      onSuccess={(result) => {
+                        setIsEnhancedNotificationOpen(false)
+                        // Refresh notifications list
+                        const fetchNotis = async () => {
+                          const userId = await getSession().then(session => session?.user?.id)
+                          const notis = await fetchAdminNotifications(userId)
+                          setNotifications(notis)
+                        }
+                        fetchNotis()
+                      }}
+                      onCancel={() => setIsEnhancedNotificationOpen(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+
+                <AlertDialog open={isClearAllNotificationsOpen} onOpenChange={setIsClearAllNotificationsOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" className="h-8 gap-1" variant="destructive">
+                      <Trash2 className="h-4 w-4" />
+                      <span>Clear All</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear All Notifications</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete all notifications you have created.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClearAllNotifications} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Clear All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardHeader>
             <CardContent>
@@ -423,6 +511,13 @@ export function NotificationsSupport() {
                                     >
                                       <Trash2 className="h-4 w-4" />
                                       <span>Delete</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="flex items-center gap-2 text-blue-500"
+                                      onClick={() => handleResendNotification(notification)}
+                                    >
+                                      <RefreshCw className="h-4 w-4" />
+                                      <span>Resend</span>
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
