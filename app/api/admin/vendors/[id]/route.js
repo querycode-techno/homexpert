@@ -500,7 +500,7 @@ export async function DELETE(request, { params }) {
   try {
     await requireAdmin();
 
-    const { id } = params;
+    const { id } = await params;
 
     // Validate ObjectId
     if (!ObjectId.isValid(id)) {
@@ -516,9 +516,21 @@ export async function DELETE(request, { params }) {
     const vendorsCollection = await database.getVendorsCollection();
     const usersCollection = await database.getUsersCollection();
 
-    // Check if vendor exists
-    const existingVendor = await vendorsCollection.findOne({ _id: new ObjectId(id) });
+    // Check if vendor exists - try by vendor ID first, then by user ID (same logic as GET/PUT)
+    console.log('DEBUG VENDOR DELETE: Looking for vendor with ID:', id);
+    
+    // Try to find vendor by _id first (in case id is vendor's _id)
+    let existingVendor = await vendorsCollection.findOne({ _id: new ObjectId(id) });
+    console.log('DEBUG VENDOR DELETE: Vendor found by _id?', !!existingVendor);
+    
+    // If not found by _id, try to find by user field (in case id is user's _id)
     if (!existingVendor) {
+      existingVendor = await vendorsCollection.findOne({ user: new ObjectId(id) });
+      console.log('DEBUG VENDOR DELETE: Vendor found by user field?', !!existingVendor);
+    }
+    
+    if (!existingVendor) {
+      console.log('DEBUG VENDOR DELETE: No vendor found for ID:', id);
       return NextResponse.json(
         { 
           success: false, 
@@ -532,15 +544,41 @@ export async function DELETE(request, { params }) {
     // This is a business logic check - you might want to prevent deletion
     // if vendor has active bookings or leads
     
-    // Delete vendor first
-    await vendorsCollection.deleteOne({ _id: new ObjectId(id) });
+    // Get subscription history collection
+    const subscriptionHistoryCollection = await database.getSubscriptionHistoryCollection();
+    
+    // Check for active subscriptions
+    const activeSubscriptions = await subscriptionHistoryCollection.find({
+      user: existingVendor.user,
+      status: 'active'
+    }).toArray();
+    
+    if (activeSubscriptions.length > 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Cannot delete vendor with active subscriptions. Please cancel or expire ${activeSubscriptions.length} active subscription(s) first.`
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Delete all subscription history for this vendor
+    const subscriptionDeleteResult = await subscriptionHistoryCollection.deleteMany({
+      user: existingVendor.user
+    });
+    
+    console.log(`Deleted ${subscriptionDeleteResult.deletedCount} subscription records for vendor ${id}`);
+    
+    // Delete vendor first (use the found vendor's actual _id)
+    await vendorsCollection.deleteOne({ _id: existingVendor._id });
     
     // Delete associated user
     await usersCollection.deleteOne({ _id: existingVendor.user });
 
     return NextResponse.json({
       success: true,
-      message: 'Vendor deleted successfully'
+      message: `Vendor deleted successfully. Also cleaned up ${subscriptionDeleteResult.deletedCount} subscription record(s).`
     });
 
   } catch (error) {

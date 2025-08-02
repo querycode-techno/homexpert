@@ -196,6 +196,13 @@ export async function GET(request) {
                 0
               ]
             },
+            vendorId: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData._id', 0] },
+                null
+              ]
+            },
             userData: {
               _id: '$_id',
               name: '$name',

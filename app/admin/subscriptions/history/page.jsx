@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
-import vendorService from "@/lib/services/vendorService"
 import subscriptionService from "@/lib/services/subscriptionService"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -30,6 +29,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Table,
   TableBody,
   TableCell,
@@ -55,12 +60,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Separator } from "@/components/ui/separator"
 import {
   Search,
-  Filter,
-  Calendar,
-  CreditCard,
   CheckCircle,
   XCircle,
   Clock,
@@ -69,10 +70,11 @@ import {
   AlertTriangle,
   DollarSign,
   Users,
-  TrendingUp,
   FileText,
   Check,
-  ChevronsUpDown
+  ChevronsUpDown,
+  MoreHorizontal,
+  Trash2
 } from "lucide-react"
 
 const PAYMENT_STATUS_CONFIG = {
@@ -113,6 +115,8 @@ export default function SubscriptionHistoryPage() {
   const [rejectionDialog, setRejectionDialog] = useState({ open: false, subscription: null })
   const [detailsDialog, setDetailsDialog] = useState({ open: false, subscription: null })
   const [createDialog, setCreateDialog] = useState({ open: false })
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, subscription: null })
+  const [cancelDialog, setCancelDialog] = useState({ open: false, subscription: null })
   
   // Form data
   const [verificationNotes, setVerificationNotes] = useState("")
@@ -122,8 +126,9 @@ export default function SubscriptionHistoryPage() {
   const [vendors, setVendors] = useState([])
   const [subscriptionPlans, setSubscriptionPlans] = useState([])
   const [loadingVendorsAndPlans, setLoadingVendorsAndPlans] = useState(false)
-  const [vendorSearchOpen, setVendorSearchOpen] = useState(false)
   const [planSearchOpen, setPlanSearchOpen] = useState(false)
+  const [vendorSearch, setVendorSearch] = useState("")
+  const [filteredVendors, setFilteredVendors] = useState([])
   const [createFormData, setCreateFormData] = useState({
     vendorId: "",
     subscriptionPlanId: "",
@@ -173,31 +178,52 @@ export default function SubscriptionHistoryPage() {
     loadVendorsAndPlans()
   }, [currentPage, search, statusFilter, paymentStatusFilter, paymentMethodFilter])
 
+  // Filter vendors based on search (similar to subscription form)
+  useEffect(() => {
+    if (!vendorSearch.trim()) {
+      setFilteredVendors(vendors)
+    } else {
+      const searchTerm = vendorSearch.toLowerCase()
+      const filtered = vendors.filter(vendor => 
+        vendor.businessName?.toLowerCase().includes(searchTerm) ||
+        vendor.userData?.name?.toLowerCase().includes(searchTerm) ||
+        vendor.userData?.email?.toLowerCase().includes(searchTerm) ||
+        vendor.userData?.phone?.includes(searchTerm)
+      )
+      setFilteredVendors(filtered)
+    }
+  }, [vendors, vendorSearch])
+
   // Load vendors and subscription plans for create dialog
   const loadVendorsAndPlans = async () => {
     try {
       setLoadingVendorsAndPlans(true)
       console.log("Loading vendors and plans...")
       
-      // Load vendors using vendor service
-      const vendorsResult = await vendorService.getVendors({
-        limit: 1000,
-        search: search.trim(),
-        status: '' // Load all statuses, filter client-side if needed
-      })
-      console.log("Vendors result:", vendorsResult)
-      
-      if (vendorsResult.success && vendorsResult.vendors) {
-        // Filter out vendors that don't have proper user data
-        const validVendors = vendorsResult.vendors.filter(vendor => 
-          vendor.userData && vendor.userData.name && vendor.userData.email
-        )
-        setVendors(validVendors)
-        console.log("Loaded vendors:", validVendors.length, "out of", vendorsResult.vendors.length, "total")
+      // Load vendors using direct API call (similar to subscription form approach)
+      const response = await fetch('/api/admin/vendors?limit=1000')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          const vendorsList = data.data.vendors || []
+          // Filter to only vendors with proper user data (temporarily allow all vendors for debugging)
+          const validVendors = vendorsList.filter(vendor => 
+            vendor.userData && vendor.userData.name && vendor.userData.email
+          )
+          setVendors(validVendors)
+          setFilteredVendors(validVendors)
+          console.log("Loaded vendors:", validVendors.length, "out of", vendorsList.length, "total")
+          console.log("Sample vendor data:", validVendors[0]) // Debug vendor structure
+        } else {
+          console.error("Failed to load vendors:", data.error)
+          toast.error(data.error || "Failed to load vendors")
+          setVendors([])
+        }
       } else {
-        console.error("Failed to load vendors:", vendorsResult.error)
-        toast.error(vendorsResult.error || "Failed to load vendors")
+        console.error("Failed to fetch vendors - HTTP error")
+        toast.error("Failed to load vendors")
         setVendors([])
+        setFilteredVendors([])
       }
 
       // Load subscription plans using subscription service
@@ -309,6 +335,28 @@ export default function SubscriptionHistoryPage() {
         return
       }
 
+      // Check if vendor already has an active subscription
+      const selectedVendor = vendors.find(v => (v.vendorId || v._id) === createFormData.vendorId)
+      if (selectedVendor) {
+        const hasActiveSubscription = subscriptions.some(sub => 
+          sub.userInfo?.email === selectedVendor.userData?.email && 
+          sub.status === 'active'
+        )
+        
+        if (hasActiveSubscription) {
+          toast.error("This vendor already has an active subscription. Please wait for it to expire first.")
+          return
+        }
+      }
+
+      // Debug logging
+      console.log("Creating subscription with data:", {
+        vendorId: createFormData.vendorId,
+        subscriptionPlanId: createFormData.subscriptionPlanId,
+        amount: createFormData.amount,
+        paymentMethod: createFormData.paymentMethod
+      })
+
       const response = await fetch('/api/admin/subscriptions/history', {
         method: 'POST',
         headers: {
@@ -343,6 +391,71 @@ export default function SubscriptionHistoryPage() {
     } catch (error) {
       console.error("Error creating subscription:", error)
       toast.error("Failed to create subscription")
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const handleDeleteSubscription = async () => {
+    if (!deleteDialog.subscription) return
+
+    try {
+      setProcessing(true)
+      const response = await fetch('/api/admin/subscriptions/history', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscriptionId: deleteDialog.subscription._id
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success("Subscription deleted successfully")
+        setDeleteDialog({ open: false, subscription: null })
+        loadSubscriptions()
+      } else {
+        toast.error(data.error || "Failed to delete subscription")
+      }
+    } catch (error) {
+      console.error("Error deleting subscription:", error)
+      toast.error("Failed to delete subscription")
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const handleCancelSubscription = async () => {
+    if (!cancelDialog.subscription) return
+
+    try {
+      setProcessing(true)
+      const response = await fetch('/api/admin/subscriptions/history', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscriptionId: cancelDialog.subscription._id,
+          status: 'cancelled'
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success("Subscription cancelled successfully")
+        setCancelDialog({ open: false, subscription: null })
+        loadSubscriptions()
+      } else {
+        toast.error(data.error || "Failed to cancel subscription")
+      }
+    } catch (error) {
+      console.error("Error cancelling subscription:", error)
+      toast.error("Failed to cancel subscription")
     } finally {
       setProcessing(false)
     }
@@ -675,6 +788,33 @@ export default function SubscriptionHistoryPage() {
                                 </Button>
                               </>
                             )}
+
+                            {/* 3-dot menu */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {subscription.status === 'active' && (
+                                  <DropdownMenuItem
+                                    onClick={() => setCancelDialog({ open: true, subscription })}
+                                    className="text-orange-600 focus:text-orange-600"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Cancel Subscription
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteDialog({ open: true, subscription })}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Subscription
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -958,8 +1098,8 @@ export default function SubscriptionHistoryPage() {
             status: "active",
             notes: ""
           })
-          setVendorSearchOpen(false)
           setPlanSearchOpen(false)
+          setVendorSearch("")
         }
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -974,64 +1114,78 @@ export default function SubscriptionHistoryPage() {
             {/* Vendor Selection */}
             <div className="space-y-2">
               <Label>Vendor *</Label>
-              <Popover open={vendorSearchOpen} onOpenChange={setVendorSearchOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={vendorSearchOpen}
-                    className="w-full justify-between"
-                    disabled={loadingVendorsAndPlans}
-                  >
-                    {createFormData.vendorId
-                      ? vendors.find((vendor) => vendor._id === createFormData.vendorId)
-                          ? `${vendors.find((vendor) => vendor._id === createFormData.vendorId)?.businessName || 
-                               vendors.find((vendor) => vendor._id === createFormData.vendorId)?.userData?.name || 'Unknown'} - ${
-                               vendors.find((vendor) => vendor._id === createFormData.vendorId)?.userData?.email || 'No email'}`
-                          : "Select vendor..."
-                      : loadingVendorsAndPlans 
-                        ? "Loading vendors..." 
-                        : "Select vendor..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search vendors..." />
-                    <CommandEmpty>
-                      {loadingVendorsAndPlans ? "Loading vendors..." : "No vendors found."}
-                    </CommandEmpty>
-                    <CommandGroup className="max-h-64 overflow-y-auto">
-                      {vendors.map((vendor) => (
-                        <CommandItem
-                          key={vendor._id}
-                          value={`${vendor.businessName || vendor.userData?.name || 'Unknown'} ${vendor.userData?.email || ''}`}
-                          onSelect={() => {
-                            setCreateFormData(prev => ({ ...prev, vendorId: vendor._id }))
-                            setVendorSearchOpen(false)
-                          }}
-                        >
-                          <Check
-                            className={`mr-2 h-4 w-4 ${
-                              createFormData.vendorId === vendor._id ? "opacity-100" : "opacity-0"
-                            }`}
+              
+              {/* Search Box */}
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search vendors by name, email, or phone..."
+                  value={vendorSearch}
+                  onChange={(e) => setVendorSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              {loadingVendorsAndPlans ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  <span className="ml-2 text-sm text-muted-foreground">Loading vendors...</span>
+                </div>
+              ) : (
+                <div className="max-h-60 overflow-y-auto border rounded-md p-4 space-y-2">
+                  {filteredVendors.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {vendors.length === 0 ? "No vendors available" : vendorSearch ? `No vendors match "${vendorSearch}"` : "No vendors found"}
+                    </p>
+                  ) : (
+                    filteredVendors.map((vendor) => {
+                      const hasActiveSubscription = subscriptions.some(sub => 
+                        sub.userInfo?.email === vendor.userData?.email && 
+                        sub.status === 'active'
+                      )
+                      
+                      return (
+                        <div key={vendor._id} className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id={`vendor-${vendor._id}`}
+                            name="selectedVendor"
+                            checked={createFormData.vendorId === (vendor.vendorId || vendor._id)}
+                            onChange={() => setCreateFormData(prev => ({ ...prev, vendorId: vendor.vendorId || vendor._id }))}
+                            className="rounded"
+                            disabled={hasActiveSubscription}
                           />
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {vendor.businessName || vendor.userData?.name || 'Unknown'}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              {vendor.userData?.email || 'No email'}
-                            </span>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {vendors.length === 0 && !loadingVendorsAndPlans && (
-                <p className="text-sm text-red-600">No active vendors found. Please create vendors first.</p>
+                          <Label 
+                            htmlFor={`vendor-${vendor._id}`} 
+                            className={`text-sm font-normal cursor-pointer flex-1 ${
+                              !vendor.vendorId || hasActiveSubscription ? 'opacity-50' : ''
+                            }`}
+                          >
+                            <div>
+                              <div className="font-medium">
+                                {vendor.businessName || vendor.userData?.name || 'Unknown'}
+                                {!vendor.vendorId && <span className="text-red-500 ml-2">(Incomplete Profile)</span>}
+                                {hasActiveSubscription && <span className="text-orange-500 ml-2">(Active Subscription)</span>}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {vendor.userData?.name} • {vendor.userData?.email} • {vendor.userData?.phone}
+                                {!vendor.vendorId && <span className="text-red-500"> • No vendor profile</span>}
+                                {hasActiveSubscription && <span className="text-orange-500"> • Already subscribed</span>}
+                              </div>
+                            </div>
+                          </Label>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              )}
+              
+              {/* Search Results Summary */}
+              {vendorSearch && (
+                <div className="text-sm text-muted-foreground">
+                  Showing {filteredVendors.length} of {vendors.length} vendors
+                </div>
               )}
             </div>
 
@@ -1066,7 +1220,7 @@ export default function SubscriptionHistoryPage() {
                     <CommandEmpty>
                       {loadingVendorsAndPlans ? "Loading plans..." : "No subscription plans found."}
                     </CommandEmpty>
-                    <CommandGroup className="max-h-64 overflow-y-auto">
+                    <CommandGroup className="max-h-[200px] overflow-auto">
                       {subscriptionPlans.map((plan) => (
                         <CommandItem
                           key={plan._id}
@@ -1207,6 +1361,87 @@ export default function SubscriptionHistoryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => {
+        setDeleteDialog({ open, subscription: open ? deleteDialog.subscription : null })
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Subscription</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this subscription? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {deleteDialog.subscription && (
+            <div className="space-y-2">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="font-medium">{deleteDialog.subscription.userInfo?.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {deleteDialog.subscription.planSnapshot.planName} - {formatCurrency(deleteDialog.subscription.payment.amount)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Created: {formatDate(deleteDialog.subscription.createdAt)}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSubscription}
+              disabled={processing}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {processing ? "Deleting..." : "Delete Subscription"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Subscription Confirmation Dialog */}
+      <AlertDialog open={cancelDialog.open} onOpenChange={(open) => {
+        setCancelDialog({ open, subscription: open ? cancelDialog.subscription : null })
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this active subscription? The vendor will lose access to leads immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {cancelDialog.subscription && (
+            <div className="space-y-2">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="font-medium">{cancelDialog.subscription.userInfo?.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {cancelDialog.subscription.planSnapshot.planName} - {formatCurrency(cancelDialog.subscription.payment.amount)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Created: {formatDate(cancelDialog.subscription.createdAt)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Status: <Badge variant="default" className="ml-1">Active</Badge>
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Active</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelSubscription}
+              disabled={processing}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {processing ? "Cancelling..." : "Cancel Subscription"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 } 

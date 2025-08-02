@@ -530,11 +530,24 @@ export async function POST(request) {
     const vendorsCollection = await database.getVendorsCollection();
     const subscriptionPlansCollection = await database.getSubscriptionPlansCollection();
 
-    // Verify vendor exists
-    const vendor = await vendorsCollection.findOne({ _id: new ObjectId(vendorId) });
+    // Debug logging
+    console.log("Creating subscription for vendorId:", vendorId);
+    console.log("VendorId type:", typeof vendorId);
+    console.log("VendorId length:", vendorId?.length);
+    
+    // Verify vendor exists - try by vendor ID first, then by user ID
+    let vendor = await vendorsCollection.findOne({ _id: new ObjectId(vendorId) });
+    console.log("Found vendor by vendor ID:", vendor ? "YES" : "NO");
+    
+    if (!vendor) {
+      // Try to find by user ID instead
+      vendor = await vendorsCollection.findOne({ user: new ObjectId(vendorId) });
+      console.log("Found vendor by user ID:", vendor ? "YES" : "NO");
+    }
+    
     if (!vendor) {
       return NextResponse.json(
-        { success: false, error: 'Vendor not found' },
+        { success: false, error: `Vendor not found with ID: ${vendorId}` },
         { status: 404 }
       );
     }
@@ -554,6 +567,22 @@ export async function POST(request) {
       return NextResponse.json(
         { success: false, error: 'Subscription plan not found' },
         { status: 404 }
+      );
+    }
+
+    // Check if vendor already has an active subscription
+    const existingActiveSubscription = await subscriptionHistoryCollection.findOne({
+      user: vendor.user,
+      status: 'active'
+    });
+
+    if (existingActiveSubscription) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Vendor already has an active subscription. Please wait for it to expire or cancel it first.' 
+        },
+        { status: 400 }
       );
     }
 
@@ -703,6 +732,171 @@ export async function POST(request) {
       { 
         success: false, 
         error: 'Failed to create subscription',
+        details: error.message 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete subscription
+export async function DELETE(request) {
+  try {
+    const session = await requireAdmin();
+    
+    const body = await request.json();
+    const { subscriptionId } = body;
+
+    if (!subscriptionId) {
+      return NextResponse.json(
+        { success: false, error: 'Subscription ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const subscriptionHistoryCollection = await database.getSubscriptionHistoryCollection();
+
+    // Verify subscription exists
+    const subscription = await subscriptionHistoryCollection.findOne({ 
+      _id: new ObjectId(subscriptionId) 
+    });
+    
+    if (!subscription) {
+      return NextResponse.json(
+        { success: false, error: 'Subscription not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the subscription
+    const result = await subscriptionHistoryCollection.deleteOne({ 
+      _id: new ObjectId(subscriptionId) 
+    });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to delete subscription' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Subscription deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting subscription:', error);
+    
+    if (error.message.includes('Access denied') || error.message.includes('Unauthorized')) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to delete subscription',
+        details: error.message 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/admin/subscriptions/history - Update subscription status
+export async function PATCH(request) {
+  try {
+    await requireAdmin();
+
+    const { subscriptionId, status } = await request.json();
+
+    // Validate required fields
+    if (!subscriptionId) {
+      return NextResponse.json(
+        { success: false, error: 'Subscription ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!status) {
+      return NextResponse.json(
+        { success: false, error: 'Status is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate status value
+    const validStatuses = ['pending', 'active', 'expired', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json(
+        { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate ObjectId
+    if (!ObjectId.isValid(subscriptionId)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid subscription ID format' },
+        { status: 400 }
+      );
+    }
+
+    const subscriptionHistoryCollection = await database.getSubscriptionHistoryCollection();
+
+    // Check if subscription exists
+    const existingSubscription = await subscriptionHistoryCollection.findOne({
+      _id: new ObjectId(subscriptionId)
+    });
+
+    if (!existingSubscription) {
+      return NextResponse.json(
+        { success: false, error: 'Subscription not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update subscription status
+    const updateResult = await subscriptionHistoryCollection.updateOne(
+      { _id: new ObjectId(subscriptionId) },
+      { 
+        $set: { 
+          status: status,
+          updatedAt: new Date()
+        }
+      }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Subscription not found' },
+        { status: 404 }
+      );
+    }
+
+    if (updateResult.modifiedCount === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No changes made to subscription' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Subscription ${subscriptionId} status updated to: ${status}`);
+
+    return NextResponse.json({
+      success: true,
+      message: `Subscription status updated to ${status}`
+    });
+
+  } catch (error) {
+    console.error('Error updating subscription status:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to update subscription status',
         details: error.message 
       },
       { status: 500 }
