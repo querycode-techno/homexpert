@@ -547,26 +547,38 @@ export async function GET(request) {
         }
       },
       // Add search and filter stages after lookup
-      ...((search && search.trim()) || serviceFilter || cityFilter ? [{
-        $match: {
-          $and: [
-            // Search filter
-            ...(search && search.trim() ? [{
-              $or: [
-                { name: { $regex: search.trim(), $options: 'i' } },
-                { email: { $regex: search.trim(), $options: 'i' } },
-                { phone: { $regex: search.trim() } },
-                { 'address.city': { $regex: search.trim(), $options: 'i' } },
-                { services: { $in: [{ $regex: search.trim(), $options: 'i' }] } }
-              ]
-            }] : []),
-            // Service filter
-            ...(serviceFilter ? [{ services: serviceFilter }] : []),
-            // City filter  
-            ...(cityFilter ? [{ 'address.city': cityFilter }] : [])
-          ]
+      ...(function() {
+        const matchConditions = [];
+        
+        // Search filter
+        if (search && search.trim()) {
+          matchConditions.push({
+            $or: [
+              { name: { $regex: search.trim(), $options: 'i' } },
+              { email: { $regex: search.trim(), $options: 'i' } },
+              { phone: { $regex: search.trim() } },
+              { 'address.city': { $regex: search.trim(), $options: 'i' } },
+              { services: { $elemMatch: { $regex: search.trim(), $options: 'i' } } }
+            ]
+          });
         }
-      }] : []),
+        
+        // Service filter
+        if (serviceFilter) {
+          matchConditions.push({ services: { $in: [serviceFilter] } });
+        }
+        
+        // City filter
+        if (cityFilter) {
+          matchConditions.push({ 'address.city': cityFilter });
+        }
+        
+        return matchConditions.length > 0 ? [{
+          $match: {
+            $and: matchConditions
+          }
+        }] : [];
+      })(),
       {
         $project: {
           _id: 1,
