@@ -61,7 +61,7 @@ export function CityManagement() {
 
   // Form states
   const [searchTerm, setSearchTerm] = useState(currentSearch)
-  const [selectedState, setSelectedState] = useState(currentState || "all")
+  const [selectedState, setSelectedState] = useState(currentState ? currentState : "all")
   const [availableStates] = useState(() => getStates())
 
   // Load cities
@@ -116,7 +116,7 @@ export function CityManagement() {
 
   const handleStateFilter = (value) => {
     const stateValue = value === "all" ? "" : value
-    setSelectedState(stateValue)
+    setSelectedState(value) // Keep the "all" value for the UI
     updateURL({ state: stateValue, page: undefined })
   }
 
@@ -270,7 +270,7 @@ export function CityManagement() {
                 className="pl-8"
               />
             </div>
-                         <Select value={selectedState || "all"} onValueChange={handleStateFilter}>
+                         <Select value={selectedState} onValueChange={handleStateFilter}>
                <SelectTrigger className="w-[200px]">
                  <SelectValue placeholder="Filter by state" />
                </SelectTrigger>
