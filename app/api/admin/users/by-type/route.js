@@ -14,7 +14,7 @@ export async function GET(req) {
     const search = searchParams.get('search') || '';
     const limit = parseInt(searchParams.get('limit')) || 50;
     
-    console.log('DEBUG VENDORS: Query params:', { userType, search, limit });
+    //console.log('DEBUG VENDORS: Query params:', { userType, search, limit });
     
     // Build query
     let query = {};
@@ -31,7 +31,7 @@ export async function GET(req) {
       ];
     }
     
-    console.log('DEBUG VENDORS: Final query:', query);
+    //console.log('DEBUG VENDORS: Final query:', query);
     
     let users = [];
     
@@ -81,7 +81,7 @@ export async function GET(req) {
         status: vendor.status
       }));
       
-      console.log('DEBUG VENDORS: Found', users.length, 'vendors from vendors collection');
+      //console.log('DEBUG VENDORS: Found', users.length, 'vendors from vendors collection');
     } else {
       // For non-vendor users, use the original approach
       users = await User.find(query)
@@ -89,10 +89,10 @@ export async function GET(req) {
         .limit(limit)
         .sort({ name: 1 });
       
-      console.log('DEBUG VENDORS: Found', users.length, 'users from users collection');
+      //console.log('DEBUG VENDORS: Found', users.length, 'users from users collection');
     }
     
-    console.log('DEBUG VENDORS: Total users in collection:', users.length);
+    //console.log('DEBUG VENDORS: Total users in collection:', users.length);
     
     return new Response(JSON.stringify({ 
       success: true, 

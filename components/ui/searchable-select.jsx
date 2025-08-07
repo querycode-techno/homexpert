@@ -35,16 +35,19 @@ export function SearchableSelect({
   const [open, setOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Ensure options is always an array
+  const safeOptions = Array.isArray(options) ? options : []
+
   // Filter options based on search term
   const filteredOptions = useMemo(() => {
-    if (!searchTerm) return options
-    return options.filter(option =>
+    if (!searchTerm) return safeOptions
+    return safeOptions.filter(option =>
       option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
       option.value.toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [options, searchTerm])
+  }, [safeOptions, searchTerm])
 
-  const selectedOption = options.find(option => option.value === value)
+  const selectedOption = safeOptions.find(option => option.value === value)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

@@ -22,7 +22,7 @@ export async function GET(request) {
     }
 
     const roleNames = rolesParam.split(',').map(role => role.trim().toLowerCase());
-    console.log('Fetching users for roles:', roleNames);
+    //console.log('Fetching users for roles:', roleNames);
 
     const rolesCollection = await database.getRolesCollection();
     const usersCollection = await database.getUsersCollection();
@@ -32,7 +32,7 @@ export async function GET(request) {
       name: { $in: roleNames }
     }).toArray();
 
-    console.log('Found roles:', roles.map(r => ({ id: r._id, name: r.name })));
+    //console.log('Found roles:', roles.map(r => ({ id: r._id, name: r.name })));
 
     if (roles.length === 0) {
       return NextResponse.json({
@@ -54,7 +54,7 @@ export async function GET(request) {
       userQuery.isActive = { $ne: false }; // Include users where isActive is true or undefined
     }
 
-    console.log('User query:', userQuery);
+    //console.log('User query:', userQuery);
 
     // Fetch users with role information
     const users = await usersCollection.aggregate([
@@ -86,7 +86,7 @@ export async function GET(request) {
       { $sort: { name: 1 } }
     ]).toArray();
 
-    console.log('Found users:', users.length);
+    //console.log('Found users:', users.length);
 
     // Format the response
     const formattedUsers = users.map(user => ({

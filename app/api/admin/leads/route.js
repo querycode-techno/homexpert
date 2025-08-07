@@ -159,13 +159,13 @@ export async function POST(request) {
       modifiedBy: body.createdBy || null
     };
 
-    console.log('Creating lead with data:', leadData);
+    //console.log('Creating lead with data:', leadData);
 
     // Create the lead
     const newLead = new Lead(leadData);
     const savedLead = await newLead.save();
 
-    console.log('Lead created successfully:', savedLead._id);
+    //console.log('Lead created successfully:', savedLead._id);
 
     // Return success response
     return NextResponse.json({

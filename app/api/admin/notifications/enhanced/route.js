@@ -73,26 +73,26 @@ export async function POST(req) {
     if (targetType === 'broad') {
       // Get all users of the specified type from User collection
       let users = await User.find({ type: targetUserRole }).select("_id fcmToken type");
-      console.log(`Found ${users.length} users in User collection for role: ${targetUserRole}`);
+      //console.log(`Found ${users.length} users in User collection for role: ${targetUserRole}`);
       
       // If targeting vendors, also check the vendors collection
       if (targetUserRole === 'vendor') {
-        console.log('Checking vendors collection for vendor users...');
+        //console.log('Checking vendors collection for vendor users...');
         const vendorsCollection = mongoose.connection.collection('vendors');
         
         const vendors = await vendorsCollection.find({}).toArray();
-        console.log(`Found ${vendors.length} vendors in vendors collection`);
+        //console.log(`Found ${vendors.length} vendors in vendors collection`);
         
         // Debug: Check vendor document structure
-        if (vendors.length > 0) {
-          console.log('Debug - Sample vendor document structure:', {
-            _id: vendors[0]._id,
-            fcmToken: vendors[0].fcmToken,
-            hasFcmToken: !!vendors[0].fcmToken,
-            fcmTokenType: typeof vendors[0].fcmToken,
-            allFields: Object.keys(vendors[0])
-          });
-        }
+        // if (vendors.length > 0) {
+        //   //console.log('Debug - Sample vendor document structure:', {
+        //     _id: vendors[0]._id,
+        //     fcmToken: vendors[0].fcmToken,
+        //     hasFcmToken: !!vendors[0].fcmToken,
+        //     fcmTokenType: typeof vendors[0].fcmToken,
+        //     allFields: Object.keys(vendors[0])
+        //   });
+        // }
         
         // Transform vendor data to match user format
         const transformedVendors = vendors.map(vendor => ({
@@ -102,16 +102,16 @@ export async function POST(req) {
         }));
         
         // Debug: Check FCM tokens in vendors
-        const vendorsWithTokens = transformedVendors.filter(v => v.fcmToken && v.fcmToken.trim() !== '');
-        console.log(`Debug - Vendors with FCM tokens: ${vendorsWithTokens.length}`);
-        console.log(`Debug - Sample vendor FCM tokens:`, vendorsWithTokens.slice(0, 3).map(v => ({
-          id: v._id,
-          fcmToken: v.fcmToken ? v.fcmToken.substring(0, 20) + '...' : 'null'
-        })));
+        //const vendorsWithTokens = transformedVendors.filter(v => v.fcmToken && v.fcmToken.trim() !== '');
+        // //console.log(`Debug - Vendors with FCM tokens: ${vendorsWithTokens.length}`);
+        // //console.log(`Debug - Sample vendor FCM tokens:`, vendorsWithTokens.slice(0, 3).map(v => ({
+        //   id: v._id,
+        //   fcmToken: v.fcmToken ? v.fcmToken.substring(0, 20) + '...' : 'null'
+        // })));
         
         // Combine users from both collections
         targetUsers = [...users, ...transformedVendors];
-        console.log(`Total target users (users + vendors): ${targetUsers.length}`);
+        //console.log(`Total target users (users + vendors): ${targetUsers.length}`);
       } else {
         targetUsers = users;
       }
@@ -149,22 +149,22 @@ export async function POST(req) {
     const usersWithTokens = targetUsers.filter(user => user.fcmToken && user.fcmToken.trim() !== '');
     const usersWithoutTokens = targetUsers.filter(user => !user.fcmToken || user.fcmToken.trim() === '');
 
-    console.log(`Total target users: ${targetUsers.length}`);
-    console.log(`Users with FCM tokens: ${usersWithTokens.length}`);
-    console.log(`Users without FCM tokens: ${usersWithoutTokens.length}`);
+    //console.log(`Total target users: ${targetUsers.length}`);
+    //console.log(`Users with FCM tokens: ${usersWithTokens.length}`);
+    //console.log(`Users without FCM tokens: ${usersWithoutTokens.length}`);
     
     // Debug: Check FCM token detection
-    console.log('Debug - Sample users with tokens:', usersWithTokens.slice(0, 3).map(u => ({
-      id: u._id,
-      type: u.type,
-      fcmToken: u.fcmToken ? u.fcmToken.substring(0, 20) + '...' : 'null'
-    })));
+    //console.log('Debug - Sample users with tokens:', usersWithTokens.slice(0, 3).map(u => ({
+    //   id: u._id,
+    //   type: u.type,
+    //   fcmToken: u.fcmToken ? u.fcmToken.substring(0, 20) + '...' : 'null'
+    // })));
     
-    console.log('Debug - Sample users without tokens:', usersWithoutTokens.slice(0, 3).map(u => ({
-      id: u._id,
-      type: u.type,
-      fcmToken: u.fcmToken ? u.fcmToken.substring(0, 20) + '...' : 'null'
-    })));
+    // //console.log('Debug - Sample users without tokens:', usersWithoutTokens.slice(0, 3).map(u => ({
+    //   id: u._id,
+    //   type: u.type,
+    //   fcmToken: u.fcmToken ? u.fcmToken.substring(0, 20) + '...' : 'null'
+    // })));
 
     // Create NotificationRecipient documents for all target users
     const recipientDocs = targetUsers.map(user => ({
@@ -190,7 +190,7 @@ export async function POST(req) {
       if (tokens.length === 1) {
         try {
           sendResult = await admin.messaging().send({ ...mesg, token: tokens[0] });
-          console.log('Successfully sent message to single token:', sendResult);
+          //console.log('Successfully sent message to single token:', sendResult);
           
           // Update delivery status for successful send
           const userWithToken = usersWithTokens.find(user => user.fcmToken === tokens[0]);
@@ -201,7 +201,7 @@ export async function POST(req) {
             );
           }
         } catch (error) {
-          console.log('Failed to send to single token:', error.message);
+          //console.log('Failed to send to single token:', error.message);
           // Remove invalid token from user
           const userWithInvalidToken = usersWithTokens.find(user => user.fcmToken === tokens[0]);
           if (userWithInvalidToken) {
@@ -221,14 +221,14 @@ export async function POST(req) {
               { notificationId: notification._id, userId: userWithInvalidToken._id },
               { deliveryStatus: "failed", deliveryAttempts: 1 }
             );
-            console.log(`Removed invalid FCM token for user: ${userWithInvalidToken._id}`);
+            //console.log(`Removed invalid FCM token for user: ${userWithInvalidToken._id}`);
           }
         }
       } else if (tokens.length > 1) {
         try {
           sendResult = await admin.messaging().sendEachForMulticast({ ...mesg, tokens });
-          console.log('Sent messages to multiple tokens. Success count:', sendResult.successCount);
-          console.log('Failure count:', sendResult.failureCount);
+          //console.log('Sent messages to multiple tokens. Success count:', sendResult.successCount);
+          //console.log('Failure count:', sendResult.failureCount);
           
           // Update delivery status for each token
           sendResult.responses.forEach((response, index) => {
@@ -277,12 +277,12 @@ export async function POST(req) {
                   );
                 }
                 
-                console.log(`Removed invalid FCM token: ${failedToken.token}`);
+                //console.log(`Removed invalid FCM token: ${failedToken.token}`);
               }
             }
           }
         } catch (error) {
-          console.log('Failed to send multicast message:', error.message);
+          //console.log('Failed to send multicast message:', error.message);
           // Mark all as failed
           for (const user of usersWithTokens) {
             await NotificationRecipient.findOneAndUpdate(
@@ -293,7 +293,7 @@ export async function POST(req) {
         }
       }
     } else {
-      console.log('No users with FCM tokens found. Notifications saved to database only.');
+      //console.log('No users with FCM tokens found. Notifications saved to database only.');
     }
 
     return new Response(

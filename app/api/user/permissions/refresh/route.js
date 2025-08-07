@@ -24,8 +24,8 @@ export async function POST(request) {
     const roleId = session.user.role?._id || session.user.role
     const freshPermissions = await PermissionService.getUserPermissions(roleId)
     
-    console.log('Refreshed permissions for user:', targetUserId)
-    console.log('Fresh permissions:', freshPermissions)
+    //console.log('Refreshed permissions for user:', targetUserId)
+    //console.log('Fresh permissions:', freshPermissions)
     
     return NextResponse.json({
       success: true,

@@ -149,7 +149,7 @@ export async function POST(request) {
 
     // If duplicate found after saving, we could log it but still return success
     if (existingLead) {
-      console.log(`Duplicate lead detected for phone ${body.customerPhone}, service ${body.service}`);
+      //console.log(`Duplicate lead detected for phone ${body.customerPhone}, service ${body.service}`);
       // Still return success for better user experience
     }
 

@@ -135,9 +135,9 @@ export function EditLeadDialog({
           }
         }
 
-        console.log('Lead data:', lead)
-        console.log('Matched category:', matchedCategoryId)
-        console.log('Matched service:', matchedServiceId)
+        //console.log('Lead data:', lead)
+        //console.log('Matched category:', matchedCategoryId)
+        //console.log('Matched service:', matchedServiceId)
 
         setFormData({
           customerName: lead.customerName || '',

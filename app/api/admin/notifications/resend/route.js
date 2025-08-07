@@ -43,22 +43,22 @@ export async function POST(req) {
 
     // Get users with FCM tokens
     const recipientUserIds = recipients.map(r => r.userId);
-    console.log('Debug - Recipient user IDs:', recipientUserIds);
+    //console.log('Debug - Recipient user IDs:', recipientUserIds);
     
     // First try to find users in the User collection
     let users = await User.find({ _id: { $in: recipientUserIds } }).select("_id fcmToken type");
-    console.log('Debug - Users found in User collection:', users.length);
+    //console.log('Debug - Users found in User collection:', users.length);
     
     // If we didn't find all users, check if they're in the vendors collection
     if (users.length < recipientUserIds.length) {
-      console.log('Debug - Some users not found in User collection, checking vendors collection...');
+      //console.log('Debug - Some users not found in User collection, checking vendors collection...');
       const vendorsCollection = mongoose.connection.collection('vendors');
       
       const vendorUsers = await vendorsCollection.find({ 
         _id: { $in: recipientUserIds.filter(id => !users.find(u => u._id.toString() === id.toString())) }
       }).toArray();
       
-      console.log('Debug - Vendors found:', vendorUsers.length);
+      //console.log('Debug - Vendors found:', vendorUsers.length);
       
       // Transform vendor data to match user format
       const transformedVendors = vendorUsers.map(vendor => ({
@@ -70,17 +70,17 @@ export async function POST(req) {
       users = [...users, ...transformedVendors];
     }
     
-    console.log('Debug - All users found:', users.map(u => ({ id: u._id, fcmToken: u.fcmToken ? 'present' : 'null', type: u.type })));
+    //console.log('Debug - All users found:', users.map(u => ({ id: u._id, fcmToken: u.fcmToken ? 'present' : 'null', type: u.type })));
     
     const usersWithTokens = users.filter(user => user.fcmToken && user.fcmToken.trim() !== '');
     const usersWithoutTokens = users.filter(user => !user.fcmToken || user.fcmToken.trim() === '');
     
-    console.log('Debug - Users with tokens:', usersWithTokens.map(u => ({ id: u._id, fcmToken: u.fcmToken ? 'present' : 'null' })));
-    console.log('Debug - Users without tokens:', usersWithoutTokens.map(u => ({ id: u._id, fcmToken: u.fcmToken ? 'present' : 'null' })));
+    //console.log('Debug - Users with tokens:', usersWithTokens.map(u => ({ id: u._id, fcmToken: u.fcmToken ? 'present' : 'null' })));
+    //console.log('Debug - Users without tokens:', usersWithoutTokens.map(u => ({ id: u._id, fcmToken: u.fcmToken ? 'present' : 'null' })));
 
-    console.log(`Resending notification to ${users.length} users`);
-    console.log(`Users with FCM tokens: ${usersWithTokens.length}`);
-    console.log(`Users without FCM tokens: ${usersWithoutTokens.length}`);
+    //console.log(`Resending notification to ${users.length} users`);
+    //console.log(`Users with FCM tokens: ${usersWithTokens.length}`);
+    //console.log(`Users without FCM tokens: ${usersWithoutTokens.length}`);
 
     // Send FCM notifications to users with tokens
     let deliveredCount = 0;
@@ -88,7 +88,7 @@ export async function POST(req) {
 
     if (usersWithTokens.length > 0) {
       const tokens = usersWithTokens.map(user => user.fcmToken).filter(Boolean);
-      console.log('Debug - Tokens to send:', tokens.length);
+      //console.log('Debug - Tokens to send:', tokens.length);
       
       const mesg = {
         notification: {
@@ -99,10 +99,10 @@ export async function POST(req) {
 
       if (tokens.length === 1) {
         try {
-          console.log('Debug - Sending to single token:', tokens[0].substring(0, 20) + '...');
+          //console.log('Debug - Sending to single token:', tokens[0].substring(0, 20) + '...');
           await admin.messaging().send({ ...mesg, token: tokens[0] });
           deliveredCount++;
-          console.log('Debug - Single token sent successfully');
+          //console.log('Debug - Single token sent successfully');
           
           // Update delivery status
           const userWithToken = usersWithTokens.find(user => user.fcmToken === tokens[0]);
@@ -114,10 +114,10 @@ export async function POST(req) {
                 $inc: { deliveryAttempts: 1 }
               }
             );
-            console.log('Debug - Updated delivery status for user:', userWithToken._id);
+            //console.log('Debug - Updated delivery status for user:', userWithToken._id);
           }
         } catch (error) {
-          console.log('Failed to resend to single token:', error.message);
+          //console.log('Failed to resend to single token:', error.message);
           failedCount++;
           
           // Remove invalid token from user
@@ -146,11 +146,11 @@ export async function POST(req) {
         }
       } else if (tokens.length > 1) {
         try {
-          console.log('Debug - Sending to multiple tokens:', tokens.length);
+          //console.log('Debug - Sending to multiple tokens:', tokens.length);
           const sendResult = await admin.messaging().sendEachForMulticast({ ...mesg, tokens });
           deliveredCount += sendResult.successCount;
           failedCount += sendResult.failureCount;
-          console.log('Debug - Multicast result:', { successCount: sendResult.successCount, failureCount: sendResult.failureCount });
+          //console.log('Debug - Multicast result:', { successCount: sendResult.successCount, failureCount: sendResult.failureCount });
           
           // Update delivery status for each token
           sendResult.responses.forEach((response, index) => {
@@ -204,7 +204,7 @@ export async function POST(req) {
             }
           }
         } catch (error) {
-          console.log('Failed to resend multicast message:', error.message);
+          //console.log('Failed to resend multicast message:', error.message);
           failedCount += usersWithTokens.length;
           
           // Mark all as failed
@@ -226,7 +226,7 @@ export async function POST(req) {
       $set: { lastResentAt: new Date() }
     });
 
-    console.log('Debug - Final counts:', { deliveredCount, failedCount, totalRecipients: users.length });
+    //console.log('Debug - Final counts:', { deliveredCount, failedCount, totalRecipients: users.length });
 
     return new Response(
       JSON.stringify({ 
@@ -239,7 +239,7 @@ export async function POST(req) {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.log('Debug - Error in resend:', error.message);
+    //console.log('Debug - Error in resend:', error.message);
     return new Response(
       JSON.stringify({ success: false, message: error.message }),
       { status: 500, headers: { "Content-Type": "application/json" } }

@@ -24,7 +24,7 @@ async function connectDB() {
 // Function to send lead adjustment notification to vendor
 async function sendLeadAdjustmentNotification(vendorUser, subscriptionData, adjustmentData, adminUserId) {
   try {
-    console.log(`Sending lead adjustment notification to vendor: ${vendorUser.name}`);
+    //console.log(`Sending lead adjustment notification to vendor: ${vendorUser.name}`);
 
     const action = adjustmentData.type === 'increase' ? 'increased' : 'decreased';
     const title = `Leads ${action.charAt(0).toUpperCase() + action.slice(1)}`;
@@ -69,7 +69,7 @@ async function sendLeadAdjustmentNotification(vendorUser, subscriptionData, adju
         };
 
         const sendResult = await admin.messaging().send(fcmMessage);
-        console.log(`FCM lead adjustment notification sent to vendor ${vendorUser.name}:`, sendResult);
+        //console.log(`FCM lead adjustment notification sent to vendor ${vendorUser.name}:`, sendResult);
 
         // Update delivery status to delivered
         await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
@@ -96,7 +96,7 @@ async function sendLeadAdjustmentNotification(vendorUser, subscriptionData, adju
         if (fcmError.code === 'messaging/invalid-registration-token' || 
             fcmError.code === 'messaging/registration-token-not-registered') {
           await User.findByIdAndUpdate(vendorUser._id, { fcmToken: null });
-          console.log(`Removed invalid FCM token for vendor: ${vendorUser.name}`);
+          //console.log(`Removed invalid FCM token for vendor: ${vendorUser.name}`);
         }
 
         return {

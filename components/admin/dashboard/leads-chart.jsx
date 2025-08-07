@@ -12,7 +12,7 @@ export function LeadsChart() {
     setLoading(true)
     const fetchData = async () => {
       const response = await dashboardService.getChartData()
-      console.log(response.data)
+      //console.log(response.data)
       setData(response.data)
     }
     fetchData()

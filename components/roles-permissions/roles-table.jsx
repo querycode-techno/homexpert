@@ -37,7 +37,7 @@ export function RolesTable() {
   const fetchRoles = async () => {
     try {
       setIsLoading(true)
-      console.log('🔍 Fetching roles...')
+      //console.log('🔍 Fetching roles...')
       const response = await fetch('/api/roles?includePermissions=false')
       
       if (!response.ok) {
@@ -45,14 +45,14 @@ export function RolesTable() {
       }
       
       const text = await response.text()
-      console.log('📋 Raw response:', text ? 'Got response' : 'Empty response')
+      //console.log('📋 Raw response:', text ? 'Got response' : 'Empty response')
       
       if (!text) {
         throw new Error('Empty response from server')
       }
       
       const data = JSON.parse(text)
-      console.log('✅ Parsed data:', data)
+      //console.log('✅ Parsed data:', data)
       setRoles(data.roles || [])
     } catch (error) {
       console.error('Error fetching roles:', error)
@@ -152,7 +152,7 @@ export function RolesTable() {
             size="sm" 
             className="h-8 gap-1"
             onClick={() => {
-              console.log('🔍 Add Role button clicked!')
+              //console.log('🔍 Add Role button clicked!')
               setIsAddDialogOpen(true)
             }}
           >
@@ -216,8 +216,8 @@ export function RolesTable() {
                                 <DropdownMenuItem 
                                   className="flex items-center gap-2 cursor-pointer"
                                   onClick={() => {
-                                    console.log('🔍 Edit button clicked for role:', role.name)
-                                    console.log('🔍 Setting editingRole to:', role)
+                                    //console.log('🔍 Edit button clicked for role:', role.name)
+                                    //console.log('🔍 Setting editingRole to:', role)
                                     setEditingRole(role)
                                   }}
                                 >
@@ -228,7 +228,7 @@ export function RolesTable() {
                                   <DropdownMenuItem 
                                     className="flex items-center gap-2 text-red-500 cursor-pointer"
                                     onClick={() => {
-                                      console.log('🔍 Delete button clicked for role:', role.name)
+                                      //console.log('🔍 Delete button clicked for role:', role.name)
                                       setDeletingRole(role)
                                     }}
                                   >

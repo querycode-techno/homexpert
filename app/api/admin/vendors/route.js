@@ -54,7 +54,7 @@ export async function GET(request) {
     }
 
     // Filter by verification
-    console.log('DEBUG VENDORS: verified param:', verified, 'type:', typeof verified);
+    //console.log('DEBUG VENDORS: verified param:', verified, 'type:', typeof verified);
     if (verified && verified !== 'all' && verified !== '') {
       if (verified === 'verified') {
         query['verified.isVerified'] = true;
@@ -67,46 +67,46 @@ export async function GET(request) {
     const skip = (page - 1) * limit;
 
     // Debug logging - let's see what's actually in the database
-    console.log('DEBUG VENDORS: Starting debug...');
+    //console.log('DEBUG VENDORS: Starting debug...');
     
     // Check vendors collection
     const allVendorsCount = await vendorsCollection.countDocuments({});
     const allVendors = await vendorsCollection.find({}).limit(3).toArray();
-    console.log('DEBUG VENDORS: Total vendors in collection:', allVendorsCount);
-    console.log('DEBUG VENDORS: Sample vendors:', allVendors.map(v => ({
-      id: v._id,
-      businessName: v.businessName,
-      userRef: v.user,
-      userRefType: typeof v.user,
-      status: v.status
-    })));
+    //console.log('DEBUG VENDORS: Total vendors in collection:', allVendorsCount);
+    //console.log('DEBUG VENDORS: Sample vendors:', allVendors.map(v => ({
+    //  id: v._id,
+    //  businessName: v.businessName,
+    //  userRef: v.user,
+    //  userRefType: typeof v.user,
+    //  status: v.status
+    //})));
     
     // Check users collection
     const usersCount = await usersCollection.countDocuments({});
     const sampleUsers = await usersCollection.find({}).limit(3).toArray();
-    console.log('DEBUG VENDORS: Total users in collection:', usersCount);
-    console.log('DEBUG VENDORS: Sample users:', sampleUsers.map(u => ({
-      id: u._id,
-      name: u.name,
-      email: u.email,
-      role: u.role
-    })));
+    //console.log('DEBUG VENDORS: Total users in collection:', usersCount);
+    //console.log('DEBUG VENDORS: Sample users:', sampleUsers.map(u => ({
+    //  id: u._id,
+    //  name: u.name,
+    //  email: u.email,
+    //  role: u.role
+    //})));
     
     // Test lookup manually for first vendor
     if (allVendors.length > 0) {
       const testVendor = allVendors[0];
-      console.log('DEBUG VENDORS: Testing lookup for vendor:', testVendor._id, 'user ref:', testVendor.user);
+      //console.log('DEBUG VENDORS: Testing lookup for vendor:', testVendor._id, 'user ref:', testVendor.user);
       
       const userLookupTest = await usersCollection.findOne({ _id: testVendor.user });
-      console.log('DEBUG VENDORS: Direct user lookup result:', userLookupTest ? {
-        id: userLookupTest._id,
-        name: userLookupTest.name,
-        email: userLookupTest.email
-      } : 'No user found with ID: ' + testVendor.user);
+      //console.log('DEBUG VENDORS: Direct user lookup result:', userLookupTest ? {
+      //  id: userLookupTest._id,
+      //  name: userLookupTest.name,
+      //  email: userLookupTest.email
+      //} : 'No user found with ID: ' + testVendor.user);
     }
 
     // Debug the query object
-    console.log('DEBUG VENDORS: Query object:', JSON.stringify(query, null, 2));
+    //console.log('DEBUG VENDORS: Query object:', JSON.stringify(query, null, 2));
     
     // Check if we want to show ALL users with vendor role (including those without vendor profiles)
     // or only actual vendors (with vendor profiles)
@@ -139,7 +139,7 @@ export async function GET(request) {
 
       // Get total count for users with vendor role
       total = await usersCollection.countDocuments(userQuery);
-      console.log('DEBUG VENDORS: Total vendor users count:', total);
+      //console.log('DEBUG VENDORS: Total vendor users count:', total);
 
       vendors = await usersCollection.aggregate([
         { $match: userQuery },
@@ -203,6 +203,16 @@ export async function GET(request) {
                 null
               ]
             },
+            documents: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.documents', 0] },
+                {
+                  identity: { type: '', number: '', docImageUrl: '' },
+                  business: { type: '', number: '', docImageUrl: '' }
+                }
+              ]
+            },
             userData: {
               _id: '$_id',
               name: '$name',
@@ -220,14 +230,14 @@ export async function GET(request) {
         { $limit: limit }
       ]).toArray();
 
-      console.log('DEBUG VENDORS: Showing ALL vendor users (including incomplete profiles)');
+      //console.log('DEBUG VENDORS: Showing ALL vendor users (including incomplete profiles)');
     } else {
       // Original approach: only show actual vendors (with vendor profiles)
-      console.log('DEBUG VENDORS: Showing only vendors with complete profiles');
+      //console.log('DEBUG VENDORS: Showing only vendors with complete profiles');
       
       // Get total count for vendors
       total = await vendorsCollection.countDocuments(query);
-      console.log('DEBUG VENDORS: Total vendors count:', total);
+      //console.log('DEBUG VENDORS: Total vendors count:', total);
       
       vendors = await vendorsCollection.aggregate([
       { $match: query },
@@ -266,21 +276,21 @@ export async function GET(request) {
     }
 
     // Debug logging
-    console.log('DEBUG VENDORS: Found', vendors.length, 'vendors with filters:', { 
-      status, verified, service, city, search 
-    });
+    //console.log('DEBUG VENDORS: Found', vendors.length, 'vendors with filters:', { 
+    //   status, verified, service, city, search 
+    // });
     
-    if (vendors.length > 0) {
-      console.log('DEBUG VENDORS: Sample vendor structure:', {
-        businessName: vendors[0].businessName,
-        status: vendors[0].status,
-        verified: vendors[0].verified,
-        services: vendors[0].services,
-        city: vendors[0].address?.city
-      });
-    } else {
-      console.log('DEBUG VENDORS: No vendors after $unwind - user lookup failed');
-    }
+    //if (vendors.length > 0) {
+      //console.log('DEBUG VENDORS: Sample vendor structure:', {
+      //   businessName: vendors[0].businessName,
+      //   status: vendors[0].status,
+      //   verified: vendors[0].verified,
+      //   services: vendors[0].services,
+      //   city: vendors[0].address?.city
+      // });
+    //} else {
+      //console.log('DEBUG VENDORS: No vendors after $unwind - user lookup failed');
+    //}
 
     // Calculate pagination info
     const totalPages = Math.ceil(total / limit);

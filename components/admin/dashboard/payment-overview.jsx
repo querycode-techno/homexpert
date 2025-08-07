@@ -50,7 +50,7 @@ export function PaymentOverview() {
         
         setData(chartData)
       }
-      console.log(response.data)
+      //console.log(response.data)
     }
     fetchData()
     setLoading(false)

@@ -24,7 +24,7 @@ async function connectDB() {
 // Function to send notifications to assigned vendors
 async function sendAssignmentNotifications(assignedVendors, leads, assignedByUserId) {
   try {
-    console.log(`Sending assignment notifications to ${assignedVendors.length} vendors for ${leads.length} leads`);
+    //console.log(`Sending assignment notifications to ${assignedVendors.length} vendors for ${leads.length} leads`);
 
     // Create notification content
     const leadCount = leads.length;
@@ -73,7 +73,7 @@ async function sendAssignmentNotifications(assignedVendors, leads, assignedByUse
           };
 
           const sendResult = await admin.messaging().send(fcmMessage);
-          console.log(`FCM notification sent to vendor ${vendor.name}:`, sendResult);
+          //console.log(`FCM notification sent to vendor ${vendor.name}:`, sendResult);
 
           // Update delivery status to delivered
           await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
@@ -94,16 +94,16 @@ async function sendAssignmentNotifications(assignedVendors, leads, assignedByUse
           if (fcmError.code === 'messaging/invalid-registration-token' || 
               fcmError.code === 'messaging/registration-token-not-registered') {
             await User.findByIdAndUpdate(vendor._id, { fcmToken: null });
-            console.log(`Removed invalid FCM token for vendor: ${vendor.name}`);
+            //console.log(`Removed invalid FCM token for vendor: ${vendor.name}`);
           }
         }
       } else {
-        console.log(`No FCM token for vendor ${vendor.name}, notification saved to database only`);
+        //console.log(`No FCM token for vendor ${vendor.name}, notification saved to database only`);
       }
     });
 
     await Promise.all(notificationPromises);
-    console.log(`Assignment notifications processed for ${assignedVendors.length} vendors`);
+    //console.log(`Assignment notifications processed for ${assignedVendors.length} vendors`);
 
     return {
       notificationId: notification._id,
@@ -610,21 +610,21 @@ export async function GET(request) {
 
     // Debug: If no vendors found, check what vendors exist
     if (suggestedVendors.length === 0) {
-      console.log('DEBUG: No vendors found with query:', userQuery);
+      //console.log('DEBUG: No vendors found with query:', userQuery);
       
       // Check all users with vendor role
       const allVendorUsers = await User.find({ role: vendorRole._id }).select('name email phone address').lean();
-      console.log('DEBUG: All vendor users in system:', allVendorUsers.length, allVendorUsers.map(u => ({
-        name: u.name,
-        email: u.email,
-        city: u.address?.city
-      })));
+      //console.log('DEBUG: All vendor users in system:', allVendorUsers.length, allVendorUsers.map(u => ({
+      //   name: u.name,
+      //   email: u.email,
+      //   city: u.address?.city
+      // })));
       
       // Check if vendor role exists and has users
       const vendorRoleWithUsers = await Role.findById(vendorRole._id).lean();
       const totalUsers = await User.countDocuments({});
       const vendorUsers = await User.countDocuments({ role: vendorRole._id });
-      console.log('DEBUG: Total users:', totalUsers, 'Vendor users:', vendorUsers, 'Vendor role:', vendorRoleWithUsers?.name);
+      //console.log('DEBUG: Total users:', totalUsers, 'Vendor users:', vendorUsers, 'Vendor role:', vendorRoleWithUsers?.name);
     }
 
     // Get assignment statistics

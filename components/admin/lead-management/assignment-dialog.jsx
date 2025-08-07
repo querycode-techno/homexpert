@@ -93,7 +93,7 @@ export function AssignmentDialog({
       
       const response = await fetch(`/api/admin/leads/assign?${params}`)
       const result = await response.json()
-      console.log(result);
+      //console.log(result);
       
               if (result.success) {
           const newVendors = result.data.suggestedVendors || []

@@ -6,15 +6,15 @@ import { ObjectId } from 'mongodb'
 // GET - Fetch all roles with permissions
 export async function GET(request) {
   try {
-    console.log('🔍 Roles API - Starting request')
+    //console.log('🔍 Roles API - Starting request')
     
     await requireAdmin()
-    console.log('✅ Roles API - Admin access verified')
+    //console.log('✅ Roles API - Admin access verified')
 
     const rolesCollection = await database.getRolesCollection()
     const permissionsCollection = await database.getPermissionsCollection()
     const usersCollection = await database.getUsersCollection()
-    console.log('✅ Roles API - Database connected')
+    //console.log('✅ Roles API - Database connected')
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -22,7 +22,7 @@ export async function GET(request) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const search = searchParams.get('search') || ''
-    console.log('📋 Roles API - Query params:', { includePermissions, page, limit, search })
+    //console.log('📋 Roles API - Query params:', { includePermissions, page, limit, search })
 
     // Build query
     let query = {}
@@ -37,7 +37,7 @@ export async function GET(request) {
 
     // Count total documents
     const total = await rolesCollection.countDocuments(query)
-    console.log('📊 Roles API - Total roles:', total)
+    //console.log('📊 Roles API - Total roles:', total)
 
     // Fetch roles with pagination
     let rolesQuery = rolesCollection
@@ -47,7 +47,7 @@ export async function GET(request) {
       .limit(limit)
 
     const roles = await rolesQuery.toArray()
-    console.log('📊 Roles API - Found roles:', roles.length)
+    //console.log('📊 Roles API - Found roles:', roles.length)
 
     // If includePermissions is true, populate permissions
     let rolesWithPermissions = roles
@@ -81,7 +81,7 @@ export async function GET(request) {
       }
     }
 
-    console.log('✅ Roles API - Response ready:', Object.keys(response))
+    //console.log('✅ Roles API - Response ready:', Object.keys(response))
     return NextResponse.json(response, { status: 200 })
 
   } catch (error) {

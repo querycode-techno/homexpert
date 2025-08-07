@@ -35,7 +35,7 @@ export function PermissionsTable() {
   const fetchData = async () => {
     try {
       setIsLoading(true)
-      console.log('🔍 Fetching permissions data...')
+      //console.log('🔍 Fetching permissions data...')
       
       // Fetch permissions grouped by module
       const permissionsResponse = await fetch('/api/permissions?groupBy=module')
@@ -44,14 +44,14 @@ export function PermissionsTable() {
       }
       
       const permissionsText = await permissionsResponse.text()
-      console.log('📋 Permissions response:', permissionsText ? 'Got response' : 'Empty response')
+      //console.log('📋 Permissions response:', permissionsText ? 'Got response' : 'Empty response')
       
       if (!permissionsText) {
         throw new Error('Empty permissions response from server')
       }
       
       const permissionsData = JSON.parse(permissionsText)
-      console.log('✅ Parsed permissions:', permissionsData)
+      //console.log('✅ Parsed permissions:', permissionsData)
       setPermissions(permissionsData.permissions || {})
 
       // Fetch roles with permissions
@@ -61,14 +61,14 @@ export function PermissionsTable() {
       }
       
       const rolesText = await rolesResponse.text()
-      console.log('📋 Roles response:', rolesText ? 'Got response' : 'Empty response')
+      //console.log('📋 Roles response:', rolesText ? 'Got response' : 'Empty response')
       
       if (!rolesText) {
         throw new Error('Empty roles response from server')
       }
       
       const rolesData = JSON.parse(rolesText)
-      console.log('✅ Parsed roles:', rolesData)
+      //console.log('✅ Parsed roles:', rolesData)
       setRoles(rolesData.roles || [])
 
     } catch (error) {

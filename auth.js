@@ -134,10 +134,10 @@ export const authOptions = {
   },
   events: {
     async signIn({ user, account, profile, isNewUser }) {
-      console.log("User signed in:", user.email)
+      //console.log("User signed in:", user.email)
     },
     async signOut({ session, token }) {
-      console.log("User signed out")
+      //console.log("User signed out")
     }
   },
   debug: process.env.NODE_ENV === "development",

@@ -31,7 +31,7 @@ export async function DELETE(req) {
       userType: "admin"
     });
 
-    console.log(`Cleared ${deleteResult.deletedCount} notifications and ${recipientDeleteResult.deletedCount} recipients for user: ${userId}`);
+    //console.log(`Cleared ${deleteResult.deletedCount} notifications and ${recipientDeleteResult.deletedCount} recipients for user: ${userId}`);
 
     return new Response(
       JSON.stringify({ 
@@ -43,7 +43,7 @@ export async function DELETE(req) {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.log('Error clearing notifications:', error.message);
+    //console.log('Error clearing notifications:', error.message);
     return new Response(
       JSON.stringify({ success: false, message: error.message }),
       { status: 500, headers: { "Content-Type": "application/json" } }

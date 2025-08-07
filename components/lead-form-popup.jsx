@@ -179,7 +179,7 @@ export default function LeadFormPopup({
         message: `Booking for ${formData.selectedSubService} and address : ${address}`,
       })
 
-      console.log(res);
+      //console.log(res);
 
 
     } catch (error) {

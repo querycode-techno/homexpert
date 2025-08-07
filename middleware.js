@@ -55,7 +55,7 @@ export async function middleware(request) {
   const { nextUrl } = request
   const pathname = nextUrl.pathname
 
-  console.log(`🔍 MIDDLEWARE - Path: ${pathname}`)
+  //console.log(`🔍 MIDDLEWARE - Path: ${pathname}`)
 
   // Skip middleware for static files and API routes
   if (
@@ -67,7 +67,7 @@ export async function middleware(request) {
     pathname.includes('.') ||
     pathname.startsWith('/favicon')
   ) {
-    console.log(`⏭️ SKIPPING - Static/API: ${pathname}`)
+    //console.log(`⏭️ SKIPPING - Static/API: ${pathname}`)
     return NextResponse.next()
   }
 
@@ -79,14 +79,14 @@ export async function middleware(request) {
 
   // Extract role name from token (role can be object or string)
   const userRole = typeof token?.role === 'object' ? token.role.name : token?.role
-  console.log(`🔐 AUTH - Token: ${!!token}, Role: ${userRole}`)
+  //console.log(`🔐 AUTH - Token: ${!!token}, Role: ${userRole}`)
 
   // Handle admin routes - ALLOW ADMINISTRATIVE ROLES
   if (isAdminRoute(pathname)) {
-    console.log(`🛡️ ADMIN ROUTE: ${pathname}`)
+    //console.log(`🛡️ ADMIN ROUTE: ${pathname}`)
     
     if (!token) {
-      console.log(`❌ NO TOKEN - Redirecting to admin login`)
+      //console.log(`❌ NO TOKEN - Redirecting to admin login`)
       const redirectUrl = new URL('/auth/admin-login', request.url)
       redirectUrl.searchParams.set('callbackUrl', pathname)
       return NextResponse.redirect(redirectUrl)
@@ -94,17 +94,17 @@ export async function middleware(request) {
 
     // Check admin access - allow multiple administrative roles
     if (!hasAdminAccess(userRole)) {
-      console.log(`❌ ACCESS DENIED - Role: ${userRole}, Allowed: ${ADMINISTRATIVE_ROLES.join(', ')}`)
+      //console.log(`❌ ACCESS DENIED - Role: ${userRole}, Allowed: ${ADMINISTRATIVE_ROLES.join(', ')}`)
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
 
-    console.log(`✅ ADMIN ACCESS GRANTED - Role: ${userRole}`)
+    //console.log(`✅ ADMIN ACCESS GRANTED - Role: ${userRole}`)
     return NextResponse.next()
   }
 
   // Handle auth routes - redirect if already authenticated
   if (isAuthRoute(pathname)) {
-    console.log(`🔑 AUTH ROUTE: ${pathname}`)
+    //console.log(`🔑 AUTH ROUTE: ${pathname}`)
     if (token) {
       // Redirect based on user role
       const userRole = typeof token.role === 'object' ? token.role.name : token.role
@@ -119,13 +119,13 @@ export async function middleware(request) {
 
   // Handle public routes
   if (isPublicRoute(pathname)) {
-    console.log(`🌍 PUBLIC ROUTE: ${pathname}`)
+    //console.log(`🌍 PUBLIC ROUTE: ${pathname}`)
     return NextResponse.next()
   }
 
   // Default handling for root route
   if (pathname === '/') {
-    console.log(`🏠 ROOT ROUTE: ${pathname}`)
+    //console.log(`🏠 ROOT ROUTE: ${pathname}`)
     if (token) {
       const userRole = typeof token.role === 'object' ? token.role.name : token.role
       if (hasAdminAccess(userRole)) {
@@ -135,7 +135,7 @@ export async function middleware(request) {
     return NextResponse.next()
   }
 
-  console.log(`⚠️ UNHANDLED ROUTE: ${pathname}`)
+  //console.log(`⚠️ UNHANDLED ROUTE: ${pathname}`)
   return NextResponse.next()
 }
 

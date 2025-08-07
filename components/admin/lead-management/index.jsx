@@ -79,8 +79,8 @@ export function LeadManagement() {
 
   // Update URL with new parameters
   const updateURL = (newParams) => {
-    console.log('🔄 updateURL called with:', newParams);
-    console.log('📍 Current URL params:', Object.fromEntries(searchParams.entries()));
+    //console.log('🔄 updateURL called with:', newParams);
+    //console.log('📍 Current URL params:', Object.fromEntries(searchParams.entries()));
     
     const params = new URLSearchParams(searchParams.toString());
     
@@ -103,7 +103,7 @@ export function LeadManagement() {
     });
 
     const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
-    console.log('➡️ Navigating to:', newURL);
+    //console.log('➡️ Navigating to:', newURL);
     router.push(newURL, { scroll: false });
   };
 
@@ -171,7 +171,7 @@ export function LeadManagement() {
 
   // Handle filter changes
   const handleFilterChange = (newFilters) => {
-    console.log('🔧 handleFilterChange called with:', newFilters);
+    //console.log('🔧 handleFilterChange called with:', newFilters);
     setFilters(prev => ({ ...prev, ...newFilters }));
     
     // Always update URL when filters change
@@ -180,7 +180,7 @@ export function LeadManagement() {
     );
     
     if (hasChanges) {
-      console.log('🔄 Filters changed, updating URL');
+      //console.log('🔄 Filters changed, updating URL');
       updateURL({
         ...newFilters,
         page: undefined // Reset to page 1
@@ -192,7 +192,7 @@ export function LeadManagement() {
 
   // Handle pagination
   const handlePageChange = (page) => {
-    console.log('📄 handlePageChange called with:', page);
+    //console.log('📄 handlePageChange called with:', page);
     const validatedPage = Math.max(1, page);
     updateURL({ page: validatedPage });
     setSelectedLeads([]);

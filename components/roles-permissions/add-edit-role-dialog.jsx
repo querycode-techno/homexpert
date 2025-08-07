@@ -39,7 +39,7 @@ export function AddEditRoleDialog({ open, onOpenChange, role, onSuccess }) {
   const isEditing = !!role
 
   // Debug logging
-  console.log('🔍 Dialog component - open:', open, 'role:', role)
+  //console.log('🔍 Dialog component - open:', open, 'role:', role)
 
   // Fetch available permissions when dialog opens
   useEffect(() => {

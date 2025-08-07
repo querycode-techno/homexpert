@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       // In real app, this would hash and store the new password
-      console.log('Password changed successfully');
+      //console.log('Password changed successfully');
 
       return { success: true };
     } catch (error) {

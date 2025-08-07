@@ -45,7 +45,7 @@ export async function POST(req) {
       } catch (err) {
         console.error("Error saving user:", err);
       }
-      console.log(`FCM token updated for user ${userId}.`);
+      //console.log(`FCM token updated for user ${userId}.`);
       return NextResponse.json({ message: 'FCM token updated successfully.' });
     
   } catch (error) {

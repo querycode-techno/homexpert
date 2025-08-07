@@ -15,7 +15,7 @@ import mongoose from 'mongoose';
 // Function to send support ticket notification
 async function sendSupportNotification(recipientUser, notificationData, senderUserId) {
   try {
-    console.log(`Sending support notification to user: ${recipientUser.name}`);
+    //console.log(`Sending support notification to user: ${recipientUser.name}`);
 
     // Create the notification document
     const notification = new Notification({
@@ -55,7 +55,7 @@ async function sendSupportNotification(recipientUser, notificationData, senderUs
         };
 
         const sendResult = await admin.messaging().send(fcmMessage);
-        console.log(`FCM support notification sent to user ${recipientUser.name}:`, sendResult);
+        //console.log(`FCM support notification sent to user ${recipientUser.name}:`, sendResult);
 
         // Update delivery status to delivered
         await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
@@ -82,7 +82,7 @@ async function sendSupportNotification(recipientUser, notificationData, senderUs
         if (fcmError.code === 'messaging/invalid-registration-token' || 
             fcmError.code === 'messaging/registration-token-not-registered') {
           await User.findByIdAndUpdate(recipientUser._id, { fcmToken: null });
-          console.log(`Removed invalid FCM token for user: ${recipientUser.name}`);
+          //console.log(`Removed invalid FCM token for user: ${recipientUser.name}`);
         }
 
         return {
@@ -92,7 +92,7 @@ async function sendSupportNotification(recipientUser, notificationData, senderUs
         };
       }
     } else {
-      console.log(`No FCM token for user ${recipientUser.name}, notification saved to database only`);
+      //console.log(`No FCM token for user ${recipientUser.name}, notification saved to database only`);
       return {
         sent: false,
         notificationId: notification._id,

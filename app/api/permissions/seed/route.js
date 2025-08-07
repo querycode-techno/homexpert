@@ -135,7 +135,7 @@ export async function POST(request) {
     const permissionMap = new Map() // To store permission ID mappings
 
     // 1. Insert permissions
-    console.log('Seeding permissions...')
+    //console.log('Seeding permissions...')
     for (const permission of DEFAULT_PERMISSIONS) {
       const existing = await db.collection('permissions').findOne({
         module: permission.module,
@@ -163,7 +163,7 @@ export async function POST(request) {
     })
 
     // 2. Insert roles with permissions
-    console.log('Seeding roles...')
+    //console.log('Seeding roles...')
     for (const roleData of DEFAULT_ROLES) {
       const existing = await db.collection('roles').findOne({ 
         name: roleData.name.toLowerCase() 
@@ -194,7 +194,7 @@ export async function POST(request) {
       }
     }
 
-    console.log(`Seeded ${insertedPermissions} permissions and ${insertedRoles} roles`)
+    //console.log(`Seeded ${insertedPermissions} permissions and ${insertedRoles} roles`)
 
     return NextResponse.json(
       {

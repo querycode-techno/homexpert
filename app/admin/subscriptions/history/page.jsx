@@ -205,7 +205,7 @@ export default function SubscriptionHistoryPage() {
   const loadVendorsAndPlans = async () => {
     try {
       setLoadingVendorsAndPlans(true)
-      console.log("Loading vendors and plans...")
+      //console.log("Loading vendors and plans...")
       
       // Load vendors using direct API call (similar to subscription form approach)
       const response = await fetch('/api/admin/vendors?limit=1000')
@@ -219,8 +219,8 @@ export default function SubscriptionHistoryPage() {
           )
           setVendors(validVendors)
           setFilteredVendors(validVendors)
-          console.log("Loaded vendors:", validVendors.length, "out of", vendorsList.length, "total")
-          console.log("Sample vendor data:", validVendors[0]) // Debug vendor structure
+          //console.log("Loaded vendors:", validVendors.length, "out of", vendorsList.length, "total")
+          //console.log("Sample vendor data:", validVendors[0]) // Debug vendor structure
         } else {
           console.error("Failed to load vendors:", data.error)
           toast.error(data.error || "Failed to load vendors")
@@ -236,13 +236,13 @@ export default function SubscriptionHistoryPage() {
       // Load subscription plans using subscription service
       try {
         const plansResult = await subscriptionService.getAllPlans({ limit: 100 })
-        console.log("Plans result:", plansResult)
+        //console.log("Plans result:", plansResult)
         
         if (plansResult.success && plansResult.data && plansResult.data.plans) {
           // Filter to only active plans for the dropdown
           const activePlans = plansResult.data.plans.filter(plan => plan.isActive !== false)
           setSubscriptionPlans(activePlans)
-          console.log("Loaded plans:", activePlans.length, "out of", plansResult.data.plans.length, "total")
+          //console.log("Loaded plans:", activePlans.length, "out of", plansResult.data.plans.length, "total")
         } else {
           console.error("Invalid plans response:", plansResult)
           setSubscriptionPlans([])
@@ -357,12 +357,12 @@ export default function SubscriptionHistoryPage() {
       }
 
       // Debug logging
-      console.log("Creating subscription with data:", {
-        vendorId: createFormData.vendorId,
-        subscriptionPlanId: createFormData.subscriptionPlanId,
-        amount: createFormData.amount,
-        paymentMethod: createFormData.paymentMethod
-      })
+      //console.log("Creating subscription with data:", {
+      //   vendorId: createFormData.vendorId,
+      //   subscriptionPlanId: createFormData.subscriptionPlanId,
+      //   amount: createFormData.amount,
+      //   paymentMethod: createFormData.paymentMethod
+      // })
 
       const response = await fetch('/api/admin/subscriptions/history', {
         method: 'POST',

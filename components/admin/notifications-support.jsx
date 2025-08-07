@@ -95,9 +95,9 @@ export function NotificationsSupport() {
 
       const fetchNotis = async () => {
         const userId = await getSession().then(session => session?.user?.id)
-        console.log("userId", userId);
+        //console.log("userId", userId);
         const notis = await fetchAdminNotifications(userId)
-        console.log("notis", notis);
+        //console.log("notis", notis);
         setNotifications(notis)
       }
       fetchNotis()
@@ -174,7 +174,7 @@ export function NotificationsSupport() {
       target: targetmap[notificationForm.target],
       userId: userId,
     })
-    console.log("res", res)
+    //console.log("res", res)
 
     newNotification._id = res._id;
     newNotification.read = true;
@@ -193,7 +193,7 @@ export function NotificationsSupport() {
     // Delete notification
     setNotifications(notifications.filter((notification) => notification._id !== currentNotification._id))
     const res = await deleteNotification(currentNotification._id)
-    console.log("res", res)
+    //console.log("res", res)
 
     // Show success message
     toast.success("Notification has been deleted successfully.")
@@ -206,7 +206,7 @@ export function NotificationsSupport() {
   const handleMarkAsRead = async (notification) => {
     // Mark notification as read
     const res = await markAsRead(notification._id)
-    console.log("res", res)
+    //console.log("res", res)
     setNotifications(notifications.map((n) => (n._id === notification._id ? { ...n, read: true } : n)))
 
     // Show success message

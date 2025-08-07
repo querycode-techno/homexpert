@@ -5,21 +5,21 @@ import { requireAdmin } from '@/lib/dal'
 // GET - Fetch all permissions
 export async function GET(request) {
   try {
-    console.log('🔍 Permissions API - Starting request')
+    //console.log('🔍 Permissions API - Starting request')
     
     // Check admin access
     await requireAdmin()
-    console.log('✅ Permissions API - Admin access verified')
+    //console.log('✅ Permissions API - Admin access verified')
 
     await client.connect()
     const db = client.db('homexpert')
-    console.log('✅ Permissions API - Database connected')
+    //console.log('✅ Permissions API - Database connected')
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const groupBy = searchParams.get('groupBy') || 'module'
     const search = searchParams.get('search') || ''
-    console.log('📋 Permissions API - Query params:', { groupBy, search })
+    //console.log('📋 Permissions API - Query params:', { groupBy, search })
 
     // Build query
     let query = {}
@@ -39,7 +39,7 @@ export async function GET(request) {
       .sort({ module: 1, resource: 1, action: 1 })
       .toArray()
     
-    console.log('📊 Permissions API - Found permissions:', permissions.length)
+    //console.log('📊 Permissions API - Found permissions:', permissions.length)
 
     // Group permissions if requested
     let groupedPermissions = permissions
@@ -69,7 +69,7 @@ export async function GET(request) {
       grouped: groupBy !== 'none'
     }
 
-    console.log('✅ Permissions API - Response ready:', Object.keys(response))
+    //console.log('✅ Permissions API - Response ready:', Object.keys(response))
     return NextResponse.json(response, { status: 200 })
 
   } catch (error) {

@@ -88,7 +88,7 @@ export default function AdminNewSupportTicketPage() {
       const response = await fetch(`/api/admin/vendors?limit=1000&status=active`)
       const data = await response.json()
       
-      console.log("Vendor API Response:", data) // Debug log
+      //console.log("Vendor API Response:", data) // Debug log
       
       if (data.success) {
         // Correct path: data.data.vendors (not data.vendors)
@@ -113,7 +113,7 @@ export default function AdminNewSupportTicketPage() {
       const response = await fetch(`/api/admin/users/by-role?roles=telecaller,helpline`)
       const data = await response.json()
       
-      console.log("Assignee Users API Response:", data) // Debug log
+      //console.log("Assignee Users API Response:", data) // Debug log
       
       if (data.success) {
         setAssigneeUsers(data.users || [])
@@ -198,7 +198,7 @@ export default function AdminNewSupportTicketPage() {
           relatedSubscription: formData.relatedSubscriptionId || undefined
         };
         
-        console.log('Sending request payload:', JSON.stringify(requestPayload, null, 2)); // Debug log
+        //console.log('Sending request payload:', JSON.stringify(requestPayload, null, 2)); // Debug log
         
         const response = await fetch("/api/admin/support", {
           method: "POST",
@@ -209,14 +209,14 @@ export default function AdminNewSupportTicketPage() {
         })
 
               const data = await response.json()
-        console.log('Create ticket API response:', JSON.stringify(data, null, 2)); // Debug log
+        //console.log('Create ticket API response:', JSON.stringify(data, null, 2)); // Debug log
 
         if (data.success) {
           toast.success("Support ticket created successfully")
           
           // Handle different possible response structures
           const ticketId = data.data?.ticket?._id || data.ticket?._id;
-          console.log('Extracted ticket ID:', ticketId); // Debug log
+          //console.log('Extracted ticket ID:', ticketId); // Debug log
           
           if (ticketId) {
             router.push(`/admin/support/${ticketId}`)

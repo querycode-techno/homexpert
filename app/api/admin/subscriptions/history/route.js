@@ -24,7 +24,7 @@ async function connectDB() {
 // Function to send subscription notification to vendor
 async function sendSubscriptionNotification(vendorUser, subscriptionData, adminUserId) {
   try {
-    console.log(`Sending subscription notification to vendor: ${vendorUser.name}`);
+    //console.log(`Sending subscription notification to vendor: ${vendorUser.name}`);
 
     // Create notification content
     const title = 'New Subscription Activated';
@@ -69,7 +69,7 @@ async function sendSubscriptionNotification(vendorUser, subscriptionData, adminU
         };
 
         const sendResult = await admin.messaging().send(fcmMessage);
-        console.log(`FCM subscription notification sent to vendor ${vendorUser.name}:`, sendResult);
+        //console.log(`FCM subscription notification sent to vendor ${vendorUser.name}:`, sendResult);
 
         // Update delivery status to delivered
         await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
@@ -96,7 +96,7 @@ async function sendSubscriptionNotification(vendorUser, subscriptionData, adminU
         if (fcmError.code === 'messaging/invalid-registration-token' || 
             fcmError.code === 'messaging/registration-token-not-registered') {
           await User.findByIdAndUpdate(vendorUser._id, { fcmToken: null });
-          console.log(`Removed invalid FCM token for vendor: ${vendorUser.name}`);
+          //console.log(`Removed invalid FCM token for vendor: ${vendorUser.name}`);
         }
 
         return {
@@ -106,7 +106,7 @@ async function sendSubscriptionNotification(vendorUser, subscriptionData, adminU
         };
       }
     } else {
-      console.log(`No FCM token for vendor ${vendorUser.name}, notification saved to database only`);
+      //console.log(`No FCM token for vendor ${vendorUser.name}, notification saved to database only`);
       return {
         sent: false,
         notificationId: notification._id,
@@ -531,18 +531,18 @@ export async function POST(request) {
     const subscriptionPlansCollection = await database.getSubscriptionPlansCollection();
 
     // Debug logging
-    console.log("Creating subscription for vendorId:", vendorId);
-    console.log("VendorId type:", typeof vendorId);
-    console.log("VendorId length:", vendorId?.length);
+    //console.log("Creating subscription for vendorId:", vendorId);
+    //console.log("VendorId type:", typeof vendorId);
+    //console.log("VendorId length:", vendorId?.length);
     
     // Verify vendor exists - try by vendor ID first, then by user ID
     let vendor = await vendorsCollection.findOne({ _id: new ObjectId(vendorId) });
-    console.log("Found vendor by vendor ID:", vendor ? "YES" : "NO");
+    //console.log("Found vendor by vendor ID:", vendor ? "YES" : "NO");
     
     if (!vendor) {
       // Try to find by user ID instead
       vendor = await vendorsCollection.findOne({ user: new ObjectId(vendorId) });
-      console.log("Found vendor by user ID:", vendor ? "YES" : "NO");
+      //console.log("Found vendor by user ID:", vendor ? "YES" : "NO");
     }
     
     if (!vendor) {
@@ -884,7 +884,7 @@ export async function PATCH(request) {
       );
     }
 
-    console.log(`Subscription ${subscriptionId} status updated to: ${status}`);
+    //console.log(`Subscription ${subscriptionId} status updated to: ${status}`);
 
     return NextResponse.json({
       success: true,

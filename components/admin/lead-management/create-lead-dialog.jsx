@@ -157,8 +157,8 @@ export default function CreateLeadDialog({
         createdBy: currentUserId || undefined
       }
 
-      console.log('Creating lead with payload:', leadPayload);
-      console.log('Current user ID:', currentUserId);
+      //console.log('Creating lead with payload:', leadPayload);
+      //console.log('Current user ID:', currentUserId);
 
       // Submit to ADMIN API endpoint (not public API)
       const response = await fetch('/api/admin/leads', {

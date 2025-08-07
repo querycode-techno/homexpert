@@ -24,20 +24,20 @@ export async function GET(request, { params }) {
     const vendorsCollection = await database.getVendorsCollection();
     const usersCollection = await database.getUsersCollection();
 
-    console.log('DEBUG VENDOR GET: Looking for vendor with ID:', id);
+    //console.log('DEBUG VENDOR GET: Looking for vendor with ID:', id);
     
     // Try to find vendor by _id first (in case id is vendor's _id)
     let targetVendor = await vendorsCollection.findOne({ _id: new ObjectId(id) });
-    console.log('DEBUG VENDOR GET: Vendor found by _id?', !!targetVendor);
+    //console.log('DEBUG VENDOR GET: Vendor found by _id?', !!targetVendor);
     
     // If not found by _id, try to find by user field (in case id is user's _id)
     if (!targetVendor) {
       targetVendor = await vendorsCollection.findOne({ user: new ObjectId(id) });
-      console.log('DEBUG VENDOR GET: Vendor found by user field?', !!targetVendor);
+      //console.log('DEBUG VENDOR GET: Vendor found by user field?', !!targetVendor);
     }
     
     if (!targetVendor) {
-      console.log('DEBUG VENDOR GET: No vendor found for ID:', id);
+      //console.log('DEBUG VENDOR GET: No vendor found for ID:', id);
       return NextResponse.json(
         { 
           success: false, 
@@ -141,38 +141,38 @@ export async function PUT(request, { params }) {
     const usersCollection = await database.getUsersCollection();
 
     // Check if vendor exists
-    console.log('DEBUG VENDOR UPDATE: Looking for vendor with ID:', id);
-    console.log('DEBUG VENDOR UPDATE: ObjectId valid?', ObjectId.isValid(id));
+    //console.log('DEBUG VENDOR UPDATE: Looking for vendor with ID:', id);
+    //console.log('DEBUG VENDOR UPDATE: ObjectId valid?', ObjectId.isValid(id));
     
     // Try to find vendor by _id first (in case id is vendor's _id)
     let existingVendor = await vendorsCollection.findOne({ _id: new ObjectId(id) });
-    console.log('DEBUG VENDOR UPDATE: Vendor found by _id?', !!existingVendor);
+    //console.log('DEBUG VENDOR UPDATE: Vendor found by _id?', !!existingVendor);
     
     // If not found by _id, try to find by user field (in case id is user's _id)
     if (!existingVendor) {
       existingVendor = await vendorsCollection.findOne({ user: new ObjectId(id) });
-      console.log('DEBUG VENDOR UPDATE: Vendor found by user field?', !!existingVendor);
+      //console.log('DEBUG VENDOR UPDATE: Vendor found by user field?', !!existingVendor);
     }
     
     // Also check if this ID exists in users collection (since vendor list now shows all vendor users)
     const existingUser = await usersCollection.findOne({ _id: new ObjectId(id) });
-    console.log('DEBUG VENDOR UPDATE: User found in users collection?', !!existingUser);
+    //console.log('DEBUG VENDOR UPDATE: User found in users collection?', !!existingUser);
     
-    if (existingUser) {
-      console.log('DEBUG VENDOR UPDATE: User details:', {
-        id: existingUser._id.toString(),
-        name: existingUser.name,
-        email: existingUser.email,
-        role: existingUser.role
-      });
-    }
+    //if (existingUser) {
+      //console.log('DEBUG VENDOR UPDATE: User details:', {
+    //     id: existingUser._id.toString(),
+    //     name: existingUser.name,
+    //     email: existingUser.email,
+    //     role: existingUser.role
+    //   });
+    // }
     
     if (!existingVendor) {
-      console.log('DEBUG VENDOR UPDATE: Vendor not found for ID:', id);
+      //console.log('DEBUG VENDOR UPDATE: Vendor not found for ID:', id);
       
       // Check if this is a user with vendor role who needs a vendor profile created
       if (existingUser) {
-        console.log('DEBUG VENDOR UPDATE: User exists but no vendor profile. Creating vendor profile...');
+        //console.log('DEBUG VENDOR UPDATE: User exists but no vendor profile. Creating vendor profile...');
         
         // Get vendor role to verify this user has vendor role
         const rolesCollection = await database.getRolesCollection();
@@ -223,14 +223,14 @@ export async function PUT(request, { params }) {
           
           // Insert the vendor profile
           const vendorResult = await vendorsCollection.insertOne(defaultVendorData);
-          console.log('DEBUG VENDOR UPDATE: Created vendor profile with ID:', vendorResult.insertedId);
+          //console.log('DEBUG VENDOR UPDATE: Created vendor profile with ID:', vendorResult.insertedId);
           
           // Fetch the newly created vendor for the update process
           const newVendor = await vendorsCollection.findOne({ _id: vendorResult.insertedId });
           
           // Update existingVendor to point to the newly created vendor
           existingVendor = newVendor;
-          console.log('DEBUG VENDOR UPDATE: Using newly created vendor profile for update');
+          //console.log('DEBUG VENDOR UPDATE: Using newly created vendor profile for update');
         } else {
           return NextResponse.json(
             { 
@@ -517,20 +517,20 @@ export async function DELETE(request, { params }) {
     const usersCollection = await database.getUsersCollection();
 
     // Check if vendor exists - try by vendor ID first, then by user ID (same logic as GET/PUT)
-    console.log('DEBUG VENDOR DELETE: Looking for vendor with ID:', id);
+    //console.log('DEBUG VENDOR DELETE: Looking for vendor with ID:', id);
     
     // Try to find vendor by _id first (in case id is vendor's _id)
     let existingVendor = await vendorsCollection.findOne({ _id: new ObjectId(id) });
-    console.log('DEBUG VENDOR DELETE: Vendor found by _id?', !!existingVendor);
+    //console.log('DEBUG VENDOR DELETE: Vendor found by _id?', !!existingVendor);
     
     // If not found by _id, try to find by user field (in case id is user's _id)
     if (!existingVendor) {
       existingVendor = await vendorsCollection.findOne({ user: new ObjectId(id) });
-      console.log('DEBUG VENDOR DELETE: Vendor found by user field?', !!existingVendor);
+      //console.log('DEBUG VENDOR DELETE: Vendor found by user field?', !!existingVendor);
     }
     
     if (!existingVendor) {
-      console.log('DEBUG VENDOR DELETE: No vendor found for ID:', id);
+      //console.log('DEBUG VENDOR DELETE: No vendor found for ID:', id);
       return NextResponse.json(
         { 
           success: false, 
@@ -568,7 +568,7 @@ export async function DELETE(request, { params }) {
       user: existingVendor.user
     });
     
-    console.log(`Deleted ${subscriptionDeleteResult.deletedCount} subscription records for vendor ${id}`);
+    //console.log(`Deleted ${subscriptionDeleteResult.deletedCount} subscription records for vendor ${id}`);
     
     // Delete vendor first (use the found vendor's actual _id)
     await vendorsCollection.deleteOne({ _id: existingVendor._id });

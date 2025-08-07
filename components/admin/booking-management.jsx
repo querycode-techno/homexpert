@@ -238,8 +238,8 @@ export function BookingManagement() {
         return "bg-gray-500 hover:bg-gray-500/80"
     }
   }
-//   console.log("All services:", serviceUtils.getAllServices())
-// console.log("Service utils:", serviceUtils)
+//   //console.log("All services:", serviceUtils.getAllServices())
+// //console.log("Service utils:", serviceUtils)
 
   return (
     <div className="flex flex-col gap-6">

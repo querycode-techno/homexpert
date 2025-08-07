@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import { CityManagement } from "@/components/admin/city-management"
+import CityManagement from "@/components/admin/city-management"
 
 export default function CitiesPage() {
   return (

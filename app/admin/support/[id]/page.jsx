@@ -55,7 +55,7 @@ export default function AdminSupportTicketDetailsPage({ params }) {
   const { id } = params
   const { isAdmin } = usePermissions()
 
-  console.log("isAdmin", isAdmin)
+  //console.log("isAdmin", isAdmin)
   
   const [ticket, setTicket] = useState(null)
   const [loading, setLoading] = useState(true)

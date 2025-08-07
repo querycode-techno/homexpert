@@ -118,47 +118,9 @@ export function VendorForm({
   const [usersLoading, setUsersLoading] = useState(false)
   const [formDataLoaded, setFormDataLoaded] = useState(false)
   const [imagePreview, setImagePreview] = useState({ isOpen: false, imageUrl: '', title: '' })
-  
-  // Debug admin permission
-  useEffect(() => {
-    console.log('VendorForm - isAdmin:', isAdmin, 'isOpen:', isOpen)
-  }, [isAdmin, isOpen])
-  
-  // Fetch users for onboardedBy dropdown (admin only)
-  const fetchUsers = async () => {
-    if (!isAdmin) return
-    
-    try {
-      setUsersLoading(true)
-      // Fetch all administrative users (excluding vendors)
-      const response = await fetch('/api/admin/employee?limit=200')
-      const data = await response.json()
-      
-      if (data.success) {
-        setUsers(data.data?.employees || [])
-        console.log('Successfully loaded users:', data.data?.employees?.length || 0)
-      } else {
-        console.error('Failed to fetch users:', data.error)
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error)
-    } finally {
-      setUsersLoading(false)
-    }
-  }
-  
-  // Fetch users when form opens
-  useEffect(() => {
-    if (isOpen && isAdmin) {
-      console.log('Fetching users for onboardedBy dropdown...')
-      fetchUsers()
-    }
-  }, [isOpen, isAdmin])
-  
-  // Debug log when users change
-  useEffect(() => {
-    console.log('Users loaded:', users.length, users)
-  }, [users])
+  const [stateOptions, setStateOptions] = useState([])
+  const [cityOptions, setCityOptions] = useState([])
+  const [cityOptionsLoading, setCityOptionsLoading] = useState(false)
 
   const form = useForm({
     defaultValues: {
@@ -208,14 +170,91 @@ export function VendorForm({
       onboardedBy: ""
     }
   })
+  
+  // Debug admin permission
+  useEffect(() => {
+    //console.log('VendorForm - isAdmin:', isAdmin, 'isOpen:', isOpen)
+  }, [isAdmin, isOpen])
+  
+  // Load state options on component mount
+  useEffect(() => {
+    const loadStateOptions = async () => {
+      try {
+        const options = await getStateOptions()
+        setStateOptions(options)
+      } catch (error) {
+        console.error('Error loading state options:', error)
+        setStateOptions([])
+      }
+    }
+    loadStateOptions()
+  }, [])
+  
+  // Load city options when state changes
+  useEffect(() => {
+    const loadCityOptions = async () => {
+      const selectedState = form.watch('address.state')
+      if (selectedState) {
+        setCityOptionsLoading(true)
+        try {
+          const options = await getCityOptions(selectedState)
+          setCityOptions(options)
+        } catch (error) {
+          console.error('Error loading city options:', error)
+          setCityOptions([])
+        } finally {
+          setCityOptionsLoading(false)
+        }
+      } else {
+        setCityOptions([])
+      }
+    }
+    loadCityOptions()
+  }, [form.watch('address.state')])
+  
+  // Fetch users for onboardedBy dropdown (admin only)
+  const fetchUsers = async () => {
+    if (!isAdmin) return
+    
+    try {
+      setUsersLoading(true)
+      // Fetch all administrative users (excluding vendors)
+      const response = await fetch('/api/admin/employee?limit=200')
+      const data = await response.json()
+      
+      if (data.success) {
+        setUsers(data.data?.employees || [])
+        //console.log('Successfully loaded users:', data.data?.employees?.length || 0)
+      } else {
+        console.error('Failed to fetch users:', data.error)
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+  
+  // Fetch users when form opens
+  useEffect(() => {
+    if (isOpen && isAdmin) {
+      //console.log('Fetching users for onboardedBy dropdown...')
+      fetchUsers()
+    }
+  }, [isOpen, isAdmin])
+  
+  // Debug log when users change
+  useEffect(() => {
+    //console.log('Users loaded:', users.length, users)
+  }, [users])
 
   // Populate form when editing
   useEffect(() => {
     if (isEdit && vendor) {
       setFormDataLoaded(false) // Start loading
-      console.log('Populating vendor form with data:', vendor)
-      console.log('Documents data:', vendor.documents)
-      console.log('Verification data:', vendor.verified)
+      //console.log('Populating vendor form with data:', vendor)
+      //console.log('Documents data:', vendor.documents)
+      //console.log('Verification data:', vendor.verified)
       form.reset({
         // User data
         name: vendor.userData?.name || "",
@@ -265,8 +304,8 @@ export function VendorForm({
       
       // Debug: Log what form is watching after reset
       setTimeout(() => {
-        console.log('Form watching documents after reset:', form.watch("documents"))
-        console.log('Form watching verification after reset:', form.watch("verified"))
+        //console.log('Form watching documents after reset:', form.watch("documents"))
+        //console.log('Form watching verification after reset:', form.watch("verified"))
         setFormDataLoaded(true) // Mark as loaded after form reset completes
       }, 100)
     } else if (!isEdit) {
@@ -560,7 +599,7 @@ export function VendorForm({
                         <FormLabel>State</FormLabel>
                         <FormControl>
                           <SearchableSelect
-                            options={getStateOptions()}
+                            options={stateOptions}
                             value={field.value}
                             onValueChange={field.onChange}
                             placeholder="Search and select state..."
@@ -583,18 +622,22 @@ export function VendorForm({
                         <FormLabel>City</FormLabel>
                         <FormControl>
                           <SearchableSelect
-                            options={getCityOptions(form.watch('address.state'))}
+                            options={cityOptions}
                             value={field.value}
                             onValueChange={field.onChange}
                             placeholder={
                               !form.watch('address.state') 
                                 ? 'Select state first' 
-                                : 'Search and select city...'
+                                : cityOptionsLoading
+                                  ? 'Loading cities...'
+                                  : cityOptions.length === 0 
+                                    ? 'No cities available'
+                                    : 'Search and select city...'
                             }
                             searchPlaceholder="Type to search cities..."
                             emptyMessage={!form.watch('address.state') ? "Please select a state first" : "No cities found"}
-                            disabled={!form.watch('address.state')}
-                            showSearch={getCityOptions(form.watch('address.state')).length > 10}
+                            disabled={!form.watch('address.state') || cityOptionsLoading || cityOptions.length === 0}
+                            showSearch={true}
                           />
                         </FormControl>
                         <FormMessage />

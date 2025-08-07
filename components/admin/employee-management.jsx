@@ -64,8 +64,8 @@ export function EmployeeManagement() {
 
   // Update URL with new parameters
   const updateURL = (newParams) => {
-    console.log('🔄 updateURL called with:', newParams)
-    console.log('📍 Current URL params:', Object.fromEntries(searchParams.entries()))
+    //console.log('🔄 updateURL called with:', newParams)
+    //console.log('📍 Current URL params:', Object.fromEntries(searchParams.entries()))
     
     const params = new URLSearchParams(searchParams.toString())
     
@@ -88,19 +88,19 @@ export function EmployeeManagement() {
     // }
 
     const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`
-    console.log('➡️ Navigating to:', newURL)
+    //console.log('➡️ Navigating to:', newURL)
     router.push(newURL, { scroll: false })
   }
 
   // Debug URL parameter changes
-  useEffect(() => {
-    console.log('📊 URL params changed:', { 
-      page: currentPage, 
-      search: currentSearch, 
-      role: currentRole, 
-      status: currentStatus 
-    })
-  }, [currentPage, currentSearch, currentRole, currentStatus])
+  //useEffect(() => {
+    //console.log('📊 URL params changed:', { 
+    //   page: currentPage, 
+    //   search: currentSearch, 
+    //   role: currentRole, 
+    //   status: currentStatus 
+    // })
+  //}, [currentPage, currentSearch, currentRole, currentStatus])
 
   // Load initial data on component mount
   useEffect(() => {
@@ -180,7 +180,7 @@ export function EmployeeManagement() {
   const handleAddEmployee = async (formData) => {
     try {
       setLoading(true)
-      console.log(formData);
+      //console.log(formData);
       const result = await employeeService.createEmployee(formData)
       
       if (result.success) {
@@ -210,7 +210,7 @@ export function EmployeeManagement() {
   const handleUpdateEmployee = async (formData) => {
     try {
       setLoading(true)
-      console.log("formDAta", formData);
+      //console.log("formDAta", formData);
       const result = await employeeService.updateEmployee(currentEmployee._id, formData)
       
       if (result.success) {
@@ -280,11 +280,11 @@ export function EmployeeManagement() {
   }
 
   const handleSearch = (term) => {
-    console.log('🔍 handleSearch called with:', term, 'current:', currentSearch)
+    //console.log('🔍 handleSearch called with:', term, 'current:', currentSearch)
     setSearchTerm(term)
     // Only reset to page 1 if this is an actual search action (not initial sync)
     if (term !== currentSearch) {
-      console.log('🔄 Search changed, updating URL')
+      //console.log('🔄 Search changed, updating URL')
       updateURL({ 
         search: term || undefined,
         page: undefined // Reset to page 1 by removing page param
@@ -293,11 +293,11 @@ export function EmployeeManagement() {
   }
 
   const handleFilterChange = (newFilters) => {
-    console.log('🔧 handleFilterChange called with:', newFilters, 'current:', { role: currentRole, status: currentStatus })
+    //console.log('🔧 handleFilterChange called with:', newFilters, 'current:', { role: currentRole, status: currentStatus })
     setFilters(newFilters)
     // Only reset to page 1 if filters actually changed (not initial sync)
     if (newFilters.role !== currentRole || newFilters.status !== currentStatus) {
-      console.log('🔄 Filters changed, updating URL')
+      //console.log('🔄 Filters changed, updating URL')
       updateURL({ 
         role: newFilters.role || undefined, 
         status: newFilters.status || undefined, 
@@ -307,7 +307,7 @@ export function EmployeeManagement() {
   }
 
   const handlePageChange = (page) => {
-    console.log('📄 handlePageChange called with:', page)
+    //console.log('📄 handlePageChange called with:', page)
     // Ensure valid page number  
     const validatedPage = Math.max(1, page)
     updateURL({ page: validatedPage })

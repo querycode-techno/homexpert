@@ -1,17 +1,9 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { 
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue
-} from '@/components/ui/select'
 import { SearchableSelect } from '@/components/ui/searchable-select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
-  getStates, 
-  getCitiesForState, 
   isCityInState,
   getStateForCity,
   getStateOptions,
@@ -37,35 +29,71 @@ export function StateCitySelector({
   className = '',
   enableSearch = true
 }) {
-  const [stateOptions] = useState(() => getStateOptions())
+  const [stateOptions, setStateOptions] = useState([])
   const [cityOptions, setCityOptions] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  // Load state options on component mount
+  useEffect(() => {
+    const loadStateOptions = async () => {
+      try {
+        const options = await getStateOptions()
+        setStateOptions(options)
+      } catch (error) {
+        console.error('Error loading state options:', error)
+        setStateOptions([])
+      }
+    }
+    loadStateOptions()
+  }, [])
 
   // Update available cities when state changes
   useEffect(() => {
-    if (selectedState) {
-      const cities = getCityOptions(selectedState)
-      setCityOptions(cities)
-      
-      // Clear city if it's not valid for the new state
-      if (selectedCity && !isCityInState(selectedState, selectedCity)) {
-        onCityChange('')
-      }
-    } else {
-      setCityOptions([])
-      if (selectedCity) {
-        onCityChange('')
+    const loadCityOptions = async () => {
+      if (selectedState) {
+        setLoading(true)
+        try {
+          const options = await getCityOptions(selectedState)
+          setCityOptions(options)
+          
+          // Clear city if it's not valid for the new state
+          if (selectedCity) {
+            const isValid = await isCityInState(selectedState, selectedCity)
+            if (!isValid) {
+              onCityChange('')
+            }
+          }
+        } catch (error) {
+          console.error('Error loading city options:', error)
+          setCityOptions([])
+        } finally {
+          setLoading(false)
+        }
+      } else {
+        setCityOptions([])
+        if (selectedCity) {
+          onCityChange('')
+        }
       }
     }
+    loadCityOptions()
   }, [selectedState, selectedCity, onCityChange])
 
   // Auto-detect state when city is set externally
   useEffect(() => {
-    if (selectedCity && !selectedState) {
-      const detectedState = getStateForCity(selectedCity)
-      if (detectedState) {
-        onStateChange(detectedState)
+    const detectState = async () => {
+      if (selectedCity && !selectedState) {
+        try {
+          const detectedState = await getStateForCity(selectedCity)
+          if (detectedState) {
+            onStateChange(detectedState)
+          }
+        } catch (error) {
+          console.error('Error detecting state for city:', error)
+        }
       }
     }
+    detectState()
   }, [selectedCity, selectedState, onStateChange])
 
   const handleStateChange = (newState) => {
@@ -131,29 +159,35 @@ export function StateCitySelector({
             placeholder={
               !selectedState 
                 ? 'Select state first' 
-                : cityOptions.length === 0 
-                  ? 'No cities available'
-                  : cityPlaceholder
+                : loading
+                  ? 'Loading cities...'
+                  : cityOptions.length === 0 
+                    ? 'No cities available'
+                    : cityPlaceholder
             }
             searchPlaceholder="Search cities..."
             emptyMessage={!selectedState ? "Please select a state first" : "No cities found"}
-            disabled={disabled || !selectedState || cityOptions.length === 0}
-            showSearch={cityOptions.length > 10} // Only show search for cities if there are many options
+            disabled={disabled || !selectedState || loading || cityOptions.length === 0}
+            showSearch={true}
           />
         ) : (
           <Select 
             value={selectedCity} 
             onValueChange={handleCityChange}
-            disabled={disabled || !selectedState || cityOptions.length === 0}
+            disabled={disabled || !selectedState || loading || cityOptions.length === 0}
           >
             <SelectTrigger>
-              <SelectValue placeholder={
-                !selectedState 
-                  ? 'Select state first' 
-                  : cityOptions.length === 0 
-                    ? 'No cities available'
-                    : cityPlaceholder
-              } />
+              <SelectValue 
+                placeholder={
+                  !selectedState 
+                    ? 'Select state first' 
+                    : loading
+                      ? 'Loading cities...'
+                      : cityOptions.length === 0 
+                        ? 'No cities available'
+                        : cityPlaceholder
+                } 
+              />
             </SelectTrigger>
             <SelectContent>
               {cityOptions.map((option) => (

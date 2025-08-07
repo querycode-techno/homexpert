@@ -18,7 +18,7 @@ export function RecentVendors() {
     const fetchVendors = async () => {
       const response = await dashboardService.getRecentVendors();
       setVendors(response.data);
-      console.log(response.data)
+      //console.log(response.data)
     };
 
     fetchVendors();

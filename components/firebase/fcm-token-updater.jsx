@@ -14,7 +14,7 @@ const FCMTokenUpdater = () => {
     const updateToken = async () => {
       // Check if messaging is available and the user is logged in
       if (messaging && session?.user?.id) {
-        console.log("user id", session.user.id);
+        //console.log("user id", session.user.id);
         try {
           // Get the FCM token. This will prompt the user for permission.
           const currentToken = await getToken(messaging, {
@@ -23,7 +23,7 @@ const FCMTokenUpdater = () => {
           });
 
           if (currentToken) {
-            console.log("FCM Token retrieved:", currentToken);
+            //console.log("FCM Token retrieved:", currentToken);
             
             // Now, send this token to your Next.js backend
             await sendTokenToBackend(session.user.id, currentToken);
@@ -53,7 +53,7 @@ const FCMTokenUpdater = () => {
       });
 
       if (response.ok) {
-        console.log("FCM token successfully updated on the server.");
+        //console.log("FCM token successfully updated on the server.");
       } else {
         console.error("Failed to update FCM token on the server.");
       }

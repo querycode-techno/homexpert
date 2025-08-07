@@ -45,12 +45,12 @@ export async function POST(request) {
         if (tokens.length === 1) {
             // Send to a Single Token
             sendResult = await admin.messaging().send({ ...mesg, token: tokens[0] });
-            console.log('Successfully sent message to single token:', sendResult);
+            //console.log('Successfully sent message to single token:', sendResult);
         } else if (tokens.length > 1) {
             // Send to Multiple Tokens
             sendResult = await admin.messaging().sendEachForMulticast({ ...mesg, tokens });
-            console.log('Sent messages to multiple tokens. Success count:', sendResult.successCount);
-            console.log('Failure count:', sendResult.failureCount);
+            //console.log('Sent messages to multiple tokens. Success count:', sendResult.successCount);
+            //console.log('Failure count:', sendResult.failureCount);
         }
 
         return NextResponse.json({ success: true, message: "Notification created successfully", users: admins, sendResult }, { status: 200 });

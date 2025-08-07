@@ -193,7 +193,7 @@ export async function POST(request) {
     if (discountCode) {
       // Implement discount code logic here
       // For now, just log it
-      console.log('Discount code applied:', discountCode);
+      //console.log('Discount code applied:', discountCode);
     }
 
     // Create subscription history record

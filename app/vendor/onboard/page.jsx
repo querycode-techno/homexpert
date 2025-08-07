@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -47,6 +48,9 @@ export default function VendorOnboardPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [stateOptions, setStateOptions] = useState([])
+  const [cityOptions, setCityOptions] = useState([])
+  const [cityOptionsLoading, setCityOptionsLoading] = useState(false)
 
   const form = useForm({
     defaultValues: {
@@ -86,6 +90,42 @@ export default function VendorOnboardPage() {
       }
     }
   })
+
+  // Load state options on component mount
+  useEffect(() => {
+    const loadStateOptions = async () => {
+      try {
+        const options = await getStateOptions()
+        setStateOptions(options)
+      } catch (error) {
+        console.error('Error loading state options:', error)
+        setStateOptions([])
+      }
+    }
+    loadStateOptions()
+  }, [])
+  
+  // Load city options when state changes
+  useEffect(() => {
+    const loadCityOptions = async () => {
+      const selectedState = form.watch('address.state')
+      if (selectedState) {
+        setCityOptionsLoading(true)
+        try {
+          const options = await getCityOptions(selectedState)
+          setCityOptions(options)
+        } catch (error) {
+          console.error('Error loading city options:', error)
+          setCityOptions([])
+        } finally {
+          setCityOptionsLoading(false)
+        }
+      } else {
+        setCityOptions([])
+      }
+    }
+    loadCityOptions()
+  }, [form.watch('address.state')])
 
   const handleSubmit = async (data) => {
     // Validate required fields
@@ -413,7 +453,7 @@ export default function VendorOnboardPage() {
                                 <FormLabel>State *</FormLabel>
                                 <FormControl>
                                   <SearchableSelect
-                                    options={getStateOptions()}
+                                    options={stateOptions}
                                     value={field.value}
                                     onValueChange={field.onChange}
                                     placeholder="Search and select state..."
@@ -435,18 +475,22 @@ export default function VendorOnboardPage() {
                                 <FormLabel>City *</FormLabel>
                                 <FormControl>
                                   <SearchableSelect
-                                    options={getCityOptions(form.watch('address.state'))}
+                                    options={cityOptions}
                                     value={field.value}
                                     onValueChange={field.onChange}
                                     placeholder={
                                       !form.watch('address.state') 
                                         ? 'Select state first' 
-                                        : 'Search and select city...'
+                                        : cityOptionsLoading
+                                          ? 'Loading cities...'
+                                          : cityOptions.length === 0 
+                                            ? 'No cities available'
+                                            : 'Search and select city...'
                                     }
                                     searchPlaceholder="Type to search cities..."
                                     emptyMessage={!form.watch('address.state') ? "Please select a state first" : "No cities found"}
-                                    disabled={!form.watch('address.state')}
-                                    showSearch={getCityOptions(form.watch('address.state')).length > 10}
+                                    disabled={!form.watch('address.state') || cityOptionsLoading || cityOptions.length === 0}
+                                    showSearch={true}
                                   />
                                 </FormControl>
                                 <FormMessage />

@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
         setTimeout(async () => {
           try {
             const session = await getSession()
-            console.log('Session after login:', session) // Debug log
+            //console.log('Session after login:', session) // Debug log
             
             if (hasAdminAccess(session?.user?.role)) {
               // Force full page reload instead of client-side navigation

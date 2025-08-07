@@ -66,8 +66,8 @@ export function VendorManagement() {
 
   // Update URL with new parameters
   const updateURL = (newParams) => {
-    console.log('🔄 updateURL called with:', newParams)
-    console.log('📍 Current URL params:', Object.fromEntries(searchParams.entries()))
+    //console.log('🔄 updateURL called with:', newParams)
+    //console.log('📍 Current URL params:', Object.fromEntries(searchParams.entries()))
     
     const params = new URLSearchParams(searchParams.toString())
     
@@ -90,7 +90,7 @@ export function VendorManagement() {
     })
 
     const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`
-    console.log('➡️ Navigating to:', newURL)
+    //console.log('➡️ Navigating to:', newURL)
     router.push(newURL, { scroll: false })
   }
 
@@ -180,7 +180,7 @@ export function VendorManagement() {
       // Show loading toast to indicate data is being fetched
       const loadingToast = toast.loading('Loading vendor details...')
       
-      console.log('Editing vendor:', vendor._id)
+      //console.log('Editing vendor:', vendor._id)
       
       // Fetch complete vendor details by ID
       const result = await vendorService.getVendor(vendor._id)
@@ -189,7 +189,7 @@ export function VendorManagement() {
       toast.dismiss(loadingToast)
       
       if (result.success) {
-        console.log('Fetched complete vendor data for editing:', result.vendor)
+        //console.log('Fetched complete vendor data for editing:', result.vendor)
         setCurrentVendor(result.vendor)
         // Only open dialog after data is successfully loaded
         setIsEditVendorOpen(true)
@@ -276,13 +276,13 @@ export function VendorManagement() {
   }
 
   const handleSearch = (search) => {
-    console.log('🔍 handleSearch called with:', search, 'current:', currentSearch)
+    //console.log('🔍 handleSearch called with:', search, 'current:', currentSearch)
     setSearchTerm(search)
     
     // Always update URL for search changes, including clearing search
     // Special handling for empty search to ensure it always clears
     if (search !== currentSearch || (!search && currentSearch)) {
-      console.log('🔄 Search changed, updating URL')
+      //console.log('🔄 Search changed, updating URL')
       updateURL({ 
         search: search || undefined,
         page: undefined // Reset to page 1 by removing page param
@@ -291,7 +291,7 @@ export function VendorManagement() {
   }
 
   const handleFilter = (newFilters) => {
-    console.log('🔧 handleFilter called with:', newFilters)
+    //console.log('🔧 handleFilter called with:', newFilters)
     setFilters(newFilters)
     
     // Always update URL when filters change, including when clearing filters
@@ -307,7 +307,7 @@ export function VendorManagement() {
     const hadFilters = currentStatus || currentCity || currentService || currentVerified
     
     if (filtersChanged || (isClearOperation && hadFilters)) {
-      console.log('🔄 Filters changed, updating URL', { filtersChanged, isClearOperation, hadFilters })
+      //console.log('🔄 Filters changed, updating URL', { filtersChanged, isClearOperation, hadFilters })
       updateURL({ 
         status: newFilters.status || undefined,
         city: newFilters.city || undefined,
@@ -319,7 +319,7 @@ export function VendorManagement() {
   }
 
   const handlePageChange = (page) => {
-    console.log('📄 handlePageChange called with:', page)
+    //console.log('📄 handlePageChange called with:', page)
     const validatedPage = Math.max(1, page)
     updateURL({ page: validatedPage })
   }
@@ -368,7 +368,7 @@ export function VendorManagement() {
           toast.success(result.message)
           if (result.results) {
             const { successful, failed, errors } = result.results
-            console.log('Import results:', { successful, failed, errors })
+            //console.log('Import results:', { successful, failed, errors })
             
             if (failed > 0) {
               toast.warning(`${failed} vendors failed to import. Check console for details.`)
