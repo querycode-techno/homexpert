@@ -21,6 +21,7 @@ import {
   Loader2,
   Store,
   Headphones,
+  MapPin,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -105,6 +106,12 @@ export function AdminSidebar() {
       icon: <Briefcase className="h-5 w-5" />,
       href: "/admin/leads",
       permission: can.viewLeads,
+    },
+    {
+      title: "City Management",
+      icon: <MapPin className="h-5 w-5" />,
+      href: "/admin/cities",
+      permission: can.manageRoles, // Admin only for city management
     },
     {
       title: "Roles & Permissions",
