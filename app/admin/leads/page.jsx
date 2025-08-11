@@ -1,4 +1,4 @@
-import { LeadManagement } from "@/components/admin/lead-management"
+import { LeadManagementTabs } from "@/components/admin/lead-management/lead-management-tabs"
 import { Suspense } from "react"
 
 function LeadManagementFallback() {
@@ -18,7 +18,7 @@ function LeadManagementFallback() {
 export default function LeadsPage() {
   return (
     <Suspense fallback={<LeadManagementFallback />}>
-      <LeadManagement />
+      <LeadManagementTabs />
     </Suspense>
   )
 }

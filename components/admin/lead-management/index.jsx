@@ -16,9 +16,10 @@ import { ImportExportDialog } from "./import-export-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { RefreshCw, Plus, Upload, Download, ChevronDown } from "lucide-react";
+import { RefreshCw, Plus, Upload, Download, ChevronDown, Clock, AlertTriangle, Trash2 } from "lucide-react";
 import CreateLeadDialog from "./create-lead-dialog";
 import leadService from "@/lib/services/leadService";
+import oldUnassignedLeadsService from "@/lib/services/oldUnassignedLeadsService";
 
 export function LeadManagement() {
   const router = useRouter();
@@ -150,7 +151,21 @@ export function LeadManagement() {
       if (result.success) {
         setLeads(result.leads);
         setPagination(result.pagination);
-        setSummary(result.summary);
+        
+        // Fetch old unassigned leads count
+        try {
+          const oldUnassignedStats = await oldUnassignedLeadsService.getOldUnassignedStats(3);
+          setSummary({
+            ...result.summary,
+            oldUnassignedCount: oldUnassignedStats.totalUnassignedOld || 0
+          });
+        } catch (error) {
+          console.error('Error fetching old unassigned stats:', error);
+          setSummary({
+            ...result.summary,
+            oldUnassignedCount: 0
+          });
+        }
       } else {
         toast.error(`Error: ${result.error}`);
       }
@@ -398,12 +413,12 @@ export function LeadManagement() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
+        {/* <div>
           <h1 className="text-3xl font-bold">Lead Management</h1>
           <p className="text-muted-foreground">
             Manage and assign customer leads to vendors
           </p>
-        </div>
+        </div> */}
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -449,6 +464,54 @@ export function LeadManagement() {
           >
             <Plus className="h-4 w-4" />
             <span>Create Lead</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1"
+            onClick={() => {
+              // This will be handled by the parent component (LeadManagementTabs)
+              // We'll emit a custom event to switch tabs
+              window.dispatchEvent(new CustomEvent('switchToOldUnassigned'));
+            }}
+          >
+            <Clock className="h-4 w-4" />
+            <span>Old Unassigned</span>
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+          </Button>
+
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-8 gap-1"
+            onClick={async () => {
+              try {
+                // Get the count of old unassigned leads
+                const stats = await oldUnassignedLeadsService.getOldUnassignedStats(3);
+                const count = stats.totalUnassignedOld || 0;
+                
+                if (count === 0) {
+                  toast.info('No old unassigned leads found to delete');
+                  return;
+                }
+                
+                // Confirm deletion
+                if (confirm(`Are you sure you want to delete ALL ${count} old unassigned leads? This action cannot be undone.`)) {
+                  const data = await oldUnassignedLeadsService.deleteAllOldUnassignedLeads(
+                    'Admin bulk deletion from main interface'
+                  );
+                  toast.success(`Successfully deleted ${data.deletedCount} old unassigned leads`);
+                  fetchLeads(); // Refresh the main leads list
+                }
+              } catch (error) {
+                console.error('Error deleting all old unassigned leads:', error);
+                toast.error('Failed to delete old unassigned leads');
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>Delete All Old</span>
           </Button>
         </div>
       </div>
