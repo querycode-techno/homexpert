@@ -141,7 +141,7 @@ export function VendorList({
 
   // Clear all filters and search
   const clearFilters = () => {
-    const emptyFilters = { status: "", city: "", service: "", verified: "" }
+    const emptyFilters = { status: "", city: "", service: "", verified: "", onboardedBy: "" }
     
     // Update local state immediately
     setLocalFilters(emptyFilters)
@@ -160,7 +160,7 @@ export function VendorList({
   }
 
   // Check if any filters are active
-  const hasActiveFilters = localSearchTerm || localFilters.status || localFilters.city || localFilters.service || localFilters.verified
+  const hasActiveFilters = localSearchTerm || localFilters.status || localFilters.city || localFilters.service || localFilters.verified || localFilters.onboardedBy
 
   const getInitials = (name) => {
     return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'V'
@@ -281,6 +281,7 @@ export function VendorList({
                 filters={localFilters}
                 vendors={vendors}
                 onChange={handleFilterChange}
+                disabled={loading}
               />
             </div>
           )}

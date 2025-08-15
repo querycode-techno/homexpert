@@ -353,6 +353,7 @@ export default function AdminSupportPage() {
                 </TableHead>
                 <TableHead>Ticket</TableHead>
                 <TableHead>Vendor</TableHead>
+                <TableHead>User Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Category</TableHead>
@@ -413,6 +414,13 @@ export default function AdminSupportPage() {
                         </span>
                       </div>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <Badge variant="outline" className="text-xs">
+                        {ticket.createdByType || 'Unknown'}
+                      </Badge>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

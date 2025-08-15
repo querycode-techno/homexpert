@@ -62,6 +62,54 @@ const statusOptions = [
   { value: "inactive", label: "Inactive" }
 ]
 
+// Default form values - defined outside component to prevent recreation
+const defaultFormValues = {
+  // User data
+  name: "",
+  email: "",
+  phone: "",
+  password: "",
+  profileImage: "",
+  
+  // Vendor data
+  businessName: "",
+  services: [],
+  
+  // Address
+  address: {
+    street: "",
+    area: "",
+    city: "",
+    state: "",
+    pincode: "",
+    serviceAreas: []
+  },
+  
+  // Documents
+  documents: {
+    identity: {
+      type: "",
+      number: "",
+      docImageUrl: ""
+    },
+    business: {
+      type: "",
+      number: "",
+      docImageUrl: ""
+    }
+  },
+  
+  // Status and verification
+  status: "pending",
+  verified: {
+    isVerified: false,
+    verificationNotes: ""
+  },
+  
+  // Admin-only field
+  onboardedBy: ""
+}
+
 // Image Preview Component
 function ImagePreview({ isOpen, imageUrl, title, onClose }) {
   if (!isOpen) return null
@@ -122,53 +170,10 @@ export function VendorForm({
   const [cityOptions, setCityOptions] = useState([])
   const [cityOptionsLoading, setCityOptionsLoading] = useState(false)
 
+
+
   const form = useForm({
-    defaultValues: {
-      // User data
-      name: "",
-      email: "",
-      phone: "",
-      password: "",
-      profileImage: "",
-      
-      // Vendor data
-      businessName: "",
-      services: [],
-      
-      // Address
-      address: {
-        street: "",
-        area: "",
-        city: "",
-        state: "",
-        pincode: "",
-        serviceAreas: []
-      },
-      
-      // Documents
-      documents: {
-        identity: {
-          type: "",
-          number: "",
-          docImageUrl: ""
-        },
-        business: {
-          type: "",
-          number: "",
-          docImageUrl: ""
-        }
-      },
-      
-      // Status and verification
-      status: "pending",
-      verified: {
-        isVerified: false,
-        verificationNotes: ""
-      },
-      
-      // Admin-only field
-      onboardedBy: ""
-    }
+    defaultValues: defaultFormValues
   })
   
   // Debug admin permission
@@ -317,8 +322,16 @@ export function VendorForm({
   useEffect(() => {
     if (!isOpen) {
       setFormDataLoaded(false)
+      // Reset form when dialog closes (especially important for create mode)
+      if (!isEdit) {
+        form.reset(defaultFormValues)
+      }
+    } else if (isOpen && !isEdit) {
+      // Reset form when opening in create mode to ensure clean state
+      form.reset(defaultFormValues)
+      setFormDataLoaded(true)
     }
-  }, [isOpen])
+  }, [isOpen, isEdit, form])
 
   const handleSubmit = (data) => {
     onSubmit(data)
@@ -670,7 +683,7 @@ export function VendorForm({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  <h3 className="text-lg font-semibold">Documents</h3>
+                  <h3 className="text-lg font-semibold">Documents <span className="text-gray-500 text-sm">(Optional)</span></h3>
                 </div>
                 {isEdit && (
                   <div className="flex gap-2">
@@ -741,7 +754,7 @@ export function VendorForm({
                   document={form.watch("documents.identity")}
                   documentType="identity"
                   title="Identity Documents"
-                  required={true}
+                  required={false}
                   numberField="number"
                   numberFieldName="Document Number"
                   onDocumentChange={(updatedDoc) => {
@@ -758,7 +771,7 @@ export function VendorForm({
                   document={form.watch("documents.business")}
                   documentType="business"
                   title="Business Documents"
-                  required={true}
+                  required={false}
                   numberField="number"
                   numberFieldName="Document Number"
                   onDocumentChange={(updatedDoc) => {

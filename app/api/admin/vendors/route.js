@@ -17,6 +17,7 @@ export async function GET(request) {
     const city = searchParams.get('city') || '';
     const service = searchParams.get('service') || '';
     const verified = searchParams.get('verified');
+    const onboardedBy = searchParams.get('onboardedBy') || '';
 
     const vendorsCollection = await database.getVendorsCollection();
     const usersCollection = await database.getUsersCollection();
@@ -60,6 +61,16 @@ export async function GET(request) {
         query['verified.isVerified'] = true;
       } else if (verified === 'unverified') {
         query['verified.isVerified'] = false;
+      }
+    }
+
+    // Filter by onboardedBy (admin only filter in query; non-admin already constrained above)
+    if (onboardedBy && onboardedBy !== 'all') {
+      if (onboardedBy === 'none') {
+        // self-registered (null or missing)
+        query.$or = [ ...(query.$or || []), { onboardedBy: { $in: [null, undefined] } } ];
+      } else if (ObjectId.isValid(onboardedBy)) {
+        query.onboardedBy = new ObjectId(onboardedBy);
       }
     }
 
@@ -137,8 +148,96 @@ export async function GET(request) {
         ];
       }
 
-      // Get total count for users with vendor role
-      total = await usersCollection.countDocuments(userQuery);
+      // Build vendor-level filter stages (applied after vendor fields are derived)
+      const vendorFilterStages = [];
+      if (status) {
+        vendorFilterStages.push({ $match: { status } });
+      }
+      if (verified && verified !== 'all' && verified !== '') {
+        vendorFilterStages.push({ $match: { 'verified.isVerified': verified === 'verified' } });
+      }
+      if (city) {
+        vendorFilterStages.push({ $match: { 'address.city': { $regex: city, $options: 'i' } } });
+      }
+      if (service) {
+        vendorFilterStages.push({ $match: { services: { $regex: service, $options: 'i' } } });
+      }
+
+      // Build count pipeline that respects onboardedBy and vendor-level filters
+      const baseCountPipeline = [
+        { $match: userQuery },
+        {
+          $lookup: {
+            from: 'vendors',
+            localField: '_id',
+            foreignField: 'user',
+            as: 'vendorData'
+          }
+        },
+        // Apply onboardedBy filter when present
+        ...(onboardedBy && onboardedBy !== 'all' ? [
+          {
+            $addFields: {
+              vendorOnboardedBy: {
+                $cond: [
+                  { $gt: [{ $size: '$vendorData' }, 0] },
+                  { $arrayElemAt: ['$vendorData.onboardedBy', 0] },
+                  null
+                ]
+              }
+            }
+          },
+          ...(onboardedBy === 'none'
+            ? [ { $match: { $or: [ { vendorOnboardedBy: null }, { vendorOnboardedBy: { $exists: false } } ] } } ]
+            : [ { $match: { vendorOnboardedBy: new ObjectId(onboardedBy) } } ])
+        ] : []),
+        // Derive unified fields from vendorData for consistent filtering
+        {
+          $addFields: {
+            businessName: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.businessName', 0] },
+                '$name'
+              ]
+            },
+            services: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.services', 0] },
+                []
+              ]
+            },
+            status: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.status', 0] },
+                'incomplete'
+              ]
+            },
+            verified: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.verified', 0] },
+                { isVerified: false }
+              ]
+            },
+            // Prefer vendor address if present; fall back to user address
+            address: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.address', 0] },
+                '$address'
+              ]
+            }
+          }
+        },
+        ...vendorFilterStages,
+        { $count: 'count' }
+      ];
+
+      const countResult = await usersCollection.aggregate(baseCountPipeline).toArray();
+      total = countResult.length ? countResult[0].count : 0;
       //console.log('DEBUG VENDORS: Total vendor users count:', total);
 
       vendors = await usersCollection.aggregate([
@@ -151,6 +250,23 @@ export async function GET(request) {
             as: 'vendorData'
           }
         },
+        // Apply onboardedBy filter when in showAllVendorUsers mode too
+        ...(onboardedBy && onboardedBy !== 'all' ? [
+          {
+            $addFields: {
+              vendorOnboardedBy: {
+                $cond: [
+                  { $gt: [{ $size: '$vendorData' }, 0] },
+                  { $arrayElemAt: ['$vendorData.onboardedBy', 0] },
+                  null
+                ]
+              }
+            }
+          },
+          ...(onboardedBy === 'none'
+            ? [ { $match: { $or: [ { vendorOnboardedBy: null }, { vendorOnboardedBy: { $exists: false } } ] } } ]
+            : [ { $match: { vendorOnboardedBy: new ObjectId(onboardedBy) } } ])
+        ] : []),
         {
           $addFields: {
             // If vendor data exists, use it; otherwise create default values
@@ -220,11 +336,19 @@ export async function GET(request) {
               phone: '$phone',
               profileImage: '$profileImage'
             },
-            address: '$address',
+            // Prefer vendor address if present; fall back to user address
+            address: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.address', 0] },
+                '$address'
+              ]
+            },
             createdAt: '$createdAt'
           }
         },
         { $project: { vendorData: 0, password: 0 } },
+        ...vendorFilterStages,
         { $sort: { createdAt: -1 } },
         { $skip: skip },
         { $limit: limit }

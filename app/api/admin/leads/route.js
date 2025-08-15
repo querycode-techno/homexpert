@@ -351,6 +351,64 @@ export async function GET(request) {
       }
     });
 
+    // Normalize takenBy to ObjectId (in case some records store it as string)
+    pipeline.push({
+      $addFields: {
+        takenByObjectId: {
+          $cond: [
+            { $eq: [{ $type: '$takenBy' }, 'string'] },
+            { $convert: { input: '$takenBy', to: 'objectId', onError: null, onNull: null } },
+            '$takenBy'
+          ]
+        }
+      }
+    });
+
+    // Lookup taken-by user information
+    pipeline.push({
+      $lookup: {
+        from: 'users',
+        localField: 'takenByObjectId',
+        foreignField: '_id',
+        as: 'takenByUser',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              phone: 1
+            }
+          }
+        ]
+      }
+    });
+
+    // Lookup taken-by vendor information (when takenBy stores a Vendor._id)
+    pipeline.push({
+      $lookup: {
+        from: 'vendors',
+        localField: 'takenByObjectId',
+        foreignField: '_id',
+        as: 'takenByVendor',
+        pipeline: [
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'user',
+              foreignField: '_id',
+              as: 'vendorUserDoc',
+              pipeline: [
+                { $project: { _id: 1, name: 1, email: 1, phone: 1 } }
+              ]
+            }
+          },
+          { $addFields: { vendorUser: { $arrayElemAt: ['$vendorUserDoc', 0] } } },
+          { $project: { vendorUser: 1 } }
+        ]
+      }
+    });
+
     // Lookup created by user information
     pipeline.push({
       $lookup: {
@@ -391,7 +449,30 @@ export async function GET(request) {
             86400000 // milliseconds in a day
           ]
         },
-        createdByUser: { $arrayElemAt: ['$createdByUser', 0] }
+        createdByUser: { $arrayElemAt: ['$createdByUser', 0] },
+        takenByUser: { $arrayElemAt: ['$takenByUser', 0] },
+        takenByVendorUser: { $arrayElemAt: ['$takenByVendor.vendorUser', 0] }
+      }
+    });
+
+    // Overwrite takenBy field to return user name instead of ID (fallback to original if no user found)
+    pipeline.push({
+      $addFields: {
+        // Prefer user lookup, then vendor->user lookup, then fall back to raw ID
+        takenBy: {
+          $ifNull: [
+            '$takenByUser.name',
+            { $ifNull: ['$takenByVendorUser.name', '$takenBy'] }
+          ]
+        },
+        // Also unify takenByUser object for UI that expects takenByUser
+        takenByUser: {
+          $cond: [
+            { $gt: [{ $type: '$takenByUser' }, 'missing'] },
+            '$takenByUser',
+            '$takenByVendorUser'
+          ]
+        }
       }
     });
 
@@ -429,6 +510,10 @@ export async function GET(request) {
         updatedAt: 1,
         availableToVendors: 1,
         createdByUser: 1,
+        // Include takenBy and resolved user for UI display
+        takenBy: 1,
+        takenAt: 1,
+        takenByUser: 1,
         leadProgressHistory: { $slice: ['$leadProgressHistory', -3] }, // Last 3 entries
         followUps: { $slice: ['$followUps', -2] }, // Last 2 follow-ups
         notes: { $slice: ['$notes', -2] } // Last 2 notes

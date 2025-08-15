@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -52,7 +52,7 @@ const STATUS_CONFIG = {
 
 export default function AdminSupportTicketDetailsPage({ params }) {
   const router = useRouter()
-  const { id } = params
+  const { id } = use(params)
   const { isAdmin } = usePermissions()
 
   //console.log("isAdmin", isAdmin)
@@ -338,6 +338,64 @@ export default function AdminSupportTicketDetailsPage({ params }) {
               )}
             </CardContent>
           </Card>
+
+          {/* Ticket Creator Details */}
+          {ticket.createdBy && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Ticket Creator Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Created By</Label>
+                    <div className="mt-1">
+                      <p className="text-sm font-medium">{ticket.createdBy.name}</p>
+                      <p className="text-xs text-muted-foreground">{ticket.createdBy.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">User Type</Label>
+                    <div className="mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        {ticket.createdByType}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  {ticket.createdBy.address?.city && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">City</Label>
+                      <p className="mt-1 text-sm">{ticket.createdBy.address.city}</p>
+                    </div>
+                  )}
+                  
+                  {ticket.createdBy.address?.state && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">State</Label>
+                      <p className="mt-1 text-sm">{ticket.createdBy.address.state}</p>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Ticket Created</Label>
+                    <p className="mt-1 text-sm">{formatDateTime(ticket.createdAt)}</p>
+                  </div>
+                  
+                  {ticket.createdBy.type && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Account Type</Label>
+                      <p className="mt-1 text-sm capitalize">{ticket.createdBy.type}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Messages Thread */}
           <Card>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useEffect, useState } from "react"
 import {
   Select,
   SelectContent,
@@ -13,6 +13,28 @@ import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
 
 export function VendorFilters({ filters = {}, vendors = [], onChange, disabled = false }) {
+  const [employees, setEmployees] = useState([])
+  const [employeesLoading, setEmployeesLoading] = useState(false)
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setEmployeesLoading(true)
+        const res = await fetch('/api/admin/employee?limit=200', { credentials: 'include' })
+        const data = await res.json().catch(() => ({}))
+        if (res.ok && data?.success) {
+          setEmployees(Array.isArray(data.data?.employees) ? data.data.employees : [])
+        } else {
+          setEmployees([])
+        }
+      } catch (e) {
+        setEmployees([])
+      } finally {
+        setEmployeesLoading(false)
+      }
+    }
+    fetchEmployees()
+  }, [])
   // Extract unique values for filter options
   const filterOptions = useMemo(() => {
     const cities = [...new Set(
@@ -45,7 +67,8 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
       status: "",
       city: "",
       service: "",
-      verified: ""
+      verified: "",
+      onboardedBy: ""
     })
   }
 
@@ -137,6 +160,31 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
             </SelectContent>
           </Select>
         </div>
+
+        {/* Onboarded By Filter */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Onboarded By</label>
+          <Select
+            value={filters.onboardedBy || "all"}
+            onValueChange={(value) => handleFilterChange("onboardedBy", value)}
+            disabled={disabled}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All onboarders" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All onboarders</SelectItem>
+              <SelectItem value="none">None (Self-registered)</SelectItem>
+              {employeesLoading ? (
+                <SelectItem value="loading" disabled>Loading...</SelectItem>
+              ) : employees.map((emp) => (
+                <SelectItem key={emp._id} value={emp._id}>
+                  {emp.name} - {emp.email} ({emp.role?.name || 'User'})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Active Filters */}
@@ -192,6 +240,20 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
               <button
                 type="button"
                 onClick={() => handleFilterChange("verified", "")}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={disabled}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
+          {filters.onboardedBy && (
+            <Badge variant="secondary" className="gap-1">
+              Onboarded By: {filters.onboardedBy === 'none' ? 'None' : (employees.find(e => e._id === filters.onboardedBy)?.name || filters.onboardedBy)}
+              <button
+                type="button"
+                onClick={() => handleFilterChange("onboardedBy", "")}
                 className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
                 disabled={disabled}
               >

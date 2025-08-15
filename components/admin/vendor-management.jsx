@@ -31,6 +31,7 @@ export function VendorManagement() {
   const currentCity = searchParams.get('city') || ""
   const currentService = searchParams.get('service') || ""
   const currentVerified = searchParams.get('verified') || ""
+  const currentOnboardedBy = searchParams.get('onboardedBy') || ""
 
   // State management
   const [vendors, setVendors] = useState([])
@@ -54,12 +55,13 @@ export function VendorManagement() {
 
   // Local state synced with URL parameters
   const [searchTerm, setSearchTerm] = useState(currentSearch)
-  const [filters, setFilters] = useState({
-    status: currentStatus,
-    city: currentCity,
-    service: currentService,
-    verified: currentVerified
-  })
+    const [filters, setFilters] = useState({
+      status: currentStatus,
+      city: currentCity,
+      service: currentService,
+      verified: currentVerified,
+      onboardedBy: currentOnboardedBy
+    })
 
   // File input ref
   const vendorFileInputRef = useRef(null)
@@ -97,7 +99,7 @@ export function VendorManagement() {
   // Load vendors when non-search parameters change (full reload with stats)
   useEffect(() => {
     fetchVendors(false) // Full reload including stats
-  }, [currentPage, currentStatus, currentCity, currentService, currentVerified])
+  }, [currentPage, currentStatus, currentCity, currentService, currentVerified, currentOnboardedBy])
   
   // Handle search separately (table only, no stats reload)
   useEffect(() => {
@@ -115,9 +117,10 @@ export function VendorManagement() {
       status: currentStatus,
       city: currentCity,
       service: currentService,
-      verified: currentVerified
+      verified: currentVerified,
+      onboardedBy: currentOnboardedBy
     })
-  }, [currentSearch, currentStatus, currentCity, currentService, currentVerified])
+  }, [currentSearch, currentStatus, currentCity, currentService, currentVerified, currentOnboardedBy])
 
   // Fetch vendors using the vendor service
   const fetchVendors = async (searchOnly = false) => {
@@ -130,7 +133,8 @@ export function VendorManagement() {
         status: currentStatus,
         city: currentCity,
         service: currentService,
-        verified: currentVerified
+        verified: currentVerified,
+        onboardedBy: currentOnboardedBy
       }
 
       const result = await vendorService.getVendors(params)
@@ -300,11 +304,12 @@ export function VendorManagement() {
       newFilters.status !== currentStatus ||
       newFilters.city !== currentCity ||
       newFilters.service !== currentService ||
-      newFilters.verified !== currentVerified
+      newFilters.verified !== currentVerified ||
+      newFilters.onboardedBy !== currentOnboardedBy
     
     // Also trigger update if this is a clear operation (all filters empty)
-    const isClearOperation = !newFilters.status && !newFilters.city && !newFilters.service && !newFilters.verified
-    const hadFilters = currentStatus || currentCity || currentService || currentVerified
+    const isClearOperation = !newFilters.status && !newFilters.city && !newFilters.service && !newFilters.verified && !newFilters.onboardedBy
+    const hadFilters = currentStatus || currentCity || currentService || currentVerified || currentOnboardedBy
     
     if (filtersChanged || (isClearOperation && hadFilters)) {
       //console.log('🔄 Filters changed, updating URL', { filtersChanged, isClearOperation, hadFilters })
@@ -313,6 +318,7 @@ export function VendorManagement() {
         city: newFilters.city || undefined,
         service: newFilters.service || undefined,
         verified: newFilters.verified || undefined,
+        onboardedBy: newFilters.onboardedBy || undefined,
         page: undefined // Reset to page 1 by removing page param
       })
     }
@@ -421,7 +427,8 @@ export function VendorManagement() {
           status: currentStatus,
           city: currentCity,
           service: currentService,
-          verified: currentVerified
+          verified: currentVerified,
+          onboardedBy: currentOnboardedBy
         }}
       />
 
@@ -433,6 +440,7 @@ export function VendorManagement() {
         loading={loading}
         title="Add New Vendor"
         description="Create a new vendor account with business details."
+        key={isAddVendorOpen ? 'add-vendor-open' : 'add-vendor-closed'} // Force re-render when opening to reset form
       />
 
       <VendorForm

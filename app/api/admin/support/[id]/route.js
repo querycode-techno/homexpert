@@ -125,7 +125,7 @@ export async function GET(request, { params }) {
 
     // Get ticket with full details and populated references
     const ticket = await SupportTicket.findById(new ObjectId(id))
-      .populate('createdBy', 'name email profileImage type')
+      .populate('createdBy', 'name email profileImage type address.city address.state')
       .populate('assignedTo', 'name email profileImage type')
       .populate('vendorId', 'businessName services address verified status')
       .populate('messages.sender', 'name email profileImage type')

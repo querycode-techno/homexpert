@@ -255,6 +255,28 @@ function LeadTableRow({
         )}
       </TableCell>
 
+      {/* Taken By */}
+      <TableCell>
+        <div className="flex items-center space-x-2">
+          <User className="h-3 w-3 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            {lead.takenByUser && lead.takenByUser.name ? (
+              <div className="text-sm font-medium truncate">
+                {lead.takenByUser.name}
+              </div>
+            ) : lead.takenBy ? (
+              <div className="text-sm text-muted-foreground italic">
+                No vendor info
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic">
+                -
+              </div>
+            )}
+          </div>
+        </div>
+      </TableCell>
+
       {/* Created By */}
       <TableCell>
         <div className="flex items-center space-x-2">
@@ -390,6 +412,8 @@ export function LeadTable({
     return <LeadTableSkeleton />
   }
 
+    console.log(leads)
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border">
@@ -411,6 +435,7 @@ export function LeadTable({
                 <TableHead className="w-48">Service</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Assignment</TableHead>
+                <TableHead>Taken By</TableHead>
                 <TableHead>Created By</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
@@ -418,7 +443,7 @@ export function LeadTable({
             <TableBody>
               {leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
+                  <TableCell colSpan={9} className="h-24 text-center">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="text-muted-foreground">No leads found</div>
                       <div className="text-sm text-muted-foreground">
