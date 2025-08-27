@@ -12,13 +12,10 @@ import {
   Search, 
   ArrowLeft, 
   ArrowRight,
-  Phone,
-  MapPin,
-  Star
 } from 'lucide-react'
 import servicesData from '@/lib/data/services.json'
 import LeadFormPopup from '@/components/lead-form-popup'
-import Link from 'next/link'
+// import Link from 'next/link'
 
 function ServicesPageContent() {
   const searchParams = useSearchParams()
