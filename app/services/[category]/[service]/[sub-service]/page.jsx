@@ -328,7 +328,7 @@ export default function SubServicePage() {
                       </div>
                       
                       <div>
-                        <Label className="text-sm font-medium">Price</Label>
+                        <Label className="text-sm font-medium">Price Starting From</Label>
                         <div className="mt-1">
                           <Badge variant="secondary" className="text-lg">
                             {subService.price === 'Quote' ? 'Get Quote' : `₹${subService.price}`}

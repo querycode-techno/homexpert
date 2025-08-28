@@ -479,9 +479,9 @@
       ]
     },
     {
-      "id": "salon",
-      "name": "Salon",
-      "icon": "💆",
+      "id": "salon-women",
+      "name": "Salon for Women",
+      "icon": "💅",
       "services": [
         {
           "id": "facial",
@@ -556,7 +556,14 @@
             { "id": "korean-ageless-facial", "name": "Korean Ageless Facial", "price": 1449 },
             { "id": "korean-glass-hydration-facial", "name": "Korean Glass Hydration Facial", "price": 1749 }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "hair-studio-women",
+      "name": "Hair Studio for Women",
+      "icon": "💇‍♀️",
+      "services": [
         {
           "id": "haircut-style",
           "name": "Haircut & Style",
@@ -604,7 +611,14 @@
           "subServices": [
             { "id": "color-streaks", "name": "Color Streaks", "price": 600 }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "makeup-artist",
+      "name": "Makeup Artist",
+      "icon": "💄",
+      "services": [
         {
           "id": "party-makeup",
           "name": "Party Makeup",
@@ -668,7 +682,14 @@
             { "id": "refill-repair", "name": "Refill & Repair", "price": 150, "note": "from ₹150" },
             { "id": "polish-change-matte-finish", "name": "Polish Change / Matte Finish", "price": 100, "note": "from ₹100" }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "salon-men",
+      "name": "Salon for Men",
+      "icon": "✂️",
+      "services": [
         {
           "id": "haircut-men",
           "name": "Haircut",
@@ -805,38 +826,6 @@
           "description": "Business and commercial spaces",
           "subServices": [
             { "id": "shop-office", "name": "Shop & Office", "price": "Quote" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "packers-movers",
-      "name": "Packers & Movers",
-      "icon": "🚚",
-      "services": [
-        {
-          "id": "residential-moving",
-          "name": "Residential Moving",
-          "description": "Complete household relocation solutions tailored for families and individuals",
-          "subServices": [
-            { "id": "inter-city-moving", "name": "Inter-City Moving", "price": "Quote" },
-            { "id": "warehousing", "name": "Warehousing", "price": "Quote" }
-          ]
-        },
-        {
-          "id": "corporate-moving",
-          "name": "Corporate Moving",
-          "description": "Streamlined shifting designed to minimize downtime for businesses",
-          "subServices": [
-            { "id": "office-shifting", "name": "Office Shifting", "price": "Quote" }
-          ]
-        },
-        {
-          "id": "vehicle-moving",
-          "name": "Vehicle Moving",
-          "description": "Dedicated transport services for two-wheelers and four-wheelers",
-          "subServices": [
-            { "id": "car-bike-transportation", "name": "Car/Bike Transportation", "price": "Quote" }
           ]
         }
       ]

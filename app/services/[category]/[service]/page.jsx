@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { notFound, useParams } from 'next/navigation'
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
@@ -33,11 +33,11 @@ export default function ServicePage() {
         <section className="bg-gray-50 py-6">
           <div className="container px-4 md:px-6">
             <div className="flex items-center space-x-2 text-sm">
-              <Link href="/services/new" className="text-primary hover:underline">
+              <Link href="/services" className="text-primary hover:underline">
                 All Services
               </Link>
               <span className="text-muted-foreground">/</span>
-              <Link href={`/services/new/${category.id}`} className="text-primary hover:underline">
+              <Link href={`/services/${category.id}`} className="text-primary hover:underline">
                 {category.name}
               </Link>
               <span className="text-muted-foreground">/</span>
@@ -63,7 +63,7 @@ export default function ServicePage() {
               <h2 className="text-2xl font-bold mb-8 text-center">Choose Your Service</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {service.subServices.map((subService, index) => (
-                  <Link key={index} href={`/services/new/${category.id}/${service.id}/${subService.id}`} className="block">
+                  <Link key={index} href={`/services/${category.id}/${service.id}/${subService.id}`} className="block">
                     <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-primary">
                       <CardContent className="p-6">
                         <div className="space-y-3">
@@ -78,11 +78,11 @@ export default function ServicePage() {
                               </Badge>
                             </div>
                           </div>
-                          {subService.note && (
+                          {/* {subService.note && (
                             <p className="text-xs text-muted-foreground">{subService.note}</p>
-                          )}
+                          )} */}
                           <Button className="w-full mt-3 group-hover:bg-primary group-hover:text-white" variant="outline">
-                            Book Now
+                            {categoryId === "contractor-services" ? "Request Quote" : "Book Now"}
                             <ArrowRight className="h-4 w-4 ml-2" />
                           </Button>
                         </div>

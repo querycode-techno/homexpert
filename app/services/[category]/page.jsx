@@ -23,7 +23,7 @@ export default function CategoryPage() {
         <section className="bg-gray-50 py-6">
           <div className="container px-4 md:px-6">
             <div className="flex items-center space-x-2 text-sm">
-              <Link href="/services/new" className="flex items-center text-primary hover:underline">
+              <Link href="/services" className="flex items-center text-primary hover:underline">
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 All Services
               </Link>
@@ -49,7 +49,7 @@ export default function CategoryPage() {
           <div className="container px-4 md:px-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {category.services.map((service) => (
-                <Link key={service.id} href={`/services/new/${category.id}/${service.id}`} className="block">
+                <Link key={service.id} href={`/services/${category.id}/${service.id}`} className="block">
                   <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200">
                     <CardHeader>
                       <CardTitle className="group-hover:text-primary transition-colors">
