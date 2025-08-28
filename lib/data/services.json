@@ -10,11 +10,11 @@
           "name": "AC Service & Repair",
           "description": "Complete AC maintenance and repair services",
           "subServices": [
-            { "name": "AC Inspection", "price": 299 },
-            { "name": "AC Service", "price": 599 },
-            { "name": "AC Gas Leak Fix & Refill", "price": 2499 },
-            { "name": "AC Installation", "price": 999 },
-            { "name": "AC Uninstallation", "price": 499 }
+            { "id": "ac-inspection", "name": "AC Inspection", "price": 299 },
+            { "id": "ac-service", "name": "AC Service", "price": 599 },
+            { "id": "ac-gas-leak-fix-refill", "name": "AC Gas Leak Fix & Refill", "price": 2499 },
+            { "id": "ac-installation", "name": "AC Installation", "price": 999 },
+            { "id": "ac-uninstallation", "name": "AC Uninstallation", "price": 499 }
           ]
         },
         {
@@ -22,11 +22,11 @@
           "name": "Washing Machine Repair & Services",
           "description": "All types of washing machine repair and installation",
           "subServices": [
-            { "name": "Top Load Fully Automatic – Inspection", "price": 149 },
-            { "name": "Front Load Fully Automatic – Inspection", "price": 149 },
-            { "name": "Semi-Automatic – Inspection", "price": 149 },
-            { "name": "Washing Machine Installation", "price": 399 },
-            { "name": "Washing Machine Uninstallation", "price": 399 }
+            { "id": "top-load-fully-automatic-inspection", "name": "Top Load Fully Automatic – Inspection", "price": 149 },
+            { "id": "front-load-fully-automatic-inspection", "name": "Front Load Fully Automatic – Inspection", "price": 149 },
+            { "id": "semi-automatic-inspection", "name": "Semi-Automatic – Inspection", "price": 149 },
+            { "id": "washing-machine-installation", "name": "Washing Machine Installation", "price": 399 },
+            { "id": "washing-machine-uninstallation", "name": "Washing Machine Uninstallation", "price": 399 }
           ]
         },
         {
@@ -43,9 +43,9 @@
           "name": "CCTV Repair & Services",
           "description": "Security camera installation and maintenance",
           "subServices": [
-            { "name": "Home Security Camera System", "price": "Quote" },
-            { "name": "Business Security Camera", "price": "Quote" },
-            { "name": "Surveillance Security Camera", "price": "Quote" }
+            { "id": "home-security-camera-system", "name": "Home Security Camera System", "price": "Quote" },
+            { "id": "business-security-camera", "name": "Business Security Camera", "price": "Quote" },
+            { "id": "surveillance-security-camera", "name": "Surveillance Security Camera", "price": "Quote" }
           ]
         },
         {
@@ -53,9 +53,9 @@
           "name": "Television Repair & Services",
           "description": "TV repair and installation services",
           "subServices": [
-            { "name": "Inspection", "price": 299 },
-            { "name": "TV Installation", "price": 499 },
-            { "name": "TV Uninstallation", "price": 499 }
+            { "id": "inspection", "name": "Inspection", "price": 299 },
+            { "id": "tv-installation", "name": "TV Installation", "price": 499 },
+            { "id": "tv-uninstallation", "name": "TV Uninstallation", "price": 499 }
           ]
         },
         {
@@ -63,10 +63,10 @@
           "name": "Laptop Repair & Services",
           "description": "Computer and laptop repair services",
           "subServices": [
-            { "name": "Laptop Repair", "price": "Quote" },
-            { "name": "OS Installation Service", "price": "Quote" },
-            { "name": "Component Installation", "price": "Quote" },
-            { "name": "System Upgrade Consultation", "price": "Quote" }
+            { "id": "laptop-repair", "name": "Laptop Repair", "price": "Quote" },
+            { "id": "os-installation-service", "name": "OS Installation Service", "price": "Quote" },
+            { "id": "component-installation", "name": "Component Installation", "price": "Quote" },
+            { "id": "system-upgrade-consultation", "name": "System Upgrade Consultation", "price": "Quote" }
           ]
         },
         {
@@ -74,7 +74,7 @@
           "name": "Inverter Repair Service",
           "description": "Power inverter maintenance and repair",
           "subServices": [
-            { "name": "Inspection", "price": 299 }
+            { "id": "inspection", "name": "Inspection", "price": 299 }
           ]
         }
       ]
@@ -89,9 +89,9 @@
           "name": "Refrigerator Repair & Services",
           "description": "All types of refrigerator repair services",
           "subServices": [
-            { "name": "Single Door Refrigerator – Inspection", "price": 149 },
-            { "name": "Double Door Refrigerator – Inspection", "price": 149 },
-            { "name": "Side-by-Side Refrigerator – Inspection", "price": 149 }
+            { "id": "single-door-refrigerator-inspection", "name": "Single Door Refrigerator – Inspection", "price": 149 },
+            { "id": "double-door-refrigerator-inspection", "name": "Double Door Refrigerator – Inspection", "price": 149 },
+            { "id": "side-by-side-refrigerator-inspection", "name": "Side-by-Side Refrigerator – Inspection", "price": 149 }
           ]
         },
         {
@@ -99,10 +99,10 @@
           "name": "Geyser Repair & Services",
           "description": "Water heater installation and repair",
           "subServices": [
-            { "name": "Geyser Cleaning Services", "price": 599 },
-            { "name": "Geyser Repair – Inspection", "price": 249 },
-            { "name": "Geyser Installation", "price": 499 },
-            { "name": "Geyser Uninstallation", "price": 399 }
+            { "id": "geyser-cleaning-services", "name": "Geyser Cleaning Services", "price": 599 },
+            { "id": "geyser-repair-inspection", "name": "Geyser Repair – Inspection", "price": 249 },
+            { "id": "geyser-installation", "name": "Geyser Installation", "price": 499 },
+            { "id": "geyser-uninstallation", "name": "Geyser Uninstallation", "price": 399 }
           ]
         },
         {
@@ -110,10 +110,10 @@
           "name": "Water Purifier Service",
           "description": "Water purification system services",
           "subServices": [
-            { "name": "Water Purifier Service", "price": 1799 },
-            { "name": "Water Purifier Repair – Inspection", "price": 249 },
-            { "name": "Water Purifier Installation", "price": 450 },
-            { "name": "Water Purifier Uninstallation", "price": 400 }
+            { "id": "water-purifier-service", "name": "Water Purifier Service", "price": 1799 },
+            { "id": "water-purifier-repair-inspection", "name": "Water Purifier Repair – Inspection", "price": 249 },
+            { "id": "water-purifier-installation", "name": "Water Purifier Installation", "price": 450 },
+            { "id": "water-purifier-uninstallation", "name": "Water Purifier Uninstallation", "price": 400 }
           ]
         },
         {
@@ -121,10 +121,10 @@
           "name": "Microwave Oven Repair & Services",
           "description": "Microwave repair and maintenance",
           "subServices": [
-            { "name": "Microwave Heating Issues – Inspection", "price": 149 },
-            { "name": "Microwave Control Panel Issues – Inspection", "price": 149 },
-            { "name": "Microwave Mechanical Issues – Inspection", "price": 149 },
-            { "name": "Microwave Door Repair – Inspection", "price": 149 }
+            { "id": "microwave-heating-issues-inspection", "name": "Microwave Heating Issues – Inspection", "price": 149 },
+            { "id": "microwave-control-panel-issues-inspection", "name": "Microwave Control Panel Issues – Inspection", "price": 149 },
+            { "id": "microwave-mechanical-issues-inspection", "name": "Microwave Mechanical Issues – Inspection", "price": 149 },
+            { "id": "microwave-door-repair-inspection", "name": "Microwave Door Repair – Inspection", "price": 149 }
           ]
         },
         {
@@ -132,10 +132,10 @@
           "name": "Chimney Cleaning & Services",
           "description": "Kitchen chimney cleaning and repair",
           "subServices": [
-            { "name": "Deep Chimney Cleaning Service", "price": 1149 },
-            { "name": "Chimney Repair Service", "price": 299 },
-            { "name": "Chimney Installation Service", "price": 599 },
-            { "name": "Chimney Uninstallation Service", "price": 449 }
+            { "id": "deep-chimney-cleaning-service", "name": "Deep Chimney Cleaning Service", "price": 1149 },
+            { "id": "chimney-repair-service", "name": "Chimney Repair Service", "price": 299 },
+            { "id": "chimney-installation-service", "name": "Chimney Installation Service", "price": 599 },
+            { "id": "chimney-uninstallation-service", "name": "Chimney Uninstallation Service", "price": 449 }
           ]
         },
         {
@@ -143,11 +143,11 @@
           "name": "Gas Stove and Hob Service",
           "description": "Gas stove cleaning and repair services",
           "subServices": [
-            { "name": "Gas Stove Cleaning Service", "price": 349 },
-            { "name": "Hob Cleaning Service", "price": 549 },
-            { "name": "Gas Stove/Hob Repair – Inspection", "price": 199 },
-            { "name": "Gas Stove/Hob Installation Service", "price": 249 },
-            { "name": "Gas Stove/Hob Uninstallation Service", "price": 199 }
+            { "id": "gas-stove-cleaning-service", "name": "Gas Stove Cleaning Service", "price": 349 },
+            { "id": "hob-cleaning-service", "name": "Hob Cleaning Service", "price": 549 },
+            { "id": "gas-stove-hob-repair-inspection", "name": "Gas Stove/Hob Repair – Inspection", "price": 199 },
+            { "id": "gas-stove-hob-installation-service", "name": "Gas Stove/Hob Installation Service", "price": 249 },
+            { "id": "gas-stove-hob-uninstallation-service", "name": "Gas Stove/Hob Uninstallation Service", "price": 199 }
           ]
         }
       ]
@@ -162,9 +162,9 @@
           "name": "Bathroom Cleaning",
           "description": "Deep bathroom cleaning services",
           "subServices": [
-            { "name": "Deep Bathroom Cleaning", "price": 499 },
-            { "name": "Hard Water Stain Removal", "price": 649 },
-            { "name": "Toilet, Tiles & Fittings Sanitization", "price": 599 }
+            { "id": "deep-bathroom-cleaning", "name": "Deep Bathroom Cleaning", "price": 499 },
+            { "id": "hard-water-stain-removal", "name": "Hard Water Stain Removal", "price": 649 },
+            { "id": "toilet-tiles-fittings-sanitization", "name": "Toilet, Tiles & Fittings Sanitization", "price": 599 }
           ]
         },
         {
@@ -172,9 +172,9 @@
           "name": "Car Wash (On-Demand)",
           "description": "Professional car cleaning services",
           "subServices": [
-            { "name": "Exterior Car Wash", "price": 399 },
-            { "name": "Interior Cleaning", "price": 299 },
-            { "name": "Full Car Detailing", "price": 899 }
+            { "id": "exterior-car-wash", "name": "Exterior Car Wash", "price": 399 },
+            { "id": "interior-cleaning", "name": "Interior Cleaning", "price": 299 },
+            { "id": "full-car-detailing", "name": "Full Car Detailing", "price": 899 }
           ]
         },
         {
@@ -182,9 +182,9 @@
           "name": "Carpet Cleaning",
           "description": "Professional carpet cleaning services",
           "subServices": [
-            { "name": "Small Carpet (up to 5x5 ft)", "price": 299 },
-            { "name": "Medium Carpet", "price": 499 },
-            { "name": "Large Carpet", "price": 699 }
+            { "id": "small-carpet-up-to-5x5-ft", "name": "Small Carpet (up to 5x5 ft)", "price": 299 },
+            { "id": "medium-carpet", "name": "Medium Carpet", "price": 499 },
+            { "id": "large-carpet", "name": "Large Carpet", "price": 699 }
           ]
         },
         {
@@ -192,8 +192,8 @@
           "name": "Floor Cleaning",
           "description": "Professional floor cleaning and maintenance",
           "subServices": [
-            { "name": "Floor Machine Scrubbing (per 100 sq. ft)", "price": 299 },
-            { "name": "Tile & Grout Cleaning (per bathroom/kitchen)", "price": 399 }
+            { "id": "floor-machine-scrubbing-per-100-sq-ft", "name": "Floor Machine Scrubbing (per 100 sq. ft)", "price": 299 },
+            { "id": "tile-grout-cleaning-per-bathroom-kitchen", "name": "Tile & Grout Cleaning (per bathroom/kitchen)", "price": 399 }
           ]
         },
         {
@@ -201,10 +201,10 @@
           "name": "House Cleaning",
           "description": "Complete home cleaning services",
           "subServices": [
-            { "name": "1BHK Full Home Deep Cleaning", "price": 1499 },
-            { "name": "2BHK Full Home Deep Cleaning", "price": 1999 },
-            { "name": "3BHK Full Home Deep Cleaning", "price": 2499 },
-            { "name": "Move-in / Move-out Cleaning", "price": 2499, "note": "From ₹2,499" }
+            { "id": "1bhk-full-home-deep-cleaning", "name": "1BHK Full Home Deep Cleaning", "price": 1499 },
+            { "id": "2bhk-full-home-deep-cleaning", "name": "2BHK Full Home Deep Cleaning", "price": 1999 },
+            { "id": "3bhk-full-home-deep-cleaning", "name": "3BHK Full Home Deep Cleaning", "price": 2499 },
+            { "id": "move-in-move-out-cleaning", "name": "Move-in / Move-out Cleaning", "price": 2499, "note": "From ₹2,499" }
           ]
         },
         {
@@ -212,9 +212,9 @@
           "name": "Kitchen Cleaning",
           "description": "Professional kitchen cleaning services",
           "subServices": [
-            { "name": "Standard Kitchen Cleaning", "price": 699 },
-            { "name": "Deep Kitchen Degreasing", "price": 899 },
-            { "name": "Modular Kitchen Full Clean", "price": 1199 }
+            { "id": "standard-kitchen-cleaning", "name": "Standard Kitchen Cleaning", "price": 699 },
+            { "id": "deep-kitchen-degreasing", "name": "Deep Kitchen Degreasing", "price": 899 },
+            { "id": "modular-kitchen-full-clean", "name": "Modular Kitchen Full Clean", "price": 1199 }
           ]
         },
         {
@@ -222,9 +222,9 @@
           "name": "Office Cleaning",
           "description": "Commercial office cleaning services",
           "subServices": [
-            { "name": "Small Office (up to 500 sq. ft)", "price": 1199 },
-            { "name": "Medium Office (up to 1,000 sq. ft)", "price": 1999 },
-            { "name": "Large Office / Commercial Space", "price": "Quote" }
+            { "id": "small-office-up-to-500-sq-ft", "name": "Small Office (up to 500 sq. ft)", "price": 1199 },
+            { "id": "medium-office-up-to-1000-sq-ft", "name": "Medium Office (up to 1,000 sq. ft)", "price": 1999 },
+            { "id": "large-office-commercial-space", "name": "Large Office / Commercial Space", "price": "Quote" }
           ]
         },
         {
@@ -232,11 +232,11 @@
           "name": "Pest Control",
           "description": "Professional pest control services",
           "subServices": [
-            { "name": "General Pest Control (1BHK–3BHK)", "price": 699, "note": "₹699–₹1,199" },
-            { "name": "Termite Control (per 100 sq. ft)", "price": 999 },
-            { "name": "Bed Bug Treatment (per room)", "price": 799 },
-            { "name": "Rodent Control", "price": 599 },
-            { "name": "Herbal / Odorless Options", "price": 200, "note": "Add ₹200" }
+            { "id": "general-pest-control-1bhk-3bhk", "name": "General Pest Control (1BHK–3BHK)", "price": 699, "note": "₹699–₹1,199" },
+            { "id": "termite-control-per-100-sq-ft", "name": "Termite Control (per 100 sq. ft)", "price": 999 },
+            { "id": "bed-bug-treatment-per-room", "name": "Bed Bug Treatment (per room)", "price": 799 },
+            { "id": "rodent-control", "name": "Rodent Control", "price": 599 },
+            { "id": "herbal-odorless-options", "name": "Herbal / Odorless Options", "price": 200, "note": "Add ₹200" }
           ]
         },
         {
@@ -244,10 +244,10 @@
           "name": "Sofa Cleaning",
           "description": "Professional furniture cleaning services",
           "subServices": [
-            { "name": "Single-Seater", "price": 199 },
-            { "name": "3-Seater", "price": 499 },
-            { "name": "5-Seater", "price": 799 },
-            { "name": "Recliner / L-Shape Sofa", "price": 999 }
+            { "id": "single-seater", "name": "Single-Seater", "price": 199 },
+            { "id": "3-seater", "name": "3-Seater", "price": 499 },
+            { "id": "5-seater", "name": "5-Seater", "price": 799 },
+            { "id": "recliner-l-shape-sofa", "name": "Recliner / L-Shape Sofa", "price": 999 }
           ]
         },
         {
@@ -255,9 +255,9 @@
           "name": "Water Tank Cleaning",
           "description": "Professional water tank cleaning services",
           "subServices": [
-            { "name": "500–1,000 Ltr Tank", "price": 499 },
-            { "name": "1,500–2,000 Ltr Tank", "price": 699 },
-            { "name": "3,000+ Ltr Tank", "price": 999 }
+            { "id": "500-1000-ltr-tank", "name": "500–1,000 Ltr Tank", "price": 499 },
+            { "id": "1500-2000-ltr-tank", "name": "1,500–2,000 Ltr Tank", "price": 699 },
+            { "id": "3000-ltr-tank", "name": "3,000+ Ltr Tank", "price": 999 }
           ]
         }
       ]
@@ -272,13 +272,13 @@
           "name": "Electrician Services",
           "description": "Professional electrical services",
           "subServices": [
-            { "name": "Socket & Switchboard Repair/Installation", "price": 399 },
-            { "name": "Fan Installation & Repair", "price": 299 },
-            { "name": "Lighting Installation & Repair", "price": 299 },
-            { "name": "Wiring & Circuit Repairs", "price": 399 },
-            { "name": "MCB & Fuse Box Repair/Installation", "price": 399 },
-            { "name": "Appliance Wiring & Installation", "price": 349 },
-            { "name": "General Electrician Consultancy", "price": 249 }
+            { "id": "socket-switchboard-repair-installation", "name": "Socket & Switchboard Repair/Installation", "price": 399 },
+            { "id": "fan-installation-repair", "name": "Fan Installation & Repair", "price": 299 },
+            { "id": "lighting-installation-repair", "name": "Lighting Installation & Repair", "price": 299 },
+            { "id": "wiring-circuit-repairs", "name": "Wiring & Circuit Repairs", "price": 399 },
+            { "id": "mcb-fuse-box-repair-installation", "name": "MCB & Fuse Box Repair/Installation", "price": 399 },
+            { "id": "appliance-wiring-installation", "name": "Appliance Wiring & Installation", "price": 349 },
+            { "id": "general-electrician-consultancy", "name": "General Electrician Consultancy", "price": 249 }
           ]
         },
         {
@@ -286,14 +286,14 @@
           "name": "Carpentry Services",
           "description": "Wood work and furniture services",
           "subServices": [
-            { "name": "Door Repair & Installation", "price": 399 },
-            { "name": "Window Repair & Installation", "price": 399 },
-            { "name": "Furniture Repair & Restoration", "price": 399 },
-            { "name": "Bed Assembly & Repair", "price": 399 },
-            { "name": "Wardrobe Assembly & Repair", "price": 399 },
-            { "name": "Modular Kitchen Installation & Repair", "price": 399 },
-            { "name": "Bookshelf & Storage Installation", "price": 349 },
-            { "name": "Carpentry Consultation", "price": 249 }
+            { "id": "door-repair-installation", "name": "Door Repair & Installation", "price": 399 },
+            { "id": "window-repair-installation", "name": "Window Repair & Installation", "price": 399 },
+            { "id": "furniture-repair-restoration", "name": "Furniture Repair & Restoration", "price": 399 },
+            { "id": "bed-assembly-repair", "name": "Bed Assembly & Repair", "price": 399 },
+            { "id": "wardrobe-assembly-repair", "name": "Wardrobe Assembly & Repair", "price": 399 },
+            { "id": "modular-kitchen-installation-repair", "name": "Modular Kitchen Installation & Repair", "price": 399 },
+            { "id": "bookshelf-storage-installation", "name": "Bookshelf & Storage Installation", "price": 349 },
+            { "id": "carpentry-consultation", "name": "Carpentry Consultation", "price": 249 }
           ]
         },
         {
@@ -301,13 +301,13 @@
           "name": "Plumbing Services",
           "description": "Water and drainage services",
           "subServices": [
-            { "name": "Fixture Installation & Replacement", "price": 299 },
-            { "name": "Repair & Maintenance", "price": 299 },
-            { "name": "Drainage & Blockage Solutions", "price": 499 },
-            { "name": "Toilet Installation & Replacement", "price": 1399 },
-            { "name": "Water Tank & Motor Services", "price": 499 },
-            { "name": "Tile Grouting & Sealing", "price": 999 },
-            { "name": "Plumbing Consultation", "price": 249 }
+            { "id": "fixture-installation-replacement", "name": "Fixture Installation & Replacement", "price": 299 },
+            { "id": "repair-maintenance", "name": "Repair & Maintenance", "price": 299 },
+            { "id": "drainage-blockage-solutions", "name": "Drainage & Blockage Solutions", "price": 499 },
+            { "id": "toilet-installation-replacement", "name": "Toilet Installation & Replacement", "price": 1399 },
+            { "id": "water-tank-motor-services", "name": "Water Tank & Motor Services", "price": 499 },
+            { "id": "tile-grouting-sealing", "name": "Tile Grouting & Sealing", "price": 999 },
+            { "id": "plumbing-consultation", "name": "Plumbing Consultation", "price": 249 }
           ]
         }
       ]
@@ -322,9 +322,9 @@
           "name": "Aluminum Partition",
           "description": "Partition design, installation, and repair",
           "subServices": [
-            { "name": "Partition Design", "price": 1499, "note": "Starts at ₹1,499" },
-            { "name": "Installation", "price": 1499, "note": "Starts at ₹1,499" },
-            { "name": "Repair", "price": 999, "note": "Starts at ₹999" }
+            { "id": "partition-design", "name": "Partition Design", "price": 1499, "note": "Starts at ₹1,499" },
+            { "id": "installation", "name": "Installation", "price": 1499, "note": "Starts at ₹1,499" },
+            { "id": "repair", "name": "Repair", "price": 999, "note": "Starts at ₹999" }
           ]
         },
         {
@@ -332,9 +332,9 @@
           "name": "Architectural Services",
           "description": "Design consultation, drafting, and project planning",
           "subServices": [
-            { "name": "Design Consultation", "price": 2999, "note": "Starts at ₹2,999" },
-            { "name": "Drafting", "price": 2999, "note": "Starts at ₹2,999" },
-            { "name": "Project Planning", "price": 4999, "note": "Starts at ₹4,999" }
+            { "id": "design-consultation", "name": "Design Consultation", "price": 2999, "note": "Starts at ₹2,999" },
+            { "id": "drafting", "name": "Drafting", "price": 2999, "note": "Starts at ₹2,999" },
+            { "id": "project-planning", "name": "Project Planning", "price": 4999, "note": "Starts at ₹4,999" }
           ]
         },
         {
@@ -342,9 +342,9 @@
           "name": "Carpet Flooring",
           "description": "Carpet installation, repair, and removal",
           "subServices": [
-            { "name": "Carpet Installation", "price": 999, "note": "Starts at ₹999" },
-            { "name": "Repair", "price": 599, "note": "Starts at ₹599" },
-            { "name": "Removal", "price": 499, "note": "Starts at ₹499" }
+            { "id": "carpet-installation", "name": "Carpet Installation", "price": 999, "note": "Starts at ₹999" },
+            { "id": "repair", "name": "Repair", "price": 599, "note": "Starts at ₹599" },
+            { "id": "removal", "name": "Removal", "price": 499, "note": "Starts at ₹499" }
           ]
         },
         {
@@ -352,9 +352,9 @@
           "name": "Fabrication",
           "description": "Metal fabrication, custom structures, and repairs",
           "subServices": [
-            { "name": "Metal Fabrication", "price": 1299, "note": "Starts at ₹1,299" },
-            { "name": "Custom Structures", "price": 2499, "note": "Starts at ₹2,499" },
-            { "name": "Repairs", "price": 799, "note": "Starts at ₹799" }
+            { "id": "metal-fabrication", "name": "Metal Fabrication", "price": 1299, "note": "Starts at ₹1,299" },
+            { "id": "custom-structures", "name": "Custom Structures", "price": 2499, "note": "Starts at ₹2,499" },
+            { "id": "repairs", "name": "Repairs", "price": 799, "note": "Starts at ₹799" }
           ]
         },
         {
@@ -362,9 +362,9 @@
           "name": "False Ceiling",
           "description": "Design & installation, repair, lighting integration",
           "subServices": [
-            { "name": "Design & Installation", "price": 1799, "note": "Starts at ₹1,799" },
-            { "name": "Repair", "price": 999, "note": "Starts at ₹999" },
-            { "name": "Lighting Integration", "price": 1499, "note": "Starts at ₹1,499" }
+            { "id": "design-installation", "name": "Design & Installation", "price": 1799, "note": "Starts at ₹1,799" },
+            { "id": "repair", "name": "Repair", "price": 999, "note": "Starts at ₹999" },
+            { "id": "lighting-integration", "name": "Lighting Integration", "price": 1499, "note": "Starts at ₹1,499" }
           ]
         },
         {
@@ -372,9 +372,9 @@
           "name": "House Construction",
           "description": "New construction, renovation, project management",
           "subServices": [
-            { "name": "New Construction", "price": 25000, "note": "Starts at ₹25,000 (per sqft basis varies)" },
-            { "name": "Renovation", "price": 15000, "note": "Starts at ₹15,000" },
-            { "name": "Project Management", "price": "Quote" }
+            { "id": "new-construction", "name": "New Construction", "price": 25000, "note": "Starts at ₹25,000 (per sqft basis varies)" },
+            { "id": "renovation", "name": "Renovation", "price": 15000, "note": "Starts at ₹15,000" },
+            { "id": "project-management", "name": "Project Management", "price": "Quote" }
           ]
         },
         {
@@ -382,9 +382,9 @@
           "name": "Interior Designer",
           "description": "Space planning, concept design, execution",
           "subServices": [
-            { "name": "Space Planning", "price": 4999, "note": "Starts at ₹4,999" },
-            { "name": "Concept Design", "price": 7999, "note": "Starts at ₹7,999" },
-            { "name": "Execution", "price": "Quote" }
+            { "id": "space-planning", "name": "Space Planning", "price": 4999, "note": "Starts at ₹4,999" },
+            { "id": "concept-design", "name": "Concept Design", "price": 7999, "note": "Starts at ₹7,999" },
+            { "id": "execution", "name": "Execution", "price": "Quote" }
           ]
         },
         {
@@ -392,9 +392,9 @@
           "name": "Modular Kitchen",
           "description": "Kitchen design, installation, repair",
           "subServices": [
-            { "name": "Kitchen Design", "price": 10000, "note": "Starts at ₹10,000" },
-            { "name": "Installation", "price": 15000, "note": "Starts at ₹15,000" },
-            { "name": "Repair", "price": 2999, "note": "Starts at ₹2,999" }
+            { "id": "kitchen-design", "name": "Kitchen Design", "price": 10000, "note": "Starts at ₹10,000" },
+            { "id": "installation", "name": "Installation", "price": 15000, "note": "Starts at ₹15,000" },
+            { "id": "repair", "name": "Repair", "price": 2999, "note": "Starts at ₹2,999" }
           ]
         },
         {
@@ -402,9 +402,9 @@
           "name": "Packers and Movers",
           "description": "Local moving, packing services, loading & unloading",
           "subServices": [
-            { "name": "Local Moving", "price": 2000, "note": "Starts at ₹2,000" },
-            { "name": "Packing Services", "price": 1500, "note": "Starts at ₹1,500" },
-            { "name": "Loading & Unloading", "price": 999, "note": "Starts at ₹999" }
+            { "id": "local-moving", "name": "Local Moving", "price": 2000, "note": "Starts at ₹2,000" },
+            { "id": "packing-services", "name": "Packing Services", "price": 1500, "note": "Starts at ₹1,500" },
+            { "id": "loading-unloading", "name": "Loading & Unloading", "price": 999, "note": "Starts at ₹999" }
           ]
         },
         {
@@ -412,9 +412,9 @@
           "name": "Painting Contractor",
           "description": "Interior painting, exterior painting, surface preparation",
           "subServices": [
-            { "name": "Interior Painting", "price": 1499, "note": "Starts at ₹1,499" },
-            { "name": "Exterior Painting", "price": 1799, "note": "Starts at ₹1,799" },
-            { "name": "Surface Preparation", "price": 799, "note": "Starts at ₹799" }
+            { "id": "interior-painting", "name": "Interior Painting", "price": 1499, "note": "Starts at ₹1,499" },
+            { "id": "exterior-painting", "name": "Exterior Painting", "price": 1799, "note": "Starts at ₹1,799" },
+            { "id": "surface-preparation", "name": "Surface Preparation", "price": 799, "note": "Starts at ₹799" }
           ]
         },
         {
@@ -422,9 +422,9 @@
           "name": "PVC Laminate",
           "description": "Laminate installation, repair, replacement",
           "subServices": [
-            { "name": "Laminate Installation", "price": 999, "note": "Starts at ₹999" },
-            { "name": "Repair", "price": 599, "note": "Starts at ₹599" },
-            { "name": "Replacement", "price": 799, "note": "Starts at ₹799" }
+            { "id": "laminate-installation", "name": "Laminate Installation", "price": 999, "note": "Starts at ₹999" },
+            { "id": "repair", "name": "Repair", "price": 599, "note": "Starts at ₹599" },
+            { "id": "replacement", "name": "Replacement", "price": 799, "note": "Starts at ₹799" }
           ]
         },
         {
@@ -432,9 +432,9 @@
           "name": "Steel Railing",
           "description": "Design & fabrication, installation, repair",
           "subServices": [
-            { "name": "Design & Fabrication", "price": 2499, "note": "Starts at ₹2,499" },
-            { "name": "Installation", "price": 1999, "note": "Starts at ₹1,999" },
-            { "name": "Repair", "price": 999, "note": "Starts at ₹999" }
+            { "id": "design-fabrication", "name": "Design & Fabrication", "price": 2499, "note": "Starts at ₹2,499" },
+            { "id": "installation", "name": "Installation", "price": 1999, "note": "Starts at ₹1,999" },
+            { "id": "repair", "name": "Repair", "price": 999, "note": "Starts at ₹999" }
           ]
         },
         {
@@ -442,9 +442,9 @@
           "name": "Tile & Marble",
           "description": "Tile installation, marble polishing, repair",
           "subServices": [
-            { "name": "Tile Installation", "price": 1299, "note": "Starts at ₹1,299" },
-            { "name": "Marble Polishing", "price": 999, "note": "Starts at ₹999" },
-            { "name": "Repair", "price": 699, "note": "Starts at ₹699" }
+            { "id": "tile-installation", "name": "Tile Installation", "price": 1299, "note": "Starts at ₹1,299" },
+            { "id": "marble-polishing", "name": "Marble Polishing", "price": 999, "note": "Starts at ₹999" },
+            { "id": "repair", "name": "Repair", "price": 699, "note": "Starts at ₹699" }
           ]
         },
         {
@@ -452,9 +452,9 @@
           "name": "Waterproofing",
           "description": "Roof waterproofing, wall sealing, leak repair",
           "subServices": [
-            { "name": "Roof Waterproofing", "price": 2499, "note": "Starts at ₹2,499" },
-            { "name": "Wall Sealing", "price": 1999, "note": "Starts at ₹1,999" },
-            { "name": "Leak Repair", "price": 1299, "note": "Starts at ₹1,299" }
+            { "id": "roof-waterproofing", "name": "Roof Waterproofing", "price": 2499, "note": "Starts at ₹2,499" },
+            { "id": "wall-sealing", "name": "Wall Sealing", "price": 1999, "note": "Starts at ₹1,999" },
+            { "id": "leak-repair", "name": "Leak Repair", "price": 1299, "note": "Starts at ₹1,299" }
           ]
         },
         {
@@ -462,9 +462,9 @@
           "name": "Solar Panel Services",
           "description": "Solar panel installation, maintenance, repair",
           "subServices": [
-            { "name": "Solar Panel Installation", "price": 15000, "note": "Starts at ₹15,000" },
-            { "name": "Maintenance", "price": 2999, "note": "Starts at ₹2,999" },
-            { "name": "Repair", "price": 1999, "note": "Starts at ₹1,999" }
+            { "id": "solar-panel-installation", "name": "Solar Panel Installation", "price": 15000, "note": "Starts at ₹15,000" },
+            { "id": "maintenance", "name": "Maintenance", "price": 2999, "note": "Starts at ₹2,999" },
+            { "id": "repair", "name": "Repair", "price": 1999, "note": "Starts at ₹1,999" }
           ]
         },
         {
@@ -472,8 +472,8 @@
           "name": "Home Improvement",
           "description": "Safety nets, mosquito nets, and other home improvements",
           "subServices": [
-            { "name": "Mosquito Net Installation", "price": 499 },
-            { "name": "Safety Net Installation", "price": 799 }
+            { "id": "mosquito-net-installation", "name": "Mosquito Net Installation", "price": 499 },
+            { "id": "safety-net-installation", "name": "Safety Net Installation", "price": 799 }
           ]
         }
       ]
@@ -488,13 +488,13 @@
           "name": "Facial",
           "description": "Professional facial treatments",
           "subServices": [
-            { "name": "Gold Facial", "price": 900 },
-            { "name": "Instant Glow Facial", "price": 1000 },
-            { "name": "Hydrating Facial", "price": 1600 },
-            { "name": "Brightening Facial", "price": 700 },
-            { "name": "Anti-Tanning Facial", "price": 700 },
-            { "name": "O3+ Glow & Shine Facial", "price": 1700 },
-            { "name": "O3+ Stay Youthful", "price": 1600 }
+            { "id": "gold-facial", "name": "Gold Facial", "price": 900 },
+            { "id": "instant-glow-facial", "name": "Instant Glow Facial", "price": 1000 },
+            { "id": "hydrating-facial", "name": "Hydrating Facial", "price": 1600 },
+            { "id": "brightening-facial", "name": "Brightening Facial", "price": 700 },
+            { "id": "anti-tanning-facial", "name": "Anti-Tanning Facial", "price": 700 },
+            { "id": "o3-glow-shine-facial", "name": "O3+ Glow & Shine Facial", "price": 1700 },
+            { "id": "o3-stay-youthful", "name": "O3+ Stay Youthful", "price": 1600 }
           ]
         },
         {
@@ -502,8 +502,8 @@
           "name": "Detan & Bleach",
           "description": "Skin brightening and tanning removal",
           "subServices": [
-            { "name": "Detan", "price": 499 },
-            { "name": "Bleach", "price": 449 }
+            { "id": "detan", "name": "Detan", "price": 499 },
+            { "id": "bleach", "name": "Bleach", "price": 449 }
           ]
         },
         {
@@ -511,8 +511,8 @@
           "name": "Mani Pedi",
           "description": "Nail care services",
           "subServices": [
-            { "name": "Mani - Cut, File, Polish", "price": 400 },
-            { "name": "Pedi - Cut, File, Polish", "price": 500 }
+            { "id": "mani-cut-file-polish", "name": "Mani - Cut, File, Polish", "price": 400 },
+            { "id": "pedi-cut-file-polish", "name": "Pedi - Cut, File, Polish", "price": 500 }
           ]
         },
         {
@@ -520,14 +520,14 @@
           "name": "Waxing",
           "description": "Professional waxing services",
           "subServices": [
-            { "name": "Full Arms + Full Legs + Underarms Waxing", "price": 1250 },
-            { "name": "Full Arms + Underarms Waxing", "price": 400 },
-            { "name": "Full Legs Waxing", "price": 500 },
-            { "name": "Underarms Waxing", "price": 200 },
-            { "name": "Stomach Waxing", "price": 400 },
-            { "name": "Back Waxing", "price": 500 },
-            { "name": "Full Body Waxing", "price": 1500 },
-            { "name": "Bikini Waxing", "price": 1100 }
+            { "id": "full-arms-full-legs-underarms-waxing", "name": "Full Arms + Full Legs + Underarms Waxing", "price": 1250 },
+            { "id": "full-arms-underarms-waxing", "name": "Full Arms + Underarms Waxing", "price": 400 },
+            { "id": "full-legs-waxing", "name": "Full Legs Waxing", "price": 500 },
+            { "id": "underarms-waxing", "name": "Underarms Waxing", "price": 200 },
+            { "id": "stomach-waxing", "name": "Stomach Waxing", "price": 400 },
+            { "id": "back-waxing", "name": "Back Waxing", "price": 500 },
+            { "id": "full-body-waxing", "name": "Full Body Waxing", "price": 1500 },
+            { "id": "bikini-waxing", "name": "Bikini Waxing", "price": 1100 }
           ]
         },
         {
@@ -535,8 +535,8 @@
           "name": "Body Polish",
           "description": "Body care and skin treatments",
           "subServices": [
-            { "name": "Body Scrubbing", "price": 700 },
-            { "name": "Body Brightening", "price": 1900 }
+            { "id": "body-scrubbing", "name": "Body Scrubbing", "price": 700 },
+            { "id": "body-brightening", "name": "Body Brightening", "price": 1900 }
           ]
         },
         {
@@ -544,8 +544,8 @@
           "name": "Threading",
           "description": "Eyebrow and facial hair removal",
           "subServices": [
-            { "name": "Threading", "price": 49 },
-            { "name": "Face Waxing", "price": 69 }
+            { "id": "threading", "name": "Threading", "price": 49 },
+            { "id": "face-waxing", "name": "Face Waxing", "price": 69 }
           ]
         },
         {
@@ -553,8 +553,8 @@
           "name": "Korean Facial",
           "description": "Korean skincare treatments",
           "subServices": [
-            { "name": "Korean Ageless Facial", "price": 1449 },
-            { "name": "Korean Glass Hydration Facial", "price": 1749 }
+            { "id": "korean-ageless-facial", "name": "Korean Ageless Facial", "price": 1449 },
+            { "id": "korean-glass-hydration-facial", "name": "Korean Glass Hydration Facial", "price": 1749 }
           ]
         }
       ]
@@ -569,10 +569,10 @@
           "name": "Haircut & Style",
           "description": "Professional haircuts and styling",
           "subServices": [
-            { "name": "Haircut", "price": 550 },
-            { "name": "Kid's Haircut", "price": 600 },
-            { "name": "Haircut & Styling", "price": 650 },
-            { "name": "Hair Trim", "price": 400 }
+            { "id": "haircut", "name": "Haircut", "price": 550 },
+            { "id": "kids-haircut", "name": "Kid's Haircut", "price": 600 },
+            { "id": "haircut-styling", "name": "Haircut & Styling", "price": 650 },
+            { "id": "hair-trim", "name": "Hair Trim", "price": 400 }
           ]
         },
         {
@@ -580,10 +580,10 @@
           "name": "Blow Dry",
           "description": "Hair styling and drying services",
           "subServices": [
-            { "name": "Straight and Smooth", "price": 400 },
-            { "name": "In Curls / Out Curls", "price": 400 },
-            { "name": "Straightening", "price": 500 },
-            { "name": "Curls and Waves", "price": 500 }
+            { "id": "straight-smooth", "name": "Straight and Smooth", "price": 400 },
+            { "id": "in-curls-out-curls", "name": "In Curls / Out Curls", "price": 400 },
+            { "id": "straightening", "name": "Straightening", "price": 500 },
+            { "id": "curls-waves", "name": "Curls and Waves", "price": 500 }
           ]
         },
         {
@@ -591,8 +591,8 @@
           "name": "Hair Colour",
           "description": "Hair coloring services",
           "subServices": [
-            { "name": "Hair Colour", "price": 400 },
-            { "name": "Touchup Colour", "price": 1000 }
+            { "id": "hair-colour", "name": "Hair Colour", "price": 400 },
+            { "id": "touchup-colour", "name": "Touchup Colour", "price": 1000 }
           ]
         },
         {
@@ -600,8 +600,8 @@
           "name": "Keratin Hair Spa",
           "description": "Hair treatment and spa services",
           "subServices": [
-            { "name": "Keratin", "price": 4000 },
-            { "name": "Hair Botox", "price": 5500 }
+            { "id": "keratin", "name": "Keratin", "price": 4000 },
+            { "id": "hair-botox", "name": "Hair Botox", "price": 5500 }
           ]
         },
         {
@@ -609,7 +609,7 @@
           "name": "Hair Extensions",
           "description": "Hair extensions and color streaks",
           "subServices": [
-            { "name": "Color Streaks", "price": 600 }
+            { "id": "color-streaks", "name": "Color Streaks", "price": 600 }
           ]
         }
       ]
@@ -624,9 +624,9 @@
           "name": "Party Makeup",
           "description": "Professional makeup for parties and events",
           "subServices": [
-            { "name": "Basic Party Makeup", "price": 1999 },
-            { "name": "HD Finish Party Makeup", "price": 2999 },
-            { "name": "Premium Party Makeup Package", "price": 4999 }
+            { "id": "basic-party-makeup", "name": "Basic Party Makeup", "price": 1999 },
+            { "id": "hd-finish-party-makeup", "name": "HD Finish Party Makeup", "price": 2999 },
+            { "id": "premium-party-makeup-package", "name": "Premium Party Makeup Package", "price": 4999 }
           ]
         },
         {
@@ -634,8 +634,8 @@
           "name": "Engagement Makeup",
           "description": "Special makeup for engagement ceremonies",
           "subServices": [
-            { "name": "Basic Engagement Makeup", "price": 4999 },
-            { "name": "Premium Engagement Makeup", "price": 8999 }
+            { "id": "basic-engagement-makeup", "name": "Basic Engagement Makeup", "price": 4999 },
+            { "id": "premium-engagement-makeup", "name": "Premium Engagement Makeup", "price": 8999 }
           ]
         },
         {
@@ -643,9 +643,9 @@
           "name": "Bridal Makeup",
           "description": "Complete bridal makeup services",
           "subServices": [
-            { "name": "Basic Bridal Makeup", "price": 7999 },
-            { "name": "HD Bridal Makeup", "price": 9999 },
-            { "name": "Airbrush Bridal Makeup", "price": 5999 }
+            { "id": "basic-bridal-makeup", "name": "Basic Bridal Makeup", "price": 7999 },
+            { "id": "hd-bridal-makeup", "name": "HD Bridal Makeup", "price": 9999 },
+            { "id": "airbrush-bridal-makeup", "name": "Airbrush Bridal Makeup", "price": 5999 }
           ]
         },
         {
@@ -653,9 +653,9 @@
           "name": "Wedding Makeup",
           "description": "Professional wedding makeup services",
           "subServices": [
-            { "name": "Classic Wedding Makeup", "price": "Quote" },
-            { "name": "Premium Wedding Makeup", "price": "Quote" },
-            { "name": "Destination Wedding Makeup", "price": "Quote" }
+            { "id": "classic-wedding-makeup", "name": "Classic Wedding Makeup", "price": "Quote" },
+            { "id": "premium-wedding-makeup", "name": "Premium Wedding Makeup", "price": "Quote" },
+            { "id": "destination-wedding-makeup", "name": "Destination Wedding Makeup", "price": "Quote" }
           ]
         },
         {
@@ -663,11 +663,11 @@
           "name": "Mehandi Artist",
           "description": "Traditional henna art services",
           "subServices": [
-            { "name": "Simple Mehandi", "price": 499 },
-            { "name": "Arabic Mehandi", "price": 699 },
-            { "name": "Bridal Mehandi", "price": 1499 },
-            { "name": "Full Hand & Feet Mehandi", "price": 2499 },
-            { "name": "Custom Mehandi Design", "price": "Quote" }
+            { "id": "simple-mehandi", "name": "Simple Mehandi", "price": 499 },
+            { "id": "arabic-mehandi", "name": "Arabic Mehandi", "price": 699 },
+            { "id": "bridal-mehandi", "name": "Bridal Mehandi", "price": 1499 },
+            { "id": "full-hand-feet-mehandi", "name": "Full Hand & Feet Mehandi", "price": 2499 },
+            { "id": "custom-mehandi-design", "name": "Custom Mehandi Design", "price": "Quote" }
           ]
         },
         {
@@ -675,12 +675,12 @@
           "name": "Nail Artist",
           "description": "Professional nail art and care",
           "subServices": [
-            { "name": "Manicure", "price": 500, "note": "from ₹500" },
-            { "name": "Pedicure", "price": 600, "note": "from ₹600" },
-            { "name": "Gel/Acrylic Extensions", "price": 1500, "note": "from ₹1,500" },
-            { "name": "Nail Art (Basic to 3D)", "price": 300, "note": "from ₹300" },
-            { "name": "Refill & Repair", "price": 150, "note": "from ₹150" },
-            { "name": "Polish Change / Matte Finish", "price": 100, "note": "from ₹100" }
+            { "id": "manicure", "name": "Manicure", "price": 500, "note": "from ₹500" },
+            { "id": "pedicure", "name": "Pedicure", "price": 600, "note": "from ₹600" },
+            { "id": "gel-acrylic-extensions", "name": "Gel/Acrylic Extensions", "price": 1500, "note": "from ₹1,500" },
+            { "id": "nail-art-basic-to-3d", "name": "Nail Art (Basic to 3D)", "price": 300, "note": "from ₹300" },
+            { "id": "refill-repair", "name": "Refill & Repair", "price": 150, "note": "from ₹150" },
+            { "id": "polish-change-matte-finish", "name": "Polish Change / Matte Finish", "price": 100, "note": "from ₹100" }
           ]
         }
       ]
@@ -695,8 +695,8 @@
           "name": "Haircut",
           "description": "Professional haircut services for men",
           "subServices": [
-            { "name": "Haircut for Men", "price": 250 },
-            { "name": "Kids Haircut", "price": 250 }
+            { "id": "haircut-for-men", "name": "Haircut for Men", "price": 250 },
+            { "id": "kids-haircut", "name": "Kids Haircut", "price": 250 }
           ]
         },
         {
@@ -704,8 +704,8 @@
           "name": "Shave & Beard",
           "description": "Grooming services for men",
           "subServices": [
-            { "name": "Beard Trimming & Styling", "price": 200 },
-            { "name": "Clean Shave", "price": 200 }
+            { "id": "beard-trimming-styling", "name": "Beard Trimming & Styling", "price": 200 },
+            { "id": "clean-shave", "name": "Clean Shave", "price": 200 }
           ]
         },
         {
@@ -713,10 +713,10 @@
           "name": "Facial",
           "description": "Facial treatments for men",
           "subServices": [
-            { "name": "Skin Brightening Facial", "price": 1400 },
-            { "name": "Skin Dehydrating Facial", "price": 1400 },
-            { "name": "Oil Free Cleanup", "price": 700 },
-            { "name": "Coffee Skin Hydrating Cleanup", "price": 600 }
+            { "id": "skin-brightening-facial", "name": "Skin Brightening Facial", "price": 1400 },
+            { "id": "skin-dehydrating-facial", "name": "Skin Dehydrating Facial", "price": 1400 },
+            { "id": "oil-free-cleanup", "name": "Oil Free Cleanup", "price": 700 },
+            { "id": "coffee-skin-hydrating-cleanup", "name": "Coffee Skin Hydrating Cleanup", "price": 600 }
           ]
         },
         {
@@ -724,10 +724,10 @@
           "name": "Detan",
           "description": "Tanning removal services for men",
           "subServices": [
-            { "name": "Face and Neck Detan", "price": 400 },
-            { "name": "Full Arms Detan", "price": 400 },
-            { "name": "Half Legs Detan", "price": 400 },
-            { "name": "Hand Detan", "price": 400 }
+            { "id": "face-neck-detan", "name": "Face and Neck Detan", "price": 400 },
+            { "id": "full-arms-detan", "name": "Full Arms Detan", "price": 400 },
+            { "id": "half-legs-detan", "name": "Half Legs Detan", "price": 400 },
+            { "id": "hand-detan", "name": "Hand Detan", "price": 400 }
           ]
         },
         {
@@ -735,8 +735,8 @@
           "name": "Hair Color",
           "description": "Hair coloring services for men",
           "subServices": [
-            { "name": "Hair Color", "price": 450 },
-            { "name": "Beard Color", "price": 200 }
+            { "id": "hair-color", "name": "Hair Color", "price": 450 },
+            { "id": "beard-color", "name": "Beard Color", "price": 200 }
           ]
         },
         {
@@ -744,8 +744,8 @@
           "name": "Mani-Pedi",
           "description": "Nail care services for men",
           "subServices": [
-            { "name": "Deep Cleanse Pedicure", "price": 750 },
-            { "name": "Manicure", "price": 450 }
+            { "id": "deep-cleanse-pedicure", "name": "Deep Cleanse Pedicure", "price": 750 },
+            { "id": "manicure", "name": "Manicure", "price": 450 }
           ]
         },
         {
@@ -753,7 +753,7 @@
           "name": "Keratin Hair Spa",
           "description": "Hair treatment services for men",
           "subServices": [
-            { "name": "Keratin Hair Spa Treatment", "price": 800 }
+            { "id": "keratin-hair-spa-treatment", "name": "Keratin Hair Spa Treatment", "price": 800 }
           ]
         }
       ]
@@ -768,11 +768,11 @@
           "name": "Spiritual Guidance",
           "description": "Connect with trusted experts in spiritual guidance",
           "subServices": [
-            { "name": "Pandit", "price": "Quote" },
-            { "name": "Astrologer", "price": "Quote" },
-            { "name": "Numerologist", "price": "Quote" },
-            { "name": "Tarot Reader", "price": "Quote" },
-            { "name": "Vastu Shastri", "price": "Quote" }
+            { "id": "pandit", "name": "Pandit", "price": "Quote" },
+            { "id": "astrologer", "name": "Astrologer", "price": "Quote" },
+            { "id": "numerologist", "name": "Numerologist", "price": "Quote" },
+            { "id": "tarot-reader", "name": "Tarot Reader", "price": "Quote" },
+            { "id": "vastu-shastri", "name": "Vastu Shastri", "price": "Quote" }
           ]
         },
         {
@@ -780,9 +780,9 @@
           "name": "Personal Care Experts",
           "description": "Professional personal care services",
           "subServices": [
-            { "name": "Mehndi Artist", "price": "Quote" },
-            { "name": "Makeup Artist", "price": "Quote" },
-            { "name": "Maid / Housekeeping", "price": "Quote" }
+            { "id": "mehndi-artist", "name": "Mehndi Artist", "price": "Quote" },
+            { "id": "makeup-artist", "name": "Makeup Artist", "price": "Quote" },
+            { "id": "maid-housekeeping", "name": "Maid / Housekeeping", "price": "Quote" }
           ]
         },
         {
@@ -790,8 +790,8 @@
           "name": "Education & Pet Care",
           "description": "Educational and pet care services",
           "subServices": [
-            { "name": "Tuition Teacher / Home Tutor", "price": "Quote" },
-            { "name": "Pet Trainer / Pet Groomer", "price": "Quote" }
+            { "id": "tuition-teacher-home-tutor", "name": "Tuition Teacher / Home Tutor", "price": "Quote" },
+            { "id": "pet-trainer-pet-groomer", "name": "Pet Trainer / Pet Groomer", "price": "Quote" }
           ]
         }
       ]
@@ -806,9 +806,9 @@
           "name": "Residential Properties",
           "description": "Explore property options for every need",
           "subServices": [
-            { "name": "House", "price": "Quote" },
-            { "name": "Apartments", "price": "Quote" },
-            { "name": "Land & Plots", "price": "Quote" }
+            { "id": "house", "name": "House", "price": "Quote" },
+            { "id": "apartments", "name": "Apartments", "price": "Quote" },
+            { "id": "land-plots", "name": "Land & Plots", "price": "Quote" }
           ]
         },
         {
@@ -816,8 +816,8 @@
           "name": "Accommodation",
           "description": "Temporary and shared living options",
           "subServices": [
-            { "name": "PG & Roommates", "price": "Quote" },
-            { "name": "Guest House", "price": "Quote" }
+            { "id": "pg-roommates", "name": "PG & Roommates", "price": "Quote" },
+            { "id": "guest-house", "name": "Guest House", "price": "Quote" }
           ]
         },
         {
@@ -825,7 +825,7 @@
           "name": "Commercial Properties",
           "description": "Business and commercial spaces",
           "subServices": [
-            { "name": "Shop & Office", "price": "Quote" }
+            { "id": "shop-office", "name": "Shop & Office", "price": "Quote" }
           ]
         }
       ]

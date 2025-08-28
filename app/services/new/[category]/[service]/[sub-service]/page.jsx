@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { notFound, useParams } from 'next/navigation'
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,12 +29,7 @@ export default function SubServicePage() {
   const params = useParams()
   const categoryId = Array.isArray(params?.category) ? params.category[0] : params?.category
   const serviceId = Array.isArray(params?.service) ? params.service[0] : params?.service
-  const subServiceIndexParam = Array.isArray(params?.["sub-service"]) ? params["sub-service"][0] : params?.["sub-service"]
-
-  const subServiceIndex = useMemo(() => {
-    const parsed = parseInt(subServiceIndexParam, 10)
-    return Number.isNaN(parsed) ? -1 : parsed
-  }, [subServiceIndexParam])
+  const subServiceId = Array.isArray(params?.["sub-service"]) ? params["sub-service"][0] : params?.["sub-service"]
 
   const category = servicesData.categories.find(cat => cat.id === categoryId)
   if (!category) return notFound()
@@ -42,7 +37,7 @@ export default function SubServicePage() {
   const service = category.services.find(s => s.id === serviceId)
   if (!service) return notFound()
 
-  const subService = service.subServices[subServiceIndex]
+  const subService = service.subServices.find(s => s.id === subServiceId)
   if (!subService) return notFound()
 
   const [loading, setLoading] = useState(false)

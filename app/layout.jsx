@@ -1,7 +1,7 @@
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
-
+import { Toaster } from "@/components/ui/sonner"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
@@ -17,6 +17,7 @@ export default async function RootLayout({ children }) {
         <Providers>
           {children}
         </Providers>
+        <Toaster />
         <div id="dialog-root" />
       </body>
     </html>

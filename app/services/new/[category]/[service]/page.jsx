@@ -63,7 +63,7 @@ export default function ServicePage() {
               <h2 className="text-2xl font-bold mb-8 text-center">Choose Your Service</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {service.subServices.map((subService, index) => (
-                  <Link key={index} href={`/services/new/${category.id}/${service.id}/${index}`} className="block">
+                  <Link key={index} href={`/services/new/${category.id}/${service.id}/${subService.id}`} className="block">
                     <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-primary">
                       <CardContent className="p-6">
                         <div className="space-y-3">
