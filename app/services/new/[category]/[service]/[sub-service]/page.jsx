@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { notFound, useParams } from 'next/navigation'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -74,6 +74,20 @@ export default function SubServicePage() {
       [name]: value
     }))
   }
+
+  const handleStateChange = useCallback((value) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      state: value
+    }))
+  }, [])
+  
+  const handleCityChange = useCallback((value) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      city: value 
+    }))
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -432,14 +446,8 @@ export default function SubServicePage() {
                               <SearchableStateCityInput
                                 selectedState={formData.state}
                                 selectedCity={formData.city}
-                                onStateChange={(value) => setFormData(prev => ({ 
-                                  ...prev, 
-                                  state: value
-                                }))}
-                                onCityChange={(value) => setFormData(prev => ({ 
-                                  ...prev, 
-                                  city: value 
-                                }))}
+                                onStateChange={handleStateChange}
+                                onCityChange={handleCityChange}
                                 showLabels={true}
                                 stateLabel="State"
                                 cityLabel="City"
