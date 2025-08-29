@@ -313,6 +313,38 @@
       ]
     },
     {
+      "id": "packers-movers",
+      "name": "Packers & Movers",
+      "icon": "🚚",
+      "services": [
+        {
+          "id": "residential-moving",
+          "name": "Residential Moving",
+          "description": "Complete household relocation solutions tailored for families and individuals",
+          "subServices": [
+            { "id": "inter-city-moving", "name": "Inter-City Moving", "price": "Quote" },
+            { "id": "warehousing", "name": "Warehousing", "price": "Quote" }
+          ]
+        },
+        {
+          "id": "corporate-moving",
+          "name": "Corporate Moving",
+          "description": "Streamlined shifting designed to minimize downtime for businesses",
+          "subServices": [
+            { "id": "office-shifting", "name": "Office Shifting", "price": "Quote" }
+          ]
+        },
+        {
+          "id": "vehicle-moving",
+          "name": "Vehicle Moving",
+          "description": "Dedicated transport services for two-wheelers and four-wheelers",
+          "subServices": [
+            { "id": "car-bike-transportation", "name": "Car/Bike Transportation", "price": "Quote" }
+          ]
+        }
+      ]
+    },
+    {
       "id": "contractor-services",
       "name": "Contractor Services",
       "icon": "🏗️",
@@ -808,38 +840,7 @@
           ]
         }
       ]
-    },
-    {
-      "id": "packers-movers",
-      "name": "Packers & Movers",
-      "icon": "🚚",
-      "services": [
-        {
-          "id": "residential-moving",
-          "name": "Residential Moving",
-          "description": "Complete household relocation solutions tailored for families and individuals",
-          "subServices": [
-            { "id": "inter-city-moving", "name": "Inter-City Moving", "price": "Quote" },
-            { "id": "warehousing", "name": "Warehousing", "price": "Quote" }
-          ]
-        },
-        {
-          "id": "corporate-moving",
-          "name": "Corporate Moving",
-          "description": "Streamlined shifting designed to minimize downtime for businesses",
-          "subServices": [
-            { "id": "office-shifting", "name": "Office Shifting", "price": "Quote" }
-          ]
-        },
-        {
-          "id": "vehicle-moving",
-          "name": "Vehicle Moving",
-          "description": "Dedicated transport services for two-wheelers and four-wheelers",
-          "subServices": [
-            { "id": "car-bike-transportation", "name": "Car/Bike Transportation", "price": "Quote" }
-          ]
-        }
-      ]
     }
+   
   ]
 } 
