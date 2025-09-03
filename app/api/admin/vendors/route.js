@@ -229,6 +229,14 @@ export async function GET(request) {
                 { $arrayElemAt: ['$vendorData.address', 0] },
                 '$address'
               ]
+            },
+            
+            online: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.online', 0] },
+                null
+              ]
             }
           }
         },
@@ -305,11 +313,20 @@ export async function GET(request) {
                 0
               ]
             },
+            
             totalJobs: {
               $cond: [
                 { $gt: [{ $size: '$vendorData' }, 0] },
                 { $arrayElemAt: ['$vendorData.totalJobs', 0] },
                 0
+              ]
+            },
+            
+            online: {
+              $cond: [
+                { $gt: [{ $size: '$vendorData' }, 0] },
+                { $arrayElemAt: ['$vendorData.online', 0] },
+                null
               ]
             },
             vendorId: {

@@ -108,6 +108,12 @@ export function AdminSidebar() {
       permission: can.viewLeads,
     },
     {
+      title: "Vendor Logs",
+      icon: <Briefcase className="h-5 w-5" />,
+      href: "/admin/vendor-logs",
+      permission: null,
+    },
+    {
       title: "City Management",
       icon: <MapPin className="h-5 w-5" />,
       href: "/admin/cities",

@@ -299,6 +299,7 @@ export function VendorList({
                   <TableHead>Rating</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Verified</TableHead>
+                  <TableHead>Online</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -411,6 +412,24 @@ export function VendorList({
                           <span className="text-sm">
                             {vendor.verified?.isVerified ? "Yes" : "No"}
                           </span>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {vendor.online === undefined || vendor.online === null ? (
+                            <>
+                            <span className="text-sm">N/A</span>
+                            </>
+                          ) : vendor?.online === false ? (
+                            <>
+                              <span className="text-sm">No</span>
+                            </>
+                          ) : (
+                            <>
+                               <span className="text-sm">Yes</span>
+                            </>
+                          )}
                         </div>
                       </TableCell>
 
