@@ -21,12 +21,12 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination"
 import { toast } from "sonner"
 import subscriptionService from "@/lib/services/subscriptionService"
 
 export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
   const [plans, setPlans] = useState([])
-  const [filteredPlans, setFilteredPlans] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -34,25 +34,53 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
   const [durationFilter, setDurationFilter] = useState("all")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [planToDelete, setPlanToDelete] = useState(null)
+  
+  // Pagination state
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10,
+    hasNextPage: false,
+    hasPrevPage: false
+  })
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   // Fetch plans
-  const fetchPlans = async () => {
+  const fetchPlans = async (page = pagination.currentPage) => {
     try {
       setLoading(true)
       setError(null)
       
       const filters = {
+        page,
+        limit: itemsPerPage,
         search: searchTerm,
-        status: statusFilter === 'all' ? null : statusFilter,
-        duration: durationFilter === 'all' ? null : durationFilter,
-        sortBy: 'created'
+        status: statusFilter === 'all' ? '' : statusFilter,
+        duration: durationFilter === 'all' ? '' : durationFilter,
+        sortBy: 'createdAt'
       }
       
       const response = await subscriptionService.getAllPlans(filters)
-      setPlans(response.data?.plans || [])
+      
+      if (response.success && response.data) {
+        setPlans(response.data.plans || [])
+        setPagination(response.data.pagination || pagination)
+      } else {
+        setPlans([])
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: 0,
+          itemsPerPage: itemsPerPage,
+          hasNextPage: false,
+          hasPrevPage: false
+        })
+      }
     } catch (err) {
       setError(err.message)
       toast.error(`Error: ${err.message}`)
+      setPlans([])
     } finally {
       setLoading(false)
     }
@@ -60,22 +88,17 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
 
   // Initial fetch and refresh trigger
   useEffect(() => {
-    fetchPlans()
+    fetchPlans(1) // Reset to first page on refresh
   }, [refreshTrigger])
 
   // Trigger re-fetch when filters change (with debounce for search)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchPlans()
+      fetchPlans(1) // Reset to first page when filters change
     }, searchTerm ? 500 : 0) // 500ms debounce for search, immediate for other filters
 
     return () => clearTimeout(timeoutId)
-  }, [searchTerm, statusFilter, durationFilter])
-
-  // Set filtered plans from API response
-  useEffect(() => {
-    setFilteredPlans(plans)
-  }, [plans])
+  }, [searchTerm, statusFilter, durationFilter, itemsPerPage])
 
   // Handle delete plan
   const handleDeleteClick = (plan) => {
@@ -89,7 +112,7 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
     try {
       await subscriptionService.deletePlan(planToDelete._id)
       toast.success(`Plan "${planToDelete.planName}" deleted successfully`)
-      fetchPlans() // Refresh the list
+      fetchPlans(pagination.currentPage) // Refresh the current page
     } catch (err) {
       toast.error(`Error: ${err.message}`)
     } finally {
@@ -103,7 +126,7 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
     try {
       await subscriptionService.togglePlanStatus(plan._id)
       toast.success(`Plan "${plan.planName}" ${plan.isActive ? 'deactivated' : 'activated'} successfully`)
-      fetchPlans() // Refresh the list
+      fetchPlans(pagination.currentPage) // Refresh the current page
     } catch (err) {
       toast.error(`Error: ${err.message}`)
     }
@@ -114,14 +137,25 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
     try {
       const filters = {
         search: searchTerm,
-        status: statusFilter === 'all' ? null : statusFilter,
-        duration: durationFilter === 'all' ? null : durationFilter
+        status: statusFilter === 'all' ? '' : statusFilter,
+        duration: durationFilter === 'all' ? '' : durationFilter
       }
       await subscriptionService.exportPlans(filters)
       toast.success("Subscription plans exported successfully")
     } catch (err) {
       toast.error(`Export failed: ${err.message}`)
     }
+  }
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    fetchPlans(page)
+  }
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage)
+    // This will trigger useEffect to refetch with new limit
   }
 
   // Handle import
@@ -195,6 +229,18 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
                 <SelectItem value="12-month">12 Months</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Per page" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5 per page</SelectItem>
+                <SelectItem value="10">10 per page</SelectItem>
+                <SelectItem value="20">20 per page</SelectItem>
+                <SelectItem value="50">50 per page</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Table */}
@@ -225,8 +271,8 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
                       Error: {error}
                     </TableCell>
                   </TableRow>
-                ) : filteredPlans.length > 0 ? (
-                  filteredPlans.map((plan) => (
+                ) : plans.length > 0 ? (
+                  plans.map((plan) => (
                     <TableRow key={plan._id}>
                       <TableCell>
                         <div className="space-y-1">
@@ -353,10 +399,70 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
             </Table>
           </div>
 
-          {/* Summary */}
+          {/* Summary and Pagination */}
           {!loading && !error && (
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredPlans.length} of {plans.length} plans
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {plans.length} of {pagination.totalItems} plans
+                {pagination.totalPages > 1 && (
+                  <span className="ml-2">
+                    (Page {pagination.currentPage} of {pagination.totalPages})
+                  </span>
+                )}
+              </div>
+              
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => handlePageChange(pagination.currentPage - 1)}
+                        className={!pagination.hasPrevPage ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    
+                    {/* Page numbers */}
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (pagination.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (pagination.currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                        pageNum = pagination.totalPages - 4 + i;
+                      } else {
+                        pageNum = pagination.currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(pageNum)}
+                            isActive={pageNum === pagination.currentPage}
+                            className="cursor-pointer"
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    
+                    {pagination.totalPages > 5 && pagination.currentPage < pagination.totalPages - 2 && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => handlePageChange(pagination.currentPage + 1)}
+                        className={!pagination.hasNextPage ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
             </div>
           )}
         </div>
