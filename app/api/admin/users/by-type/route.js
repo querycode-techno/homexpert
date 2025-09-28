@@ -12,7 +12,7 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
     const userType = searchParams.get('role'); // Keep 'role' as parameter name for compatibility
     const search = searchParams.get('search') || '';
-    const limit = parseInt(searchParams.get('limit')) || 50;
+    const limit = parseInt(searchParams.get('limit')) || 1000; // Increased default limit for notifications
     
     //console.log('DEBUG VENDORS: Query params:', { userType, search, limit });
     
@@ -39,6 +39,7 @@ export async function GET(req) {
     if (userType === 'vendor') {
       const vendorsCollection = await database.getVendorsCollection();
       const usersCollection = await database.getUsersCollection();
+      const subscriptionHistoryCollection = await database.getSubscriptionHistoryCollection();
       
       // Build vendor query
       let vendorQuery = {};
@@ -50,7 +51,7 @@ export async function GET(req) {
         ];
       }
       
-      // Get vendors with user data
+      // Get vendors with user data and subscription status
       const vendors = await vendorsCollection.aggregate([
         { $match: vendorQuery },
         {
@@ -65,21 +66,63 @@ export async function GET(req) {
           }
         },
         { $unwind: '$userData' },
+        {
+          $lookup: {
+            from: 'subscriptionhistories',
+            localField: 'user',
+            foreignField: 'user',
+            as: 'subscriptions',
+            pipeline: [
+              { $sort: { createdAt: -1 } },
+              { $limit: 1 }
+            ]
+          }
+        },
+        {
+          $addFields: {
+            latestSubscription: { $arrayElemAt: ['$subscriptions', 0] }
+          }
+        },
         { $limit: limit },
         { $sort: { createdAt: -1 } }
       ]).toArray();
       
       // Transform to match expected format
-      users = vendors.map(vendor => ({
-        _id: vendor.userData._id,
-        name: vendor.businessName || vendor.userData.name,
-        email: vendor.userData.email,
-        phone: vendor.userData.phone,
-        type: 'vendor',
-        fcmToken: vendor.userData.fcmToken,
-        businessName: vendor.businessName,
-        status: vendor.status
-      }));
+      users = vendors.map(vendor => {
+        const subscription = vendor.latestSubscription;
+        let subscriptionStatus = 'unsubscribed';
+        let subscriptionDetails = null;
+        
+        if (subscription) {
+          subscriptionStatus = subscription.status;
+          subscriptionDetails = {
+            planName: subscription.planSnapshot?.planName,
+            status: subscription.status,
+            isActive: subscription.isActive,
+            startDate: subscription.startDate,
+            endDate: subscription.endDate,
+            leadsRemaining: subscription.usage?.leadsRemaining || 0
+          };
+        }
+        
+        return {
+          _id: vendor.userData._id,
+          name: vendor.businessName || vendor.userData.name,
+          email: vendor.userData.email,
+          phone: vendor.userData.phone,
+          type: 'vendor',
+          fcmToken: vendor.userData.fcmToken,
+          businessName: vendor.businessName,
+          status: vendor.status,
+          verified: vendor.verified?.isVerified || vendor.verified === true || false,
+          city: vendor.address?.city,
+          services: vendor.services || [],
+          onboardedBy: vendor.onboardedBy,
+          online: vendor.online,
+          subscriptionStatus: subscriptionStatus,
+          subscriptionDetails: subscriptionDetails
+        };
+      });
       
       //console.log('DEBUG VENDORS: Found', users.length, 'vendors from vendors collection');
     } else {
@@ -104,7 +147,14 @@ export async function GET(req) {
         role: user.type, // Return 'type' as 'role' for compatibility
         hasFcmToken: !!user.fcmToken,
         businessName: user.businessName, // Include business name for vendors
-        status: user.status // Include status for vendors
+        status: user.status, // Include status for vendors
+        verified: user.verified, // Include verification status for vendors
+        city: user.city, // Include city for vendors
+        services: user.services, // Include services for vendors
+        onboardedBy: user.onboardedBy, // Include onboarded by for vendors
+        online: user.online, // Include online status for vendors
+        subscriptionStatus: user.subscriptionStatus, // Include subscription status for vendors
+        subscriptionDetails: user.subscriptionDetails // Include subscription details for vendors
       }))
     }), {
       status: 200,
