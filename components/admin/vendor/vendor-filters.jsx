@@ -68,7 +68,8 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
       city: "",
       service: "",
       verified: "",
-      onboardedBy: ""
+      onboardedBy: "",
+      online: ""
     })
   }
 
@@ -76,7 +77,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Status Filter */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Status</label>
@@ -185,6 +186,25 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
             </SelectContent>
           </Select>
         </div>
+
+        {/* Online Status Filter */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Online Status</label>
+          <Select
+            value={filters.online || "all"}
+            onValueChange={(value) => handleFilterChange("online", value)}
+            disabled={disabled}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All vendors" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All vendors</SelectItem>
+              <SelectItem value="online">Online only</SelectItem>
+              <SelectItem value="offline">Offline only</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Active Filters */}
@@ -254,6 +274,20 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
               <button
                 type="button"
                 onClick={() => handleFilterChange("onboardedBy", "")}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={disabled}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
+          {filters.online && (
+            <Badge variant="secondary" className="gap-1">
+              {filters.online === "online" ? "Online" : "Offline"}
+              <button
+                type="button"
+                onClick={() => handleFilterChange("online", "")}
                 className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
                 disabled={disabled}
               >

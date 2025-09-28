@@ -1169,9 +1169,15 @@ export default function SubscriptionHistoryPage() {
                 <CardContent>
                   {detailsDialog.subscription.history && detailsDialog.subscription.history.length > 0 ? (
                     <div className="space-y-3">
-                      {detailsDialog.subscription.history
-                        .filter(item => item.action === 'leads_increased' || item.action === 'leads_decreased')
-                        .map((item, index) => (
+                      {(() => {
+                        // Debug: Log the history items to see what we're working with
+                        console.log('Subscription history:', detailsDialog.subscription.history);
+                        const leadAdjustments = detailsDialog.subscription.history.filter(item => 
+                          item.action && (item.action.includes('leads_increased') || item.action.includes('leads_decreased'))
+                        );
+                        console.log('Lead adjustments found:', leadAdjustments);
+                        return leadAdjustments;
+                      })().map((item, index) => (
                           <div key={index} className="flex items-start justify-between p-3 border rounded-lg">
                             <div className="flex-1">
                               <div className="flex items-center space-x-2">
@@ -1200,7 +1206,7 @@ export default function SubscriptionHistoryPage() {
                         ))
                       }
                       {detailsDialog.subscription.history.filter(item => 
-                        item.action === 'leads_increased' || item.action === 'leads_decreased'
+                        item.action && (item.action.includes('leads_increased') || item.action.includes('leads_decreased'))
                       ).length === 0 && (
                         <div className="text-center py-6 text-muted-foreground">
                           <div className="text-lg font-medium mb-2">No Lead Adjustments</div>

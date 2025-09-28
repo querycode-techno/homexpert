@@ -232,13 +232,10 @@ export function VendorDetailsDialog({
                         <div>
                           <p className="text-sm font-medium">Onboarded By</p>
                           <p className="text-sm text-muted-foreground">
-                            {vendor.onboardedBy ? (
-                              // If onboarded by someone, show their name
-                              vendor.onboardedByUser?.name || 'Admin User'
-                            ) : (
-                              // If self-registered
-                              'Self-registered'
-                            )}
+                            { vendor.onboardedByUser?.name || 'Admin User' }
+                             <span className="text-xs text-muted-foreground">
+                              ({ vendor.onboardedByUser?.email })
+                            </span>
                           </p>
                         </div>
                       </div>

@@ -32,6 +32,7 @@ export function VendorManagement() {
   const currentService = searchParams.get('service') || ""
   const currentVerified = searchParams.get('verified') || ""
   const currentOnboardedBy = searchParams.get('onboardedBy') || ""
+  const currentOnline = searchParams.get('online') || ""
 
   // State management
   const [vendors, setVendors] = useState([])
@@ -60,7 +61,8 @@ export function VendorManagement() {
       city: currentCity,
       service: currentService,
       verified: currentVerified,
-      onboardedBy: currentOnboardedBy
+      onboardedBy: currentOnboardedBy,
+      online: currentOnline
     })
 
   // File input ref
@@ -99,7 +101,7 @@ export function VendorManagement() {
   // Load vendors when non-search parameters change (full reload with stats)
   useEffect(() => {
     fetchVendors(false) // Full reload including stats
-  }, [currentPage, currentStatus, currentCity, currentService, currentVerified, currentOnboardedBy])
+  }, [currentPage, currentStatus, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline])
   
   // Handle search separately (table only, no stats reload)
   useEffect(() => {
@@ -118,9 +120,10 @@ export function VendorManagement() {
       city: currentCity,
       service: currentService,
       verified: currentVerified,
-      onboardedBy: currentOnboardedBy
+      onboardedBy: currentOnboardedBy,
+      online: currentOnline
     })
-  }, [currentSearch, currentStatus, currentCity, currentService, currentVerified, currentOnboardedBy])
+  }, [currentSearch, currentStatus, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline])
 
   // Fetch vendors using the vendor service
   const fetchVendors = async (searchOnly = false) => {
@@ -134,7 +137,8 @@ export function VendorManagement() {
         city: currentCity,
         service: currentService,
         verified: currentVerified,
-        onboardedBy: currentOnboardedBy
+        onboardedBy: currentOnboardedBy,
+        online: currentOnline
       }
 
       const result = await vendorService.getVendors(params)
@@ -255,9 +259,29 @@ export function VendorManagement() {
     }
   }
 
-  const handleViewVendor = (vendor) => {
-    setCurrentVendor(vendor)
-    setIsViewVendorDialogOpen(true)
+  const handleViewVendor = async (vendor) => {
+    try {
+      // Show loading toast to indicate data is being fetched
+      const loadingToast = toast.loading('Loading vendor details...')
+      
+      // Fetch complete vendor details by ID
+      const result = await vendorService.getVendor(vendor._id)
+      
+      // Dismiss loading toast
+      toast.dismiss(loadingToast)
+      
+      if (result.success) {
+        setCurrentVendor(result.vendor)
+        // Only open dialog after data is successfully loaded
+        setIsViewVendorDialogOpen(true)
+      } else {
+        console.error('Failed to fetch vendor:', result.error)
+        toast.error(`Error fetching vendor details: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error fetching vendor for view:', error)
+      toast.error('Failed to fetch vendor details')
+    }
   }
 
   const handleVerifyVendor = async (vendor) => {
@@ -295,7 +319,6 @@ export function VendorManagement() {
   }
 
   const handleFilter = (newFilters) => {
-    //console.log('🔧 handleFilter called with:', newFilters)
     setFilters(newFilters)
     
     // Always update URL when filters change, including when clearing filters
@@ -305,20 +328,21 @@ export function VendorManagement() {
       newFilters.city !== currentCity ||
       newFilters.service !== currentService ||
       newFilters.verified !== currentVerified ||
-      newFilters.onboardedBy !== currentOnboardedBy
+      newFilters.onboardedBy !== currentOnboardedBy ||
+      newFilters.online !== currentOnline
     
     // Also trigger update if this is a clear operation (all filters empty)
-    const isClearOperation = !newFilters.status && !newFilters.city && !newFilters.service && !newFilters.verified && !newFilters.onboardedBy
-    const hadFilters = currentStatus || currentCity || currentService || currentVerified || currentOnboardedBy
+    const isClearOperation = !newFilters.status && !newFilters.city && !newFilters.service && !newFilters.verified && !newFilters.onboardedBy && !newFilters.online
+    const hadFilters = currentStatus || currentCity || currentService || currentVerified || currentOnboardedBy || currentOnline
     
     if (filtersChanged || (isClearOperation && hadFilters)) {
-      //console.log('🔄 Filters changed, updating URL', { filtersChanged, isClearOperation, hadFilters })
       updateURL({ 
         status: newFilters.status || undefined,
         city: newFilters.city || undefined,
         service: newFilters.service || undefined,
         verified: newFilters.verified || undefined,
         onboardedBy: newFilters.onboardedBy || undefined,
+        online: newFilters.online || undefined,
         page: undefined // Reset to page 1 by removing page param
       })
     }
@@ -428,7 +452,8 @@ export function VendorManagement() {
           city: currentCity,
           service: currentService,
           verified: currentVerified,
-          onboardedBy: currentOnboardedBy
+          onboardedBy: currentOnboardedBy,
+          online: currentOnline
         }}
       />
 

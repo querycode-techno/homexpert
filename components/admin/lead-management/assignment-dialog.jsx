@@ -28,6 +28,7 @@ export function AssignmentDialog({
   const [totalVendors, setTotalVendors] = useState(0)
   const [serviceFilter, setServiceFilter] = useState('')
   const [cityFilter, setCityFilter] = useState('')
+  const [onlineFilter, setOnlineFilter] = useState('')
   const [availableServices, setAvailableServices] = useState([])
   const [availableCities, setAvailableCities] = useState([])
 
@@ -45,6 +46,7 @@ export function AssignmentDialog({
       setSearchTerm('')
       setServiceFilter('')
       setCityFilter('')
+      setOnlineFilter('')
       setCurrentPage(1)
       setHasMore(true)
       setVendors([])
@@ -59,21 +61,21 @@ export function AssignmentDialog({
     const delayedSearch = setTimeout(() => {
       if (open && selectedLeads.length > 0) {
         setCurrentPage(1)
-        fetchVendors(1, searchTerm, serviceFilter, cityFilter, true)
+        fetchVendors(1, searchTerm, serviceFilter, cityFilter, onlineFilter, true)
       }
     }, 500)
 
     return () => clearTimeout(delayedSearch)
-  }, [searchTerm, serviceFilter, cityFilter, open, selectedLeads])
+  }, [searchTerm, serviceFilter, cityFilter, onlineFilter, open, selectedLeads])
 
   // Load more vendors
   const loadMoreVendors = () => {
     if (hasMore && !loadingMore && !loading) {
-      fetchVendors(currentPage + 1, searchTerm, serviceFilter, cityFilter, false)
+      fetchVendors(currentPage + 1, searchTerm, serviceFilter, cityFilter, onlineFilter, false)
     }
   }
 
-  const fetchVendors = async (page = 1, search = '', service = '', city = '', reset = false) => {
+  const fetchVendors = async (page = 1, search = '', service = '', city = '', online = '', reset = false) => {
     if (page === 1) {
       setLoading(true)
     } else {
@@ -90,6 +92,7 @@ export function AssignmentDialog({
       
       if (service) params.append('service', service);
       if (city) params.append('city', city);
+      if (online) params.append('online', online);
       
       const response = await fetch(`/api/admin/leads/assign?${params}`)
       const result = await response.json()
@@ -272,9 +275,17 @@ export function AssignmentDialog({
                 <Star className="h-4 w-4 text-yellow-500 mr-1" />
                 <span>{vendor.rating?.toFixed(1) || 'N/A'}</span>
               </div>
-              <Badge variant="outline" className="text-xs">
-               {vendor.status}
-              </Badge>
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline" className="text-xs">
+                  {vendor.status}
+                </Badge>
+                <Badge 
+                  variant={vendor.online ? "default" : "secondary"} 
+                  className={`text-xs ${vendor.online ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
+                >
+                  {vendor.online ? '🟢' : '🔴'}
+                </Badge>
+              </div>
             </div>
           </div>
         ))}
@@ -366,14 +377,26 @@ export function AssignmentDialog({
                 </SelectContent>
               </Select>
               
+              <Select value={onlineFilter || "all"} onValueChange={(value) => setOnlineFilter(value === "all" ? "" : value)}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Online status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="offline">Offline</SelectItem>
+                </SelectContent>
+              </Select>
+              
               {/* Clear Filters */}
-              {(serviceFilter || cityFilter) && (
+              {(serviceFilter || cityFilter || onlineFilter) && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     setServiceFilter('')
                     setCityFilter('')
+                    setOnlineFilter('')
                   }}
                 >
                   Clear Filters

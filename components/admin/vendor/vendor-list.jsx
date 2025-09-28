@@ -141,7 +141,7 @@ export function VendorList({
 
   // Clear all filters and search
   const clearFilters = () => {
-    const emptyFilters = { status: "", city: "", service: "", verified: "", onboardedBy: "" }
+    const emptyFilters = { status: "", city: "", service: "", verified: "", onboardedBy: "", online: "" }
     
     // Update local state immediately
     setLocalFilters(emptyFilters)
@@ -160,7 +160,7 @@ export function VendorList({
   }
 
   // Check if any filters are active
-  const hasActiveFilters = localSearchTerm || localFilters.status || localFilters.city || localFilters.service || localFilters.verified || localFilters.onboardedBy
+  const hasActiveFilters = localSearchTerm || localFilters.status || localFilters.city || localFilters.service || localFilters.verified || localFilters.onboardedBy || localFilters.online
 
   const getInitials = (name) => {
     return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'V'
@@ -419,15 +419,15 @@ export function VendorList({
                         <div className="flex items-center gap-1">
                           {vendor.online === undefined || vendor.online === null ? (
                             <>
-                            <span className="text-sm">N/A</span>
+                            <span className="text-sm">⚪</span>
                             </>
                           ) : vendor?.online === false ? (
                             <>
-                              <span className="text-sm">No</span>
+                              <span className="text-sm">🔴</span>
                             </>
                           ) : (
                             <>
-                               <span className="text-sm">Yes</span>
+                               <span className="text-sm">🟢</span>
                             </>
                           )}
                         </div>

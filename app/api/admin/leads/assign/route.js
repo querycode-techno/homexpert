@@ -421,6 +421,7 @@ export async function GET(request) {
     const leadIds = searchParams.get('leadIds')?.split(',') || [];
     const serviceFilter = searchParams.get('service');
     const cityFilter = searchParams.get('city');
+    const onlineFilter = searchParams.get('online');
     const assignmentType = searchParams.get('type') || 'manual';
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 20;
@@ -524,6 +525,13 @@ export async function GET(request) {
               4.5
             ]
           },
+          online: { 
+            $cond: [
+              { $gt: [{ $size: '$vendorData' }, 0] },
+              { $arrayElemAt: ['$vendorData.online', 0] },
+              false
+            ]
+          },
           totalJobs: { 
             $cond: [
               { $gt: [{ $size: '$vendorData' }, 0] },
@@ -573,6 +581,15 @@ export async function GET(request) {
           matchConditions.push({ 'address.city': cityFilter });
         }
         
+        // Online filter
+        if (onlineFilter) {
+          if (onlineFilter === 'online') {
+            matchConditions.push({ online: true });
+          } else if (onlineFilter === 'offline') {
+            matchConditions.push({ online: false });
+          }
+        }
+        
         return matchConditions.length > 0 ? [{
           $match: {
             $and: matchConditions
@@ -588,6 +605,7 @@ export async function GET(request) {
           rating: 1,
           totalJobs: 1,
           status: 1,
+          online: 1,
           name: 1,
           email: 1,
           phone: 1,
@@ -658,6 +676,7 @@ export async function GET(request) {
         filters: {
           service: serviceFilter,
           city: cityFilter,
+          online: onlineFilter,
           assignmentType,
           search
         }

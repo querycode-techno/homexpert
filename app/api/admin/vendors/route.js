@@ -18,6 +18,7 @@ export async function GET(request) {
     const service = searchParams.get('service') || '';
     const verified = searchParams.get('verified');
     const onboardedBy = searchParams.get('onboardedBy') || '';
+    const online = searchParams.get('online') || '';
 
     const vendorsCollection = await database.getVendorsCollection();
     const usersCollection = await database.getUsersCollection();
@@ -71,6 +72,15 @@ export async function GET(request) {
         query.$or = [ ...(query.$or || []), { onboardedBy: { $in: [null, undefined] } } ];
       } else if (ObjectId.isValid(onboardedBy)) {
         query.onboardedBy = new ObjectId(onboardedBy);
+      }
+    }
+
+    // Filter by online status
+    if (online && online !== 'all' && online !== '') {
+      if (online === 'online') {
+        query.online = true;
+      } else if (online === 'offline') {
+        query.online = { $ne: true };
       }
     }
 
@@ -161,6 +171,13 @@ export async function GET(request) {
       }
       if (service) {
         vendorFilterStages.push({ $match: { services: { $regex: service, $options: 'i' } } });
+      }
+      if (online && online !== 'all' && online !== '') {
+        if (online === 'online') {
+          vendorFilterStages.push({ $match: { online: true } });
+        } else if (online === 'offline') {
+          vendorFilterStages.push({ $match: { online: { $ne: true } } });
+        }
       }
 
       // Build count pipeline that respects onboardedBy and vendor-level filters
@@ -717,6 +734,7 @@ export async function POST(request) {
       status: 'pending',
       rating: 0,
       totalJobs: 0,
+      online: false, // Set new vendors as offline by default
       onboardedBy: new ObjectId(user.id), // Set who onboarded this vendor
       history: [{
         action: 'registered',
