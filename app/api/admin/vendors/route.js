@@ -172,6 +172,9 @@ export async function GET(request) {
       if (verified && verified !== 'all' && verified !== '') {
         vendorFilterStages.push({ $match: { 'verified.isVerified': verified === 'verified' } });
       }
+      if (state) {
+        vendorFilterStages.push({ $match: { 'address.state': { $regex: state, $options: 'i' } } });
+      }
       if (city) {
         vendorFilterStages.push({ $match: { 'address.city': { $regex: city, $options: 'i' } } });
       }
