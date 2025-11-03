@@ -28,6 +28,7 @@ export function VendorManagement() {
   const currentPage = parseInt(searchParams.get('page')) || 1
   const currentSearch = searchParams.get('search') || ""
   const currentStatus = searchParams.get('status') || ""
+  const currentState = searchParams.get('state') || ""
   const currentCity = searchParams.get('city') || ""
   const currentService = searchParams.get('service') || ""
   const currentVerified = searchParams.get('verified') || ""
@@ -58,6 +59,7 @@ export function VendorManagement() {
   const [searchTerm, setSearchTerm] = useState(currentSearch)
     const [filters, setFilters] = useState({
       status: currentStatus,
+      state: currentState,
       city: currentCity,
       service: currentService,
       verified: currentVerified,
@@ -101,7 +103,7 @@ export function VendorManagement() {
   // Load vendors when non-search parameters change (full reload with stats)
   useEffect(() => {
     fetchVendors(false) // Full reload including stats
-  }, [currentPage, currentStatus, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline])
+  }, [currentPage, currentStatus, currentState, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline])
   
   // Handle search separately (table only, no stats reload)
   useEffect(() => {
@@ -117,13 +119,14 @@ export function VendorManagement() {
     setSearchTerm(currentSearch)
     setFilters({
       status: currentStatus,
+      state: currentState,
       city: currentCity,
       service: currentService,
       verified: currentVerified,
       onboardedBy: currentOnboardedBy,
       online: currentOnline
     })
-  }, [currentSearch, currentStatus, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline])
+  }, [currentSearch, currentStatus, currentState, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline])
 
   // Fetch vendors using the vendor service
   const fetchVendors = async (searchOnly = false) => {
@@ -134,6 +137,7 @@ export function VendorManagement() {
         limit: pagination.itemsPerPage,
         search: currentSearch,
         status: currentStatus,
+        state: currentState,
         city: currentCity,
         service: currentService,
         verified: currentVerified,
@@ -325,6 +329,7 @@ export function VendorManagement() {
     // Check if any filter values actually changed
     const filtersChanged = 
       newFilters.status !== currentStatus ||
+      newFilters.state !== currentState ||
       newFilters.city !== currentCity ||
       newFilters.service !== currentService ||
       newFilters.verified !== currentVerified ||
@@ -332,12 +337,13 @@ export function VendorManagement() {
       newFilters.online !== currentOnline
     
     // Also trigger update if this is a clear operation (all filters empty)
-    const isClearOperation = !newFilters.status && !newFilters.city && !newFilters.service && !newFilters.verified && !newFilters.onboardedBy && !newFilters.online
-    const hadFilters = currentStatus || currentCity || currentService || currentVerified || currentOnboardedBy || currentOnline
+    const isClearOperation = !newFilters.status && !newFilters.state && !newFilters.city && !newFilters.service && !newFilters.verified && !newFilters.onboardedBy && !newFilters.online
+    const hadFilters = currentStatus || currentState || currentCity || currentService || currentVerified || currentOnboardedBy || currentOnline
     
     if (filtersChanged || (isClearOperation && hadFilters)) {
       updateURL({ 
         status: newFilters.status || undefined,
+        state: newFilters.state || undefined,
         city: newFilters.city || undefined,
         service: newFilters.service || undefined,
         verified: newFilters.verified || undefined,
@@ -449,6 +455,7 @@ export function VendorManagement() {
         searchTerm={currentSearch}
         filters={{
           status: currentStatus,
+          state: currentState,
           city: currentCity,
           service: currentService,
           verified: currentVerified,

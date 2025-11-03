@@ -11,10 +11,15 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
+import { SearchableSelect } from '@/components/ui/searchable-select'
+import { getStateOptions, getCityOptions } from '@/lib/utils/stateCityUtils'
 
 export function VendorFilters({ filters = {}, vendors = [], onChange, disabled = false }) {
   const [employees, setEmployees] = useState([])
   const [employeesLoading, setEmployeesLoading] = useState(false)
+  const [stateOptions, setStateOptions] = useState([])
+  const [cityOptions, setCityOptions] = useState([])
+  const [cityOptionsLoading, setCityOptionsLoading] = useState(false)
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -35,21 +40,50 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
     }
     fetchEmployees()
   }, [])
-  // Extract unique values for filter options
-  const filterOptions = useMemo(() => {
-    const cities = [...new Set(
-      vendors
-        .map(vendor => vendor.address?.city)
-        .filter(Boolean)
-    )].sort()
+  // Load state options once
+  useEffect(() => {
+    const loadStates = async () => {
+      try {
+        const options = await getStateOptions()
+        setStateOptions(options)
+      } catch {
+        setStateOptions([])
+      }
+    }
+    loadStates()
+  }, [])
 
+  // Load city options when state filter changes
+  useEffect(() => {
+    const selectedState = filters.state
+    if (!selectedState) {
+      setCityOptions([])
+      return
+    }
+    let cancelled = false
+    const loadCities = async () => {
+      setCityOptionsLoading(true)
+      try {
+        const options = await getCityOptions(selectedState)
+        if (!cancelled) setCityOptions(options)
+      } catch {
+        if (!cancelled) setCityOptions([])
+      } finally {
+        if (!cancelled) setCityOptionsLoading(false)
+      }
+    }
+    loadCities()
+    return () => { cancelled = true }
+  }, [filters.state])
+
+  // Extract unique services from current vendors (services list is fine to derive from data)
+  const serviceOptions = useMemo(() => {
     const services = [...new Set(
       vendors
         .flatMap(vendor => vendor.services || [])
         .filter(Boolean)
     )].sort()
-
-    return { cities, services }
+    return services
   }, [vendors])
 
   const handleFilterChange = (key, value) => {
@@ -65,6 +99,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
     if (disabled) return
     onChange?.({
       status: "",
+      state: "",
       city: "",
       service: "",
       verified: "",
@@ -99,26 +134,48 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
           </Select>
         </div>
 
-        {/* City Filter */}
+        {/* State Filter */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">State</label>
+          <SearchableSelect
+            options={[{ value: '', label: 'All states' }, ...stateOptions]}
+            value={filters.state || ''}
+            onValueChange={(value) => {
+              // When state changes, reset city filter
+              handleFilterChange("state", value || "")
+              if (!value) {
+                handleFilterChange("city", "")
+              }
+            }}
+            placeholder="Search and select state..."
+            searchPlaceholder="Type to search states..."
+            emptyMessage="No states found"
+            disabled={disabled}
+            showSearch={true}
+          />
+        </div>
+
+        {/* City Filter (depends on state) */}
         <div className="space-y-2">
           <label className="text-sm font-medium">City</label>
-          <Select
-            value={filters.city || "all"}
-            onValueChange={(value) => handleFilterChange("city", value)}
-            disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All cities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All cities</SelectItem>
-              {filterOptions.cities.map((city) => (
-                <SelectItem key={city} value={city}>
-                  {city}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            options={[{ value: '', label: filters.state ? 'All cities' : 'Select state first' }, ...cityOptions]}
+            value={filters.city || ''}
+            onValueChange={(value) => handleFilterChange("city", value || "")}
+            placeholder={
+              !filters.state
+                ? 'Select state first'
+                : cityOptionsLoading
+                  ? 'Loading cities...'
+                  : cityOptions.length === 0
+                    ? 'No cities available'
+                    : 'Search and select city...'
+            }
+            searchPlaceholder="Type to search cities..."
+            emptyMessage={!filters.state ? "Please select a state first" : "No cities found"}
+            disabled={disabled || !filters.state || cityOptionsLoading}
+            showSearch={true}
+          />
         </div>
 
         {/* Service Filter */}
@@ -134,7 +191,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All services</SelectItem>
-              {filterOptions.services.map((service) => (
+              {serviceOptions.map((service) => (
                 <SelectItem key={service} value={service}>
                   {service}
                 </SelectItem>
@@ -211,6 +268,19 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
       {activeFiltersCount > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-muted-foreground">Active filters:</span>
+          {filters.state && (
+            <Badge variant="secondary" className="gap-1">
+              State: {filters.state}
+              <button
+                type="button"
+                onClick={() => handleFilterChange("state", "")}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={disabled}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
           
           {filters.status && (
             <Badge variant="secondary" className="gap-1">

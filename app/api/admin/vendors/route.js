@@ -14,6 +14,7 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit')) || 10;
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
+    const state = searchParams.get('state') || '';
     const city = searchParams.get('city') || '';
     const service = searchParams.get('service') || '';
     const verified = searchParams.get('verified');
@@ -43,6 +44,11 @@ export async function GET(request) {
     // Filter by status
     if (status) {
       query.status = status;
+    }
+
+    // Filter by state
+    if (state) {
+      query['address.state'] = { $regex: state, $options: 'i' };
     }
 
     // Filter by city
