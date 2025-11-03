@@ -44,13 +44,15 @@ export async function GET(request) {
         status: vendor.documents?.identity?.docImageUrl ? 'pending' : 'missing',
         hasDocument: !!vendor.documents?.identity?.docImageUrl,
         type: vendor.documents?.identity?.type || null,
-        number: vendor.documents?.identity?.number || null
+        number: vendor.documents?.identity?.number || null,
+        documentUrl: vendor.documents?.identity?.docImageUrl || null
       },
       business: {
         status: vendor.documents?.business?.docImageUrl ? 'pending' : 'missing',
         hasDocument: !!vendor.documents?.business?.docImageUrl,
         type: vendor.documents?.business?.type || null,
-        number: vendor.documents?.business?.number || null
+        number: vendor.documents?.business?.number || null,
+        documentUrl: vendor.documents?.business?.docImageUrl || null
       }
     };
 
@@ -106,16 +108,14 @@ export async function GET(request) {
               name: 'Identity Document',
               required: true,
               description: 'Upload one of: Driving License, Aadhar Card, or Voter Card',
-              allowedTypes: ['driving_license', 'aadhar_card', 'voter_card'],
-              documentUrl: vendor.documents?.identity?.docImageUrl
+              allowedTypes: ['driving_license', 'aadhar_card', 'voter_card']
             },
             {
               type: 'business',
               name: 'Business Document',
               required: true,
               description: 'Upload one of: GST Certificate, MSME Certificate, or Other business document',
-              allowedTypes: ['gst', 'msme', 'other'],
-              documentUrl: vendor.documents?.business?.docImageUrl
+              allowedTypes: ['gst', 'msme', 'other']
             }
           ]
         }
