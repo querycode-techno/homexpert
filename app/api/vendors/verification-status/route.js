@@ -106,14 +106,16 @@ export async function GET(request) {
               name: 'Identity Document',
               required: true,
               description: 'Upload one of: Driving License, Aadhar Card, or Voter Card',
-              allowedTypes: ['driving_license', 'aadhar_card', 'voter_card']
+              allowedTypes: ['driving_license', 'aadhar_card', 'voter_card'],
+              documentUrl: vendor.documents?.identity?.docImageUrl
             },
             {
               type: 'business',
               name: 'Business Document',
               required: true,
               description: 'Upload one of: GST Certificate, MSME Certificate, or Other business document',
-              allowedTypes: ['gst', 'msme', 'other']
+              allowedTypes: ['gst', 'msme', 'other'],
+              documentUrl: vendor.documents?.business?.docImageUrl
             }
           ]
         }
