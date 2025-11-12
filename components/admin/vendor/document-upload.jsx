@@ -153,7 +153,7 @@ const DocumentUpload = ({
 
         {/* File Upload */}
         <div className="space-y-2">
-          <Label>Document Upload {required && <span className="text-red-500">*</span>}</Label>
+          <Label>Document Upload (Optional) {required && <span className="text-red-500">*</span>}</Label>
           
           {!document?.docImageUrl && !selectedFile && (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
@@ -249,7 +249,7 @@ const DocumentUpload = ({
         {document?.docImageUrl && (
           <div className="flex items-center gap-2 text-sm">
             <Badge variant="outline" className="text-green-600 border-green-200">
-              Document Uploaded
+              Document Uploaded (Optional)
             </Badge>
           </div>
         )}

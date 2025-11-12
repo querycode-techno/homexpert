@@ -91,6 +91,8 @@ export default function CreateLeadDialog({
     try {
       // Client-side validation
       const requiredFields = ['customerName', 'customerPhone', 'address', 'categoryId', 'serviceId', 'subServiceName']
+      if (!formData.state?.trim()) requiredFields.push('state')
+      if (!formData.city?.trim()) requiredFields.push('city')
       const missingFields = requiredFields.filter(field => !formData[field] || !formData[field].toString().trim())
       
       if (missingFields.length > 0) {
@@ -140,6 +142,8 @@ export default function CreateLeadDialog({
         
         // Address (simplified for new schema)
         address: `${formData.address.trim()}${formData.city ? `, ${formData.city}` : ''}${formData.state ? `, ${formData.state}` : ''}${formData.pincode ? ` - ${formData.pincode}` : ''}`.trim(),
+        city: formData.city?.trim() || undefined,
+        state: formData.state?.trim() || undefined,
         
         // Lead Details
         description: formData.description.trim() || `Service request for ${selectedService?.name}${selectedSubService ? ` - ${selectedSubService.name}` : ''}`,
@@ -511,24 +515,32 @@ export default function CreateLeadDialog({
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="md:col-span-2">
-                    <SearchableStateCityInput
-                      selectedState={formData.state}
-                      selectedCity={formData.city}
-                      onStateChange={(value) => setFormData(prev => ({ 
-                        ...prev, 
-                        state: value
-                      }))}
-                      onCityChange={(value) => setFormData(prev => ({ 
-                        ...prev, 
-                        city: value 
-                      }))}
-                      showLabels={true}
-                      stateLabel="State"
-                      cityLabel="City"
-                      statePlaceholder="Search and select state..."
-                      cityPlaceholder="Search and select city..."
-                      layout="horizontal"
-                    />
+                    <div className="space-y-2">
+                      <SearchableStateCityInput
+                        selectedState={formData.state}
+                        selectedCity={formData.city}
+                        onStateChange={(value) => setFormData(prev => ({ 
+                          ...prev, 
+                          state: value,
+                          city: '' // reset city when state changes
+                        }))}
+                        onCityChange={(value) => setFormData(prev => ({ 
+                          ...prev, 
+                          city: value 
+                        }))}
+                        showLabels={true}
+                        stateLabel="State *"
+                        cityLabel="City *"
+                        statePlaceholder="Search and select state..."
+                        cityPlaceholder={formData.state ? "Search and select city..." : "Select state first"}
+                        layout="horizontal"
+                      />
+                      {(!formData.state || !formData.city) && (
+                        <p className="text-xs text-red-600">
+                          Please select both state and city.
+                        </p>
+                      )}
+                    </div>
                   </div>
                   
                   <div>

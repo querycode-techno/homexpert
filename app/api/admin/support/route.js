@@ -173,11 +173,17 @@ export async function GET(request) {
       .populate('assignedTo', 'name email')
       .populate({
         path: 'vendorId',
-        select: 'businessName services address status',
-        populate: {
-          path: 'user',
-          select: 'name email phone'
-        },
+        select: 'businessName services address status onboardedBy user',
+        populate: [
+          {
+            path: 'user',
+            select: 'name email phone'
+          },
+          {
+            path: 'onboardedBy',
+            select: 'name email'
+          }
+        ],
         options: { 
           lean: true,
           strictPopulate: false // Allow null values if vendor doesn't exist

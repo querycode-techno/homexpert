@@ -114,6 +114,8 @@ export async function POST(request) {
       
       // Address
       address: body.address.trim(),
+      city: body.city?.trim() || undefined,
+      state: body.state?.trim() || undefined,
       
       // Lead Details
       description: body.description?.trim() || `Service request for ${body.service}`,
@@ -244,6 +246,8 @@ export async function GET(request) {
     const status = searchParams.get('status') || '';
     const service = searchParams.get('service') || '';
     const city = searchParams.get('city') || '';
+    const state = searchParams.get('state') || '';
+    const createdBy = searchParams.get('createdBy') || '';
     const assignedStatus = searchParams.get('assignedStatus') || ''; // assigned, unassigned, all
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
@@ -289,7 +293,20 @@ export async function GET(request) {
 
     // Filter by city
     if (city && city !== 'all') {
-      matchQuery['address.city'] = { $regex: city, $options: 'i' };
+      matchQuery.city = { $regex: city, $options: 'i' };
+    }
+
+    // Filter by state
+    if (state && state !== 'all') {
+      matchQuery.state = { $regex: state, $options: 'i' };
+    }
+    // Filter by createdBy (admin only)
+    if (role.name === 'admin' && createdBy && createdBy !== 'all') {
+      if (createdBy === 'none') {
+        matchQuery.createdBy = null;
+      } else if (mongoose.Types.ObjectId.isValid(createdBy)) {
+        matchQuery.createdBy = new mongoose.Types.ObjectId(createdBy);
+      }
     }
 
     // Filter by assigned status
@@ -500,6 +517,8 @@ export async function GET(request) {
         selectedService: 1,
         selectedSubService: 1,
         address: 1,
+        city: 1,
+        state: 1,
         status: 1,
         priority: 1,
         assignedVendors: 1,

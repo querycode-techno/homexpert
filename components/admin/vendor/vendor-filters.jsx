@@ -104,7 +104,8 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
       service: "",
       verified: "",
       onboardedBy: "",
-      online: ""
+      online: "",
+      subscriptionStatus: ""
     })
   }
 
@@ -112,7 +113,7 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
         {/* Status Filter */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Status</label>
@@ -262,6 +263,29 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
             </SelectContent>
           </Select>
         </div>
+
+        {/* Subscription Status Filter */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Subscription Status</label>
+          <Select
+            value={filters.subscriptionStatus || "all"}
+            onValueChange={(value) => handleFilterChange("subscriptionStatus", value)}
+            disabled={disabled}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="refunded">Refunded</SelectItem>
+              <SelectItem value="unsubscribed">Unsubscribed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Active Filters */}
@@ -358,6 +382,20 @@ export function VendorFilters({ filters = {}, vendors = [], onChange, disabled =
               <button
                 type="button"
                 onClick={() => handleFilterChange("online", "")}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={disabled}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
+          {filters.subscriptionStatus && (
+            <Badge variant="secondary" className="gap-1">
+              Subscription: {filters.subscriptionStatus.charAt(0).toUpperCase() + filters.subscriptionStatus.slice(1)}
+              <button
+                type="button"
+                onClick={() => handleFilterChange("subscriptionStatus", "")}
                 className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
                 disabled={disabled}
               >

@@ -691,7 +691,7 @@ export function VendorForm({
                       variant={vendor?.documents?.identity?.docImageUrl ? 'default' : 'secondary'}
                       className={vendor?.documents?.identity?.docImageUrl ? 'bg-green-500' : 'bg-gray-500'}
                     >
-                      Identity: {vendor?.documents?.identity?.docImageUrl ? 'Uploaded' : 'Missing'}
+                      Identity: {vendor?.documents?.identity?.docImageUrl ? 'Uploaded' : 'Missing'} 
                     </Badge>
                     <Badge 
                       variant={vendor?.documents?.business?.docImageUrl ? 'default' : 'secondary'}
@@ -753,7 +753,7 @@ export function VendorForm({
                 <DocumentUpload
                   document={form.watch("documents.identity")}
                   documentType="identity"
-                  title="Identity Documents"
+                  title="Identity Documents (Optional)"
                   required={false}
                   numberField="number"
                   numberFieldName="Document Number"
@@ -770,7 +770,7 @@ export function VendorForm({
                 <DocumentUpload
                   document={form.watch("documents.business")}
                   documentType="business"
-                  title="Business Documents"
+                  title="Business Documents (Optional)"
                   required={false}
                   numberField="number"
                   numberFieldName="Document Number"

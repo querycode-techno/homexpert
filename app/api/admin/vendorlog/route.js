@@ -35,12 +35,70 @@ export async function GET(request) {
       
       // Unwind user array
       { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+
+      // Normalize referenced IDs that may be stored as strings
+      {
+        $addFields: {
+          normalizedLeadId: {
+            $cond: [
+              {
+                $and: [
+                  { $ne: ['$leadId', null] },
+                  { $ne: ['$leadId', ''] },
+                  { $ne: [{ $type: '$leadId' }, 'missing'] }
+                ]
+              },
+              {
+                $cond: [
+                  { $eq: [{ $type: '$leadId' }, 'objectId'] },
+                  '$leadId',
+                  {
+                    $convert: {
+                      input: '$leadId',
+                      to: 'objectId',
+                      onError: null,
+                      onNull: null
+                    }
+                  }
+                ]
+              },
+              null
+            ]
+          },
+          normalizedSubscriptionId: {
+            $cond: [
+              {
+                $and: [
+                  { $ne: ['$subscriptionId', null] },
+                  { $ne: ['$subscriptionId', ''] },
+                  { $ne: [{ $type: '$subscriptionId' }, 'missing'] }
+                ]
+              },
+              {
+                $cond: [
+                  { $eq: [{ $type: '$subscriptionId' }, 'objectId'] },
+                  '$subscriptionId',
+                  {
+                    $convert: {
+                      input: '$subscriptionId',
+                      to: 'objectId',
+                      onError: null,
+                      onNull: null
+                    }
+                  }
+                ]
+              },
+              null
+            ]
+          }
+        }
+      },
       
       // Lookup subscription plan information (only for subscription type logs)
       {
         $lookup: {
           from: 'subscriptionplans',
-          localField: 'subscriptionId',
+          localField: 'normalizedSubscriptionId',
           foreignField: '_id',
           as: 'subscriptionPlan'
         }
@@ -52,8 +110,43 @@ export async function GET(request) {
       {
         $lookup: {
           from: 'leads',
-          localField: 'leadId',
-          foreignField: '_id',
+          let: {
+            normalizedLeadId: '$normalizedLeadId',
+            logTime: '$time'
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $or: [
+                    {
+                      $and: [
+                        { $ne: ['$$normalizedLeadId', null] },
+                        { $eq: ['$_id', '$$normalizedLeadId'] }
+                      ]
+                    },
+                    {
+                      $and: [
+                        { $eq: ['$$normalizedLeadId', null] },
+                        {
+                          $lte: [
+                            {
+                              $abs: {
+                                $subtract: ['$$logTime', '$createdAt']
+                              }
+                            },
+                            1000 * 60 * 10 // within 10 minutes
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 }
+          ],
           as: 'lead'
         }
       },
@@ -69,6 +162,12 @@ export async function GET(request) {
           type: 1,
           time: 1,
           userId: 1,
+          rawLeadId: '$leadId',
+          rawSubscriptionId: '$subscriptionId',
+          leadId: {
+            $ifNull: ['$lead._id', '$rawLeadId']
+          },
+          subscriptionId: '$subscriptionPlan._id',
           // User data
           name: '$user.name',
           mobile: '$user.phone',
@@ -78,6 +177,13 @@ export async function GET(request) {
           planName: '$subscriptionPlan.planName',
           selectedService: '$lead.selectedService',
           selectedSubservice: '$lead.selectedSubService',
+          leadService: '$lead.service',
+          leadStatus: '$lead.status',
+          leadCustomerName: '$lead.customerName',
+          leadCustomerPhone: '$lead.customerPhone',
+          leadCustomerEmail: '$lead.customerEmail',
+          leadAddress: '$lead.address',
+          leadPrice: '$lead.price'
         }
       },
       
@@ -93,9 +199,17 @@ export async function GET(request) {
       id: log._id.toString(),
       type: log.type,
       time: log.time,
-      userId: log.userId.toString(),
-      // leadId: log.leadId ? log.leadId.toString() : null,
-      // subscriptionId: log.subscriptionId ? log.subscriptionId.toString() : null,
+      userId: log.userId ? log.userId.toString() : null,
+      leadId: log.leadId
+        ? log.leadId.toString()
+        : log.rawLeadId
+          ? log.rawLeadId.toString()
+          : null,
+      subscriptionId: log.subscriptionId
+        ? log.subscriptionId.toString()
+        : log.rawSubscriptionId
+          ? log.rawSubscriptionId.toString()
+          : null,
       name: log.name,
       mobile: log.mobile,
       email: log.email,
@@ -103,6 +217,13 @@ export async function GET(request) {
       planName: log.planName,
       selectedService: log.selectedService,
       selectedSubservice: log.selectedSubservice,
+      leadService: log.leadService,
+      leadStatus: log.leadStatus,
+      leadCustomerName: log.leadCustomerName,
+      leadCustomerPhone: log.leadCustomerPhone,
+      leadCustomerEmail: log.leadCustomerEmail,
+      leadAddress: log.leadAddress,
+      leadPrice: log.leadPrice
     }));
 
     return NextResponse.json({

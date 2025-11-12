@@ -95,6 +95,9 @@ export async function POST(request) {
       
       // Address
       address: body.address?.trim() || `${body.city || ''}, ${body.state || ''}`.trim(),
+      city: body.city?.trim() || undefined,
+      state: body.state?.trim() || undefined,
+      pincode: body.pincode?.trim() || undefined,
       
       // Lead Details
       description: body.description?.trim() || body.notes?.trim() || `Service request for ${body.service}`,

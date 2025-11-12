@@ -121,6 +121,26 @@ export function LeadDetailsDialog({
     }
   }
 
+  const formatDateOnly = (dateString) => {
+    if (!dateString) return 'Not set'
+    try {
+      return new Date(dateString).toLocaleDateString()
+    } catch {
+      return 'Invalid date'
+    }
+  }
+
+  const getPerformedByLabel = (progress) => {
+    if (!progress) return null
+    return (
+      progress.performedByName ||
+      progress.performedByVendor?.businessName ||
+      progress.performedByUser?.name ||
+      progress.performedBy ||
+      null
+    )
+  }
+
   if (loading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -134,6 +154,12 @@ export function LeadDetailsDialog({
   }
 
   if (!lead) return null
+
+  const isClaimed = lead.takenBy
+  const claimedVendor = lead.takenByVendorInfo
+  const claimedVendorName = claimedVendor?.businessName || claimedVendor?.userData?.name
+  const claimedVendorEmail = claimedVendor?.userData?.email
+  const claimedVendorPhone = claimedVendor?.userData?.phone
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -241,20 +267,33 @@ export function LeadDetailsDialog({
                       </div>
                     </div>
                   </div>
-                  {lead.price && (
+                  {isClaimed && (
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Price</Label>
-                        <p className="mt-1 font-medium text-green-600">₹{lead.price}</p>
-                      </div>
-                      {lead.getQuote && (
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Quote Required</Label>
-                          <Badge variant="outline" className="mt-1">
-                            Yes
-                          </Badge>
+                      <div className="col-span-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Claimed By</Label>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 gap-3">
+                          <div className="flex items-start gap-2">
+                            <UserCheck className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <div>
+                              <p className="font-medium">
+                                {claimedVendorName || 'Vendor'}
+                              </p>
+                              {(claimedVendorEmail || claimedVendorPhone) && (
+                                <p className="text-sm text-muted-foreground">
+                                  Email: {claimedVendorEmail}<br></br>
+                                  Phone: {claimedVendorPhone}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-sm text-muted-foreground flex flex-col items-start sm:items-end">
+                            <span>Lead taken</span>
+                            {lead.takenAt && (
+                              <span>Claimed {formatDate(lead.takenAt)}</span>
+                            )}
+                          </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -268,11 +307,11 @@ export function LeadDetailsDialog({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-muted-foreground">Service</Label>
-                      <p className="mt-1 font-medium">{lead.service}</p>
+                      <p className="mt-1 font-medium">{lead.service || 'Not provided'}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Sub-service</Label>
-                      <p className="mt-1">{lead.selectedService}</p>
+                      <Label className="text-sm font-medium text-muted-foreground">Selected Service</Label>
+                      <p className="mt-1">{lead.selectedService || 'Not provided'}</p>
                     </div>
                   </div>
                   {lead.selectedSubService && (
@@ -281,17 +320,89 @@ export function LeadDetailsDialog({
                       <p className="mt-1">{lead.selectedSubService}</p>
                     </div>
                   )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Price</Label>
+                      <p className="mt-1 font-medium text-green-600">
+                        {lead.price !== undefined && lead.price !== null && lead.price !== ''
+                          ? `₹${lead.price}`
+                          : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Quote Requested</Label>
+                      <Badge variant={lead.getQuote ? 'outline' : 'secondary'} className="mt-1">
+                        {lead.getQuote ? 'Yes' : 'No'}
+                      </Badge>
+                    </div>
+                  </div>
                   {lead.description && (
                     <div>
                       <Label className="text-sm font-medium text-muted-foreground">Description</Label>
                       <p className="mt-1 text-sm bg-muted/50 p-3 rounded">{lead.description}</p>
                     </div>
                   )}
+                  {lead.additionalNotes && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Additional Notes</Label>
+                      <p className="mt-1 text-sm bg-muted/30 p-3 rounded">{lead.additionalNotes}</p>
+                    </div>
+                  )}
+                  <Separator />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Preferred Date</Label>
+                      <p className="mt-1">{formatDateOnly(lead.preferredDate)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Preferred Time</Label>
+                      <p className="mt-1">{lead.preferredTime || 'Not set'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Scheduled Date</Label>
+                      <p className="mt-1">{formatDateOnly(lead.scheduledDate)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Scheduled Time</Label>
+                      <p className="mt-1">{lead.scheduledTime || 'Not set'}</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="vendors" className="space-y-4">
+              {claimedVendor && (
+                <Card className="border-primary/30 bg-primary/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-primary" />
+                      Claimed Vendor
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <p className="font-medium">
+                        {claimedVendorName || 'Vendor'}
+                      </p>
+                      {(claimedVendorEmail || claimedVendorPhone) && (
+                        <p className="text-sm text-muted-foreground">
+                         Email: {claimedVendorEmail}<br></br>
+                          Phone: {claimedVendorPhone}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-sm text-muted-foreground flex flex-col items-start sm:items-end">
+                      <span>Status: Lead taken</span>
+                      {lead.takenAt && (
+                        <span>Claimed {formatDate(lead.takenAt)}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               {lead.assignedVendors?.length > 0 || lead.availableToVendors?.vendor?.length > 0 ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -401,22 +512,42 @@ export function LeadDetailsDialog({
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {lead.leadProgressHistory.map((progress, index) => (
-                        <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded">
-                          <Badge variant={getStatusBadgeVariant(progress.toStatus)}>
-                            {progress.toStatus}
-                          </Badge>
-                          <div className="flex-1">
-                            <p className="text-sm">
-                              {progress.fromStatus ? `Changed from ${progress.fromStatus} to ${progress.toStatus}` : `Set to ${progress.toStatus}`}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDate(progress.date)}
-                              {progress.performedBy && ` • by ${progress.performedBy}`}
-                            </p>
+                      {lead.leadProgressHistory.map((progress, index) => {
+                        const transitionText = progress.fromStatus
+                          ? `Changed from ${progress.fromStatus} to ${progress.toStatus}`
+                          : `Set to ${progress.toStatus}`
+                        const description = progress.reason || transitionText
+                        const actorLabel = getPerformedByLabel(progress)
+
+                        return (
+                          <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded">
+                            <Badge variant={getStatusBadgeVariant(progress.toStatus)}>
+                              {progress.toStatus}
+                            </Badge>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">
+                                {description}
+                              </p>
+                              {progress.reason && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {transitionText}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDate(progress.date)}
+                                {actorLabel && ` • by ${actorLabel}`}
+                              </p>
+                              {(progress.performedByContact?.email || progress.performedByContact?.phone) && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {progress.performedByContact?.email && `Email: ${progress.performedByContact.email}`}
+                                  {progress.performedByContact?.email && progress.performedByContact?.phone ? ' • ' : ''}
+                                  {progress.performedByContact?.phone && `Phone: ${progress.performedByContact.phone}`}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </CardContent>
                 </Card>

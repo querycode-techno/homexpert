@@ -8,9 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Badge } from "@/components/ui/badge"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { useDebounce } from "@/hooks/use-debounce"
 import { format } from "date-fns"
 import { serviceUtils } from "@/lib/utils"
+import { getStateOptions, getCityOptions } from "@/lib/utils/stateCityUtils"
 
 const LEAD_STATUSES = [
   'pending', 'available', 'taken', 'contacted', 'completed', 'cancelled'
@@ -30,12 +32,14 @@ const SORT_OPTIONS = [
   { value: 'status', label: 'Status' }
 ]
 
-export function LeadFilters({ filters, onFilterChange, loading }) {
-  const [localSearch, setLocalSearch] = useState(filters.search || '')
+export function LeadFilters({ filters, searchTerm = '', onFilterChange, onSearchChange, loading }) {
+  const [localSearch, setLocalSearch] = useState(searchTerm || '')
   const [localFilters, setLocalFilters] = useState({
     status: filters.status || '',
     service: filters.service || '',
     city: filters.city || '',
+    state: filters.state || '',
+    createdBy: filters.createdBy || '',
     assignedStatus: filters.assignedStatus || '',
     sortBy: filters.sortBy || 'createdAt',
     sortOrder: filters.sortOrder || 'desc'
@@ -45,17 +49,27 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
     to: filters.dateTo ? new Date(filters.dateTo) : null
   })
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [stateOptions, setStateOptions] = useState([])
+  const [cityOptions, setCityOptions] = useState([])
+  const [cityOptionsLoading, setCityOptionsLoading] = useState(false)
+  const [employees, setEmployees] = useState([])
+  const [employeesLoading, setEmployeesLoading] = useState(false)
   
   // Debounce search to avoid excessive API calls
   const debouncedSearch = useDebounce(localSearch, 300)
 
   // Update local state when props change
   useEffect(() => {
-    setLocalSearch(filters.search || '')
+    setLocalSearch(searchTerm || '')
+  }, [searchTerm])
+
+  useEffect(() => {
     setLocalFilters({
       status: filters.status || '',
       service: filters.service || '',
       city: filters.city || '',
+      state: filters.state || '',
+      createdBy: filters.createdBy || '',
       assignedStatus: filters.assignedStatus || '',
       sortBy: filters.sortBy || 'createdAt',
       sortOrder: filters.sortOrder || 'desc'
@@ -64,20 +78,87 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
       from: filters.dateFrom ? new Date(filters.dateFrom) : null,
       to: filters.dateTo ? new Date(filters.dateTo) : null
     })
-  }, [filters])
+  }, [filters.status, filters.service, filters.city, filters.state, filters.createdBy, filters.assignedStatus, filters.dateFrom, filters.dateTo, filters.sortBy, filters.sortOrder])
+
+  // Load state options once
+  useEffect(() => {
+    const loadStates = async () => {
+      try {
+        const options = await getStateOptions()
+        setStateOptions(options)
+      } catch (error) {
+        console.error('Error loading state options:', error)
+        setStateOptions([])
+      }
+    }
+    loadStates()
+  }, [])
+
+  // Load city options when state changes
+  useEffect(() => {
+    const loadCities = async () => {
+      if (!localFilters.state) {
+        setCityOptions([])
+        return
+      }
+
+      setCityOptionsLoading(true)
+      try {
+        const options = await getCityOptions(localFilters.state)
+        setCityOptions(options)
+      } catch (error) {
+        console.error('Error loading city options:', error)
+        setCityOptions([])
+      } finally {
+        setCityOptionsLoading(false)
+      }
+    }
+
+    loadCities()
+  }, [localFilters.state])
+
+  // Load employees for created by filter
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setEmployeesLoading(true)
+        const response = await fetch('/api/admin/employee?limit=200', { credentials: 'include' })
+        const data = await response.json().catch(() => ({}))
+        if (response.ok && data?.success) {
+          setEmployees(Array.isArray(data.data?.employees) ? data.data.employees : [])
+        } else {
+          setEmployees([])
+        }
+      } catch (error) {
+        console.error('Error fetching employees:', error)
+        setEmployees([])
+      } finally {
+        setEmployeesLoading(false)
+      }
+    }
+
+    fetchEmployees()
+  }, [])
 
   // Handle debounced search
   useEffect(() => {
-    if (debouncedSearch !== filters.search) {
-      onFilterChange({ search: debouncedSearch })
+    if (debouncedSearch !== searchTerm) {
+      onSearchChange?.(debouncedSearch)
     }
-  }, [debouncedSearch, filters.search, onFilterChange])
+  }, [debouncedSearch, searchTerm, onSearchChange])
+
+  const applyFilterUpdates = (updates) => {
+    const normalizedUpdates = Object.fromEntries(
+      Object.entries(updates).map(([key, value]) => [key, value === 'all' ? '' : value])
+    )
+    const newFilters = { ...localFilters, ...normalizedUpdates }
+    setLocalFilters(newFilters)
+    onFilterChange(newFilters)
+  }
 
   // Handle filter changes
   const handleFilterChange = (key, value) => {
-    const newFilters = { ...localFilters, [key]: value === 'all' ? '' : value }
-    setLocalFilters(newFilters)
-    onFilterChange(newFilters)
+    applyFilterUpdates({ [key]: value })
   }
 
   // Handle date range changes
@@ -96,6 +177,8 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
       status: '',
       service: '',
       city: '',
+      state: '',
+      createdBy: '',
       assignedStatus: '',
       dateFrom: '',
       dateTo: '',
@@ -108,6 +191,8 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
       status: '',
       service: '',
       city: '',
+      state: '',
+      createdBy: '',
       assignedStatus: '',
       sortBy: 'createdAt',
       sortOrder: 'desc'
@@ -123,6 +208,8 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
            localFilters.status || 
            localFilters.service || 
            localFilters.city || 
+           localFilters.state ||
+           localFilters.createdBy ||
            localFilters.assignedStatus || 
            dateRange.from || 
            dateRange.to ||
@@ -153,7 +240,6 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
             className="pl-10"
-            disabled={loading}
           />
         </div>
 
@@ -223,7 +309,7 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
 
       {/* Advanced Filters */}
       {showAdvanced && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-muted/30 rounded-lg">
           {/* Service Filter */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Service</label>
@@ -246,15 +332,68 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
             </Select>
           </div>
 
+          {/* State Filter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">State</label>
+            <SearchableSelect
+              options={[{ value: '', label: 'All states' }, ...stateOptions]}
+              value={localFilters.state || ''}
+              onValueChange={(value) => applyFilterUpdates({ state: value || '', city: '' })}
+              placeholder="Search and select state..."
+              searchPlaceholder="Type to search states..."
+              emptyMessage="No states found"
+              disabled={loading}
+              showSearch
+            />
+          </div>
+
           {/* City Filter */}
           <div className="space-y-2">
             <label className="text-sm font-medium">City</label>
-            <Input
-              placeholder="Enter city..."
-              value={localFilters.city}
-              onChange={(e) => handleFilterChange('city', e.target.value)}
-              disabled={loading}
+            <SearchableSelect
+              options={[
+                { value: '', label: localFilters.state ? 'All cities' : 'Select state first' },
+                ...cityOptions
+              ]}
+              value={localFilters.city || ''}
+              onValueChange={(value) => applyFilterUpdates({ city: value || '' })}
+              placeholder={
+                !localFilters.state
+                  ? 'Select state first'
+                  : cityOptionsLoading
+                    ? 'Loading cities...'
+                    : cityOptions.length === 0
+                      ? 'No cities available'
+                      : 'Search and select city...'
+              }
+              searchPlaceholder="Type to search cities..."
+              emptyMessage={!localFilters.state ? "Please select a state first" : "No cities found"}
+              disabled={loading || !localFilters.state || cityOptionsLoading}
+              showSearch
             />
+          </div>
+
+          {/* Created By Filter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Created By</label>
+            <Select
+              value={localFilters.createdBy || "all"}
+              onValueChange={(value) => applyFilterUpdates({ createdBy: value })}
+              disabled={loading || employeesLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={employeesLoading ? "Loading employees..." : "All creators"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All creators</SelectItem>
+                <SelectItem value="none">Customer (Self-submitted)</SelectItem>
+                {employees.map((emp) => (
+                  <SelectItem key={emp._id} value={emp._id}>
+                    {emp.name} - {emp.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Date Range */}
@@ -336,7 +475,7 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
                 type="button"
                 onClick={() => {
                   setLocalSearch('')
-                  onFilterChange({ search: '' })
+                  onFilterChange({ ...localFilters, search: '' })
                 }}
                 className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
                 disabled={loading}
@@ -394,6 +533,36 @@ export function LeadFilters({ filters, onFilterChange, loading }) {
               <button
                 type="button"
                 onClick={() => handleFilterChange('city', '')}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={loading}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
+          {localFilters.state && (
+            <Badge variant="secondary" className="gap-1">
+              State: {localFilters.state}
+              <button
+                type="button"
+                onClick={() => applyFilterUpdates({ state: '', city: '' })}
+                className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                disabled={loading}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
+          {localFilters.createdBy && (
+            <Badge variant="secondary" className="gap-1">
+              Created By: {localFilters.createdBy === 'none'
+                ? 'Customer (Self-submitted)'
+                : (employees.find(emp => emp._id === localFilters.createdBy)?.name || localFilters.createdBy)}
+              <button
+                type="button"
+                onClick={() => applyFilterUpdates({ createdBy: '' })}
                 className="ml-1 hover:bg-muted-foreground/20 rounded-full p-0.5"
                 disabled={loading}
               >

@@ -71,34 +71,371 @@ export async function GET(request, { params }) {
         }
       },
       {
+        $addFields: {
+          takenByObjectId: {
+            $cond: [
+              { $eq: [{ $type: '$takenBy' }, 'string'] },
+              {
+                $convert: {
+                  input: '$takenBy',
+                  to: 'objectId',
+                  onError: null,
+                  onNull: null
+                }
+              },
+              '$takenBy'
+            ]
+          }
+        }
+      },
+      {
         $lookup: {
           from: 'users',
-          localField: 'takenBy',
+          localField: 'takenByObjectId',
           foreignField: '_id',
-          as: 'takenByVendor',
+          as: 'takenByUserLookup',
           pipeline: [
             {
-              $lookup: {
-                from: 'roles',
-                localField: 'role',
-                foreignField: '_id',
-                as: 'roleData'
-              }
-            },
-            { $unwind: '$roleData' },
-            { $match: { 'roleData.name': 'vendor' } },
-            {
               $project: {
-                businessName: '$name',
-                userData: {
-                  name: '$name',
-                  email: '$email',
-                  phone: '$phone'
-                },
-                status: 'active'
+                _id: 1,
+                name: 1,
+                email: 1,
+                phone: 1
               }
             }
           ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'vendors',
+          localField: 'takenByObjectId',
+          foreignField: '_id',
+          as: 'takenByVendorById',
+          pipeline: [
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'user',
+                foreignField: '_id',
+                as: 'vendorUserDoc',
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      email: 1,
+                      phone: 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              $addFields: {
+                vendorUser: { $arrayElemAt: ['$vendorUserDoc', 0] }
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                businessName: 1,
+                status: 1,
+                vendorUser: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'vendors',
+          localField: 'takenByObjectId',
+          foreignField: 'user',
+          as: 'takenByVendorByUser',
+          pipeline: [
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'user',
+                foreignField: '_id',
+                as: 'vendorUserDoc',
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      email: 1,
+                      phone: 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              $addFields: {
+                vendorUser: { $arrayElemAt: ['$vendorUserDoc', 0] }
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                businessName: 1,
+                status: 1,
+                vendorUser: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          leadProgressHistory: {
+            $map: {
+              input: { $ifNull: ['$leadProgressHistory', []] },
+              as: 'progress',
+              in: {
+                $let: {
+                  vars: {
+                    performedById: {
+                      $cond: [
+                        {
+                          $and: [
+                            { $ne: ['$$progress.performedBy', null] },
+                            { $eq: [{ $type: '$$progress.performedBy' }, 'string'] }
+                          ]
+                        },
+                        {
+                          $convert: {
+                            input: '$$progress.performedBy',
+                            to: 'objectId',
+                            onError: null,
+                            onNull: null
+                          }
+                        },
+                        '$$progress.performedBy'
+                      ]
+                    }
+                  },
+                  in: {
+                    $mergeObjects: [
+                      '$$progress',
+                      { performedBy: '$$performedById' }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'leadProgressHistory.performedBy',
+          foreignField: '_id',
+          as: 'leadProgressHistoryUsers',
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                email: 1,
+                phone: 1,
+                role: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'vendors',
+          localField: 'leadProgressHistory.performedBy',
+          foreignField: 'user',
+          as: 'leadProgressHistoryVendors',
+          pipeline: [
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'user',
+                foreignField: '_id',
+                as: 'vendorUserDoc',
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      email: 1,
+                      phone: 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              $addFields: {
+                vendorUser: { $arrayElemAt: ['$vendorUserDoc', 0] }
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                businessName: 1,
+                status: 1,
+                vendorUser: 1,
+                user: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'vendors',
+          localField: 'leadProgressHistory.performedBy',
+          foreignField: '_id',
+          as: 'leadProgressHistoryVendorsById',
+          pipeline: [
+            {
+              $lookup: {
+                from: 'users',
+                localField: 'user',
+                foreignField: '_id',
+                as: 'vendorUserDoc',
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      email: 1,
+                      phone: 1
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              $addFields: {
+                vendorUser: { $arrayElemAt: ['$vendorUserDoc', 0] }
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                businessName: 1,
+                status: 1,
+                vendorUser: 1,
+                user: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          leadProgressHistory: {
+            $map: {
+              input: { $ifNull: ['$leadProgressHistory', []] },
+              as: 'progress',
+              in: {
+                $let: {
+                  vars: {
+                    userInfo: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: '$leadProgressHistoryUsers',
+                            as: 'user',
+                            cond: { $eq: ['$$user._id', '$$progress.performedBy'] }
+                          }
+                        },
+                        0
+                      ]
+                    },
+                    vendorInfo: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: {
+                              $concatArrays: [
+                                { $ifNull: ['$leadProgressHistoryVendors', []] },
+                                { $ifNull: ['$leadProgressHistoryVendorsById', []] }
+                              ]
+                            },
+                            as: 'vendor',
+                            cond: {
+                              $or: [
+                                { $eq: ['$$vendor.user', '$$progress.performedBy'] },
+                                { $eq: ['$$vendor._id', '$$progress.performedBy'] }
+                              ]
+                            }
+                          }
+                        },
+                        0
+                      ]
+                    }
+                  },
+                  in: {
+                    $mergeObjects: [
+                      '$$progress',
+                      {
+                        performedByUser: {
+                          $cond: [
+                            { $ifNull: ['$$userInfo', false] },
+                            '$$userInfo',
+                            null
+                          ]
+                        },
+                        performedByVendor: {
+                          $cond: [
+                            { $ifNull: ['$$vendorInfo', false] },
+                            '$$vendorInfo',
+                            null
+                          ]
+                        },
+                        performedByName: {
+                          $cond: [
+                            { $ifNull: ['$$vendorInfo', false] },
+                            '$$vendorInfo.businessName',
+                            {
+                              $cond: [
+                                { $ifNull: ['$$userInfo', false] },
+                                '$$userInfo.name',
+                                {
+                                  $cond: [
+                                    { $ifNull: ['$$progress.performedBy', false] },
+                                    { $toString: '$$progress.performedBy' },
+                                    null
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        performedByContact: {
+                          email: {
+                            $cond: [
+                              { $ifNull: ['$$vendorInfo', false] },
+                              '$$vendorInfo.vendorUser.email',
+                              { $ifNull: ['$$userInfo.email', null] }
+                            ]
+                          },
+                          phone: {
+                            $cond: [
+                              { $ifNull: ['$$vendorInfo', false] },
+                              '$$vendorInfo.vendorUser.phone',
+                              { $ifNull: ['$$userInfo.phone', null] }
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
         }
       },
       {
@@ -129,8 +466,72 @@ export async function GET(request, { params }) {
               86400000 // milliseconds in a day
             ]
           },
-          takenByVendorInfo: { $arrayElemAt: ['$takenByVendor', 0] },
+          takenByUser: { $arrayElemAt: ['$takenByUserLookup', 0] },
+          takenByVendorInfo: {
+            $let: {
+              vars: {
+                vendorRecord: {
+                  $arrayElemAt: [
+                    {
+                      $concatArrays: [
+                        { $ifNull: ['$takenByVendorById', []] },
+                        { $ifNull: ['$takenByVendorByUser', []] }
+                      ]
+                    },
+                    0
+                  ]
+                },
+                userRecord: { $arrayElemAt: ['$takenByUserLookup', 0] }
+              },
+              in: {
+                $cond: [
+                  { $ifNull: ['$$vendorRecord', false] },
+                  {
+                    businessName: {
+                      $ifNull: ['$$vendorRecord.businessName', '$$vendorRecord.vendorUser.name']
+                    },
+                    userData: {
+                      name: {
+                        $ifNull: [
+                          '$$vendorRecord.vendorUser.name',
+                          '$$vendorRecord.businessName'
+                        ]
+                      },
+                      email: '$$vendorRecord.vendorUser.email',
+                      phone: '$$vendorRecord.vendorUser.phone'
+                    },
+                    status: { $ifNull: ['$$vendorRecord.status', 'active'] }
+                  },
+                  {
+                    $cond: [
+                      { $ifNull: ['$$userRecord', false] },
+                      {
+                        businessName: '$$userRecord.name',
+                        userData: {
+                          name: '$$userRecord.name',
+                          email: '$$userRecord.email',
+                          phone: '$$userRecord.phone'
+                        },
+                        status: 'active'
+                      },
+                      null
+                    ]
+                  }
+                ]
+              }
+            }
+          },
           createdByUser: { $arrayElemAt: ['$createdByUser', 0] }
+        }
+      },
+      {
+        $project: {
+          takenByUserLookup: 0,
+          takenByVendorById: 0,
+          takenByVendorByUser: 0,
+          leadProgressHistoryUsers: 0,
+          leadProgressHistoryVendors: 0,
+          leadProgressHistoryVendorsById: 0
         }
       }
     ]);
@@ -198,14 +599,47 @@ export async function PATCH(request, { params }) {
 
     switch (action) {
       case 'updateBasicInfo':
-        const allowedFields = ['customerName', 'customerPhone', 'customerEmail', 'address', 'priority', 'selectedService', 'selectedSubService', 'description', 'status'];
+        const allowedFields = [
+          'customerName',
+          'customerPhone',
+          'customerEmail',
+          'address',
+          'city',
+          'state',
+          'priority',
+          'service',
+          'selectedService',
+          'selectedSubService',
+          'description',
+          'additionalNotes',
+          'preferredTime',
+          'scheduledTime',
+          'status'
+        ];
         const updateFields = {};
         
         allowedFields.forEach(field => {
           if (data[field] !== undefined) {
-            updateFields[field] = data[field];
+            const value = data[field];
+            if (typeof value === 'string') {
+              updateFields[field] = value.trim();
+            } else {
+              updateFields[field] = value;
+            }
           }
         });
+
+        // Normalize city/state empty strings to null
+        if (data.city !== undefined) {
+          updateFields.city = (typeof data.city === 'string' && data.city.trim() !== '') 
+            ? data.city.trim() 
+            : null;
+        }
+        if (data.state !== undefined) {
+          updateFields.state = (typeof data.state === 'string' && data.state.trim() !== '') 
+            ? data.state.trim() 
+            : null;
+        }
 
         // Handle createdBy field - only allow admin users to modify this
         if (data.createdBy !== undefined) {
@@ -219,6 +653,55 @@ export async function PATCH(request, { params }) {
               { status: 400 }
             );
           }
+        }
+
+        // Handle price field explicitly
+        if (data.price !== undefined) {
+          if (data.price === '' || data.price === null) {
+            updateFields.price = null;
+          } else {
+            const numericPrice = Number(data.price);
+            if (Number.isNaN(numericPrice)) {
+              return NextResponse.json(
+                { success: false, error: 'Price must be a valid number' },
+                { status: 400 }
+              );
+            }
+            updateFields.price = numericPrice;
+          }
+        }
+
+        // Quote flag
+        if (data.getQuote !== undefined) {
+          updateFields.getQuote = !!data.getQuote;
+          if (data.getQuote && updateFields.price === undefined) {
+            updateFields.price = null;
+          }
+        }
+
+        const handleDateField = (fieldName, value) => {
+          if (value === undefined) {
+            return;
+          }
+          if (value === '' || value === null) {
+            updateFields[fieldName] = null;
+            return;
+          }
+          const parsedDate = new Date(value);
+          if (Number.isNaN(parsedDate.getTime())) {
+            throw new Error(`${fieldName} must be a valid date`);
+          }
+          updateFields[fieldName] = parsedDate;
+        };
+
+        try {
+          handleDateField('preferredDate', data.preferredDate);
+          handleDateField('scheduledDate', data.scheduledDate);
+        } catch (dateError) {
+          return NextResponse.json(
+            { success: false, error: dateError.message },
+            { status: 400 }
+          );
         }
 
         if (Object.keys(updateFields).length === 0) {

@@ -127,7 +127,20 @@ export async function GET(request, { params }) {
     const ticket = await SupportTicket.findById(new ObjectId(id))
       .populate('createdBy', 'name email profileImage type address.city address.state')
       .populate('assignedTo', 'name email profileImage type')
-      .populate('vendorId', 'businessName services address verified status')
+      .populate({
+        path: 'vendorId',
+        select: 'businessName services address verified status onboardedBy user',
+        populate: [
+          {
+            path: 'user',
+            select: 'name email phone'
+          },
+          {
+            path: 'onboardedBy',
+            select: 'name email'
+          }
+        ]
+      })
       .populate('messages.sender', 'name email profileImage type')
       .populate('relatedLead', 'customerName customerPhone service selectedService address status')
       .populate('relatedSubscription', 'planSnapshot status startDate endDate')
@@ -142,15 +155,24 @@ export async function GET(request, { params }) {
       }, { status: 404 });
     }
 
+    const vendorObjectId =
+      ticket.vendorId && ticket.vendorId._id
+        ? new ObjectId(ticket.vendorId._id.toString())
+        : ticket.vendorId
+        ? new ObjectId(ticket.vendorId.toString())
+        : null;
+
     // Get additional context - vendor's other tickets
-    const vendorOtherTickets = await SupportTicket.find({
-      vendorId: ticket.vendorId,
-      _id: { $ne: new ObjectId(id) }
-    })
-    .select('ticketId title status priority createdAt')
-    .sort({ createdAt: -1 })
-    .limit(5)
-    .lean();
+    const vendorOtherTickets = vendorObjectId
+      ? await SupportTicket.find({
+          vendorId: vendorObjectId,
+          _id: { $ne: new ObjectId(id) }
+        })
+        .select('ticketId title status priority createdAt')
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean()
+      : [];
 
     // Get related tickets if any
     const relatedTickets = ticket.relatedTickets.length > 0 

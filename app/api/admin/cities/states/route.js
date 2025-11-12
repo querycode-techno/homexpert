@@ -5,7 +5,7 @@ import cityService from '@/lib/services/cityService'
 // GET - Get all states
 export async function GET(request) {
   try {
-    await requireAdmin()
+   // await requireAdmin()
     
     const result = await cityService.getStates()
     

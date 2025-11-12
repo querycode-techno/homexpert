@@ -38,7 +38,9 @@ import {
   MapPin,
   Briefcase,
   ChevronDown,
-  X
+  X,
+  DollarSign,
+  MinusCircle
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { VendorFilters } from "./vendor-filters"
@@ -73,6 +75,45 @@ const statusConfig = {
     variant: "outline",
     icon: AlertCircle,
     color: "text-orange-500"
+  }
+}
+
+const subscriptionStatusConfig = {
+  active: {
+    label: "Active",
+    variant: "success",
+    icon: CheckCircle,
+    color: "text-green-500"
+  },
+  pending: {
+    label: "Pending",
+    variant: "secondary",
+    icon: Clock,
+    color: "text-yellow-500"
+  },
+  expired: {
+    label: "Expired",
+    variant: "outline",
+    icon: AlertCircle,
+    color: "text-gray-500"
+  },
+  cancelled: {
+    label: "Cancelled",
+    variant: "destructive",
+    icon: XCircle,
+    color: "text-red-500"
+  },
+  refunded: {
+    label: "Refunded",
+    variant: "outline",
+    icon: DollarSign,
+    color: "text-purple-500"
+  },
+  unsubscribed: {
+    label: "Unsubscribed",
+    variant: "secondary",
+    icon: MinusCircle,
+    color: "text-muted-foreground"
   }
 }
 
@@ -141,7 +182,7 @@ export function VendorList({
 
   // Clear all filters and search
   const clearFilters = () => {
-    const emptyFilters = { status: "", state: "", city: "", service: "", verified: "", onboardedBy: "", online: "" }
+    const emptyFilters = { status: "", state: "", city: "", service: "", verified: "", onboardedBy: "", online: "", subscriptionStatus: "" }
     
     // Update local state immediately
     setLocalFilters(emptyFilters)
@@ -160,7 +201,7 @@ export function VendorList({
   }
 
   // Check if any filters are active
-  const hasActiveFilters = localSearchTerm || localFilters.status || localFilters.state || localFilters.city || localFilters.service || localFilters.verified || localFilters.onboardedBy || localFilters.online
+  const hasActiveFilters = localSearchTerm || localFilters.status || localFilters.state || localFilters.city || localFilters.service || localFilters.verified || localFilters.onboardedBy || localFilters.online || localFilters.subscriptionStatus
 
   const getInitials = (name) => {
     return name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'V'
@@ -170,6 +211,19 @@ export function VendorList({
     const config = statusConfig[status] || statusConfig.pending
     const Icon = config.icon
     
+    return (
+      <div className="flex items-center gap-2">
+        <Icon className={`h-4 w-4 ${config.color}`} />
+        <Badge variant={config.variant}>{config.label}</Badge>
+      </div>
+    )
+  }
+
+  const renderSubscriptionStatus = (status) => {
+    const normalizedStatus = status || 'unsubscribed'
+    const config = subscriptionStatusConfig[normalizedStatus] || subscriptionStatusConfig.unsubscribed
+    const Icon = config.icon
+
     return (
       <div className="flex items-center gap-2">
         <Icon className={`h-4 w-4 ${config.color}`} />
@@ -298,6 +352,7 @@ export function VendorList({
                   <TableHead>Services</TableHead>
                   <TableHead>Rating</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Subscription</TableHead>
                   <TableHead>Verified</TableHead>
                   <TableHead>Online</TableHead>
                   <TableHead className="w-12"></TableHead>
@@ -306,7 +361,7 @@ export function VendorList({
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
                         <span className="ml-2">Loading vendors...</span>
@@ -315,7 +370,7 @@ export function VendorList({
                   </TableRow>
                 ) : vendors.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
                         <Briefcase className="h-8 w-8 text-muted-foreground" />
                         <p className="text-muted-foreground">No vendors found</p>
@@ -400,6 +455,10 @@ export function VendorList({
 
                       <TableCell>
                         {renderStatus(vendor.status)}
+                      </TableCell>
+
+                      <TableCell>
+                        {renderSubscriptionStatus(vendor.subscriptionStatus)}
                       </TableCell>
 
                       <TableCell>

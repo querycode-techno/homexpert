@@ -20,6 +20,7 @@ export async function GET(request) {
     const verified = searchParams.get('verified');
     const onboardedBy = searchParams.get('onboardedBy') || '';
     const online = searchParams.get('online') || '';
+    const subscriptionStatus = searchParams.get('subscriptionStatus') || '';
 
     const vendorsCollection = await database.getVendorsCollection();
     const usersCollection = await database.getUsersCollection();
@@ -188,6 +189,20 @@ export async function GET(request) {
           vendorFilterStages.push({ $match: { online: { $ne: true } } });
         }
       }
+      if (subscriptionStatus && subscriptionStatus !== 'all' && subscriptionStatus !== '') {
+        if (subscriptionStatus === 'unsubscribed') {
+          vendorFilterStages.push({
+            $match: {
+              $or: [
+                { subscriptionStatus: 'unsubscribed' },
+                { subscriptionStatus: { $exists: false } }
+              ]
+            }
+          });
+        } else {
+          vendorFilterStages.push({ $match: { subscriptionStatus } });
+        }
+      }
 
       // Build count pipeline that respects onboardedBy and vendor-level filters
       const baseCountPipeline = [
@@ -198,6 +213,18 @@ export async function GET(request) {
             localField: '_id',
             foreignField: 'user',
             as: 'vendorData'
+          }
+        },
+        {
+          $lookup: {
+            from: 'subscriptionhistories',
+            localField: '_id',
+            foreignField: 'user',
+            as: 'subscriptionData',
+            pipeline: [
+              { $sort: { createdAt: -1 } },
+              { $limit: 1 }
+            ]
           }
         },
         // Apply onboardedBy filter when present
@@ -263,6 +290,20 @@ export async function GET(request) {
                 { $arrayElemAt: ['$vendorData.online', 0] },
                 null
               ]
+            },
+            latestSubscription: {
+              $cond: [
+                { $gt: [{ $size: '$subscriptionData' }, 0] },
+                { $arrayElemAt: ['$subscriptionData', 0] },
+                null
+              ]
+            },
+            subscriptionStatus: {
+              $cond: [
+                { $gt: [{ $size: '$subscriptionData' }, 0] },
+                { $arrayElemAt: ['$subscriptionData.status', 0] },
+                'unsubscribed'
+              ]
             }
           }
         },
@@ -282,6 +323,18 @@ export async function GET(request) {
             localField: '_id',
             foreignField: 'user',
             as: 'vendorData'
+          }
+        },
+        {
+          $lookup: {
+            from: 'subscriptionhistories',
+            localField: '_id',
+            foreignField: 'user',
+            as: 'subscriptionData',
+            pipeline: [
+              { $sort: { createdAt: -1 } },
+              { $limit: 1 }
+            ]
           }
         },
         // Apply onboardedBy filter when in showAllVendorUsers mode too
@@ -355,6 +408,34 @@ export async function GET(request) {
                 null
               ]
             },
+            latestSubscription: {
+              $cond: [
+                { $gt: [{ $size: '$subscriptionData' }, 0] },
+                { $arrayElemAt: ['$subscriptionData', 0] },
+                null
+              ]
+            },
+            subscriptionStatus: {
+              $cond: [
+                { $gt: [{ $size: '$subscriptionData' }, 0] },
+                { $arrayElemAt: ['$subscriptionData.status', 0] },
+                'unsubscribed'
+              ]
+            },
+            subscriptionDetails: {
+              $cond: [
+                { $gt: [{ $size: '$subscriptionData' }, 0] },
+                {
+                  planName: { $arrayElemAt: ['$subscriptionData.planSnapshot.planName', 0] },
+                  status: { $arrayElemAt: ['$subscriptionData.status', 0] },
+                  isActive: { $arrayElemAt: ['$subscriptionData.isActive', 0] },
+                  startDate: { $arrayElemAt: ['$subscriptionData.startDate', 0] },
+                  endDate: { $arrayElemAt: ['$subscriptionData.endDate', 0] },
+                  leadsRemaining: { $arrayElemAt: ['$subscriptionData.usage.leadsRemaining', 0] }
+                },
+                null
+              ]
+            },
             vendorId: {
               $cond: [
                 { $gt: [{ $size: '$vendorData' }, 0] },
@@ -390,7 +471,7 @@ export async function GET(request) {
             createdAt: '$createdAt'
           }
         },
-        { $project: { vendorData: 0, password: 0 } },
+        { $project: { vendorData: 0, subscriptionData: 0, latestSubscription: 0, password: 0 } },
         ...vendorFilterStages,
         { $sort: { createdAt: -1 } },
         { $skip: skip },

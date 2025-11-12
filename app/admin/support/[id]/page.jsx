@@ -50,6 +50,22 @@ const STATUS_CONFIG = {
   closed: { label: "Closed", color: "bg-gray-500", textColor: "text-gray-700" }
 }
 
+const formatVendorServices = (services) => {
+  if (!services || services.length === 0) return "Not specified"
+  if (services.length <= 2) return services.join(", ")
+  return `${services[0]}, ${services[1]} +${services.length - 2}`
+}
+
+const getVendorAddedBy = (vendor) => {
+  if (!vendor) return "Unknown"
+  if (vendor.onboardedBy) {
+    const name = vendor.onboardedBy.name || vendor.onboardedBy.email
+    const email = vendor.onboardedBy.email && vendor.onboardedBy.email !== name ? vendor.onboardedBy.email : null
+    return email ? `${name} (${email})` : name
+  }
+  return "Self Registered"
+}
+
 export default function AdminSupportTicketDetailsPage({ params }) {
   const router = useRouter()
   const { id } = use(params)
@@ -381,6 +397,41 @@ export default function AdminSupportTicketDetailsPage({ params }) {
                     </div>
                   )}
                   
+                  {ticket.vendorId && (
+                    <div className="md:col-span-2 rounded-lg border bg-muted/30 p-4">
+                      <div className="flex items-center gap-2 mb-3 text-muted-foreground">
+                        <Building className="h-4 w-4" />
+                        <span className="text-xs font-semibold uppercase tracking-wide">Vendor Details</span>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2 text-sm">
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground">Vendor Name</Label>
+                          <p className="mt-1 font-medium">
+                            {ticket.vendorId.user?.name || ticket.vendorId.businessName || "Vendor (No Name)"}
+                          </p>
+                          {ticket.vendorId.businessName && ticket.vendorId.user?.name && (
+                            <p className="text-xs text-muted-foreground">{ticket.vendorId.businessName}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground">Primary Service</Label>
+                          <p className="mt-1">{formatVendorServices(ticket.vendorId.services)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground">City</Label>
+                          <p className="mt-1">
+                            {ticket.vendorId.address?.city || "Not specified"}
+                            {ticket.vendorId.address?.state ? `, ${ticket.vendorId.address.state}` : ""}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground">Added By</Label>
+                          <p className="mt-1">{getVendorAddedBy(ticket.vendorId)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Ticket Created</Label>
                     <p className="mt-1 text-sm">{formatDateTime(ticket.createdAt)}</p>

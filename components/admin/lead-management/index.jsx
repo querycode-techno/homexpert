@@ -31,6 +31,8 @@ export function LeadManagement() {
   const currentStatus = searchParams.get('status') || "";
   const currentService = searchParams.get('service') || "";
   const currentCity = searchParams.get('city') || "";
+  const currentStateFilter = searchParams.get('state') || "";
+  const currentCreatedBy = searchParams.get('createdBy') || "";
   const currentAssignedStatus = searchParams.get('assignedStatus') || "";
   const currentDateFrom = searchParams.get('dateFrom') || "";
   const currentDateTo = searchParams.get('dateTo') || "";
@@ -50,11 +52,13 @@ export function LeadManagement() {
   const [summary, setSummary] = useState({});
   
   // Local state synced with URL parameters
+  const [searchTerm, setSearchTerm] = useState(currentSearch);
   const [filters, setFilters] = useState({
-    search: currentSearch,
     status: currentStatus,
     service: currentService,
     city: currentCity,
+    state: currentStateFilter,
+    createdBy: currentCreatedBy,
     assignedStatus: currentAssignedStatus,
     dateFrom: currentDateFrom,
     dateTo: currentDateTo,
@@ -111,22 +115,24 @@ export function LeadManagement() {
   // Load leads when URL parameters change
   useEffect(() => {
     fetchLeads();
-  }, [currentPage, currentSearch, currentStatus, currentService, currentCity, currentAssignedStatus, currentDateFrom, currentDateTo, currentSortBy, currentSortOrder]);
+  }, [currentPage, currentSearch, currentStatus, currentService, currentCity, currentStateFilter, currentCreatedBy, currentAssignedStatus, currentDateFrom, currentDateTo, currentSortBy, currentSortOrder]);
 
   // Sync local state with URL parameters
   useEffect(() => {
+    setSearchTerm(currentSearch);
     setFilters({
-      search: currentSearch,
       status: currentStatus,
       service: currentService,
       city: currentCity,
+      state: currentStateFilter,
+      createdBy: currentCreatedBy,
       assignedStatus: currentAssignedStatus,
       dateFrom: currentDateFrom,
       dateTo: currentDateTo,
       sortBy: currentSortBy,
       sortOrder: currentSortOrder,
     });
-  }, [currentSearch, currentStatus, currentService, currentCity, currentAssignedStatus, currentDateFrom, currentDateTo, currentSortBy, currentSortOrder]);
+  }, [currentSearch, currentStatus, currentService, currentCity, currentStateFilter, currentCreatedBy, currentAssignedStatus, currentDateFrom, currentDateTo, currentSortBy, currentSortOrder]);
 
   // Fetch leads using lead service
   const fetchLeads = async () => {
@@ -139,6 +145,8 @@ export function LeadManagement() {
         status: currentStatus,
         service: currentService,
         city: currentCity,
+        state: currentStateFilter,
+        createdBy: currentCreatedBy,
         assignedStatus: currentAssignedStatus,
         dateFrom: currentDateFrom,
         dateTo: currentDateTo,
@@ -184,24 +192,47 @@ export function LeadManagement() {
     );
   };
 
-  // Handle filter changes
-  const handleFilterChange = (newFilters) => {
-    //console.log('🔧 handleFilterChange called with:', newFilters);
-    setFilters(prev => ({ ...prev, ...newFilters }));
-    
-    // Always update URL when filters change
-    const hasChanges = Object.keys(newFilters).some(key => 
-      newFilters[key] !== filters[key]
+  const buildUrlParams = (paramsObject) => {
+    return Object.fromEntries(
+      Object.entries(paramsObject).map(([key, value]) => {
+        if (value === '' || value === null || value === undefined) {
+          return [key, undefined];
+        }
+        return [key, value];
+      })
     );
-    
-    if (hasChanges) {
-      //console.log('🔄 Filters changed, updating URL');
-      updateURL({
-        ...newFilters,
-        page: undefined // Reset to page 1
-      });
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (updatedFilters) => {
+    setFilters((prev) => {
+      const merged = { ...prev, ...updatedFilters };
+      const hasChanges = Object.keys(updatedFilters).some((key) => merged[key] !== prev[key]);
+
+      if (hasChanges) {
+        updateURL({
+          ...buildUrlParams({ ...merged, search: searchTerm }),
+          page: undefined
+        });
+      }
+
+      return merged;
+    });
+
+    setSelectedLeads([]);
+  };
+
+  const handleSearchChange = (value) => {
+    if (searchTerm === value) {
+      return;
     }
-    
+
+    setSearchTerm(value);
+    updateURL({
+      ...buildUrlParams({ ...filters, search: value }),
+      page: undefined
+    });
+
     setSelectedLeads([]);
   };
 
@@ -540,7 +571,9 @@ export function LeadManagement() {
           {/* Filters */}
           <LeadFilters
             filters={filters}
+            searchTerm={searchTerm}
             onFilterChange={handleFilterChange}
+            onSearchChange={handleSearchChange}
             loading={loading}
           />
 

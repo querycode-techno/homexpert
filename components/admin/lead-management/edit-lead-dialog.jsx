@@ -21,6 +21,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { Loader2, User } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -48,9 +49,17 @@ export function EditLeadDialog({
     address: '',
     categoryId: '',
     serviceId: '',
+    service: '',
     selectedService: '',
     selectedSubService: '',
     description: '',
+    additionalNotes: '',
+    price: '',
+    getQuote: false,
+    preferredDate: '',
+    preferredTime: '',
+    scheduledDate: '',
+    scheduledTime: '',
     status: 'pending',
     createdBy: ''
   })
@@ -94,6 +103,13 @@ export function EditLeadDialog({
       }
     }
   }, [open, leadId, isAdmin])
+
+  const formatDateForInput = (value) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toISOString().slice(0, 10)
+  }
 
   const fetchLeadData = async () => {
     setFetchingLead(true)
@@ -146,9 +162,17 @@ export function EditLeadDialog({
           address: lead.address || '',
           categoryId: matchedCategoryId,
           serviceId: matchedServiceId,
+          service: lead.service || lead.selectedService || '',
           selectedService: lead.selectedService || '',
           selectedSubService: lead.selectedSubService || '',
           description: lead.description || '',
+          additionalNotes: lead.additionalNotes || '',
+          price: lead.price !== undefined && lead.price !== null ? lead.price.toString() : '',
+          getQuote: !!lead.getQuote,
+          preferredDate: formatDateForInput(lead.preferredDate),
+          preferredTime: lead.preferredTime || '',
+          scheduledDate: formatDateForInput(lead.scheduledDate),
+          scheduledTime: lead.scheduledTime || '',
           status: lead.status || 'pending',
           createdBy: lead.createdBy || ''
         })
@@ -178,6 +202,7 @@ export function EditLeadDialog({
         ...prev,
         categoryId: value,
         serviceId: '',
+      service: '',
         selectedService: '',
         selectedSubService: ''
       }))
@@ -188,6 +213,7 @@ export function EditLeadDialog({
       setFormData(prev => ({
         ...prev,
         serviceId: value,
+        service: service?.name || formData.service,
         selectedService: service?.name || '',
         selectedSubService: ''
       }))
@@ -204,6 +230,14 @@ export function EditLeadDialog({
     }
   }
 
+  const handleQuoteToggle = (checked) => {
+    setFormData(prev => ({
+      ...prev,
+      getQuote: checked,
+      price: checked ? '' : prev.price
+    }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -215,9 +249,17 @@ export function EditLeadDialog({
         customerPhone: formData.customerPhone,
         customerEmail: formData.customerEmail,
         address: formData.address,
-        selectedService: formData.selectedService,
+        service: formData.service || formData.selectedService,
+        selectedService: formData.selectedService || formData.service,
         selectedSubService: formData.selectedSubService,
         description: formData.description,
+        additionalNotes: formData.additionalNotes,
+        price: formData.price,
+        getQuote: formData.getQuote,
+        preferredDate: formData.preferredDate,
+        preferredTime: formData.preferredTime,
+        scheduledDate: formData.scheduledDate,
+        scheduledTime: formData.scheduledTime,
         status: formData.status,
         createdBy: formData.createdBy
       }
@@ -338,6 +380,20 @@ export function EditLeadDialog({
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Service Information</h3>
             
+            <div>
+              <Label htmlFor="service">Primary Service</Label>
+              <Input
+                id="service"
+                name="service"
+                value={formData.service}
+                onChange={handleInputChange}
+                placeholder="Primary service label"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                This is the core service stored with the lead. It will default to the selected service if left blank.
+              </p>
+            </div>
+
             {/* Category Selection */}
             <div>
               <Label htmlFor="categoryId">Service Category</Label>
@@ -425,6 +481,39 @@ export function EditLeadDialog({
               )}
             </div>
 
+            {/* Pricing & Quote */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="price">Lead Price (₹)</Label>
+                <Input
+                  id="price"
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  placeholder="Enter lead price"
+                  disabled={formData.getQuote}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Leave empty if not applicable. Price is disabled when quote request is enabled.
+                </p>
+              </div>
+              <div className="flex items-center justify-between border rounded-lg px-4 py-3">
+                <div className="space-y-1">
+                  <Label htmlFor="getQuote" className="text-sm font-medium">Quote Requested</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Toggle on when this lead still needs a manual quote from vendors.
+                  </p>
+                </div>
+                <Switch
+                  id="getQuote"
+                  checked={formData.getQuote}
+                  onCheckedChange={handleQuoteToggle}
+                />
+              </div>
+            </div>
+
             <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -436,6 +525,65 @@ export function EditLeadDialog({
                 rows={3}
               />
             </div>
+
+            <div>
+              <Label htmlFor="additionalNotes">Additional Notes</Label>
+              <Textarea
+                id="additionalNotes"
+                name="additionalNotes"
+                value={formData.additionalNotes}
+                onChange={handleInputChange}
+                placeholder="Any extra notes captured during lead submission"
+                rows={3}
+              />
+            </div>
+
+            {/* Scheduling */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="preferredDate">Preferred Service Date</Label>
+                <Input
+                  id="preferredDate"
+                  name="preferredDate"
+                  type="date"
+                  value={formData.preferredDate}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label htmlFor="preferredTime">Preferred Time</Label>
+                <Input
+                  id="preferredTime"
+                  name="preferredTime"
+                  type="text"
+                  value={formData.preferredTime}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 10:00 AM"
+                />
+              </div>
+              <div>
+                <Label htmlFor="scheduledDate">Scheduled Date</Label>
+                <Input
+                  id="scheduledDate"
+                  name="scheduledDate"
+                  type="date"
+                  value={formData.scheduledDate}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div>
+                <Label htmlFor="scheduledTime">Scheduled Time</Label>
+                <Input
+                  id="scheduledTime"
+                  name="scheduledTime"
+                  type="text"
+                  value={formData.scheduledTime}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 4:30 PM"
+                />
+              </div>
+            </div>
+
 
             <div>
               <Label htmlFor="status">Status</Label>

@@ -149,6 +149,20 @@ export default function AdminSupportPage() {
     return category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
+  const formatServices = (services) => {
+    if (!services || services.length === 0) return 'Not specified'
+    if (services.length <= 2) return services.join(', ')
+    return `${services[0]}, ${services[1]} +${services.length - 2}`
+  }
+
+  const getOnboardedByLabel = (vendor) => {
+    if (!vendor) return 'Unknown'
+    if (vendor.onboardedBy) {
+      return vendor.onboardedBy.name || vendor.onboardedBy.email || 'Team Member'
+    }
+    return 'Self Registered'
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -389,30 +403,46 @@ export default function AdminSupportPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">
-                      {ticket.vendorId ? (
-                        ticket.vendorId.businessName || 
-                        ticket.vendorId.user?.name || 
-                        'Vendor (No Name)'
-                      ) : (
-                        <span className="text-muted-foreground">No Vendor</span>
-                      )}
-                    </div>
-                    {ticket.vendorId?.user?.email && (
-                      <div className="text-xs text-muted-foreground">
-                        {ticket.vendorId.user.email}
+                    {ticket.vendorId ? (
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="font-medium">
+                              {ticket.vendorId.user?.name || ticket.vendorId.businessName || 'Vendor (No Name)'}
+                            </div>
+                            {ticket.vendorId.businessName && ticket.vendorId.user?.name && (
+                              <div className="text-xs text-muted-foreground">
+                                {ticket.vendorId.businessName}
+                              </div>
+                            )}
+                          </div>
+                          {ticket.vendorId?.status && (
+                            <span className={`px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                              ticket.vendorId.status === 'active' ? 'bg-green-100 text-green-700' :
+                              ticket.vendorId.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {ticket.vendorId.status}
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid gap-1 text-xs text-muted-foreground">
+                          <div>
+                            <span className="font-semibold text-foreground">Service:</span>{' '}
+                            {formatServices(ticket.vendorId.services)}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-foreground">City:</span>{' '}
+                            {ticket.vendorId.address?.city || 'Not specified'}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-foreground">Added By:</span>{' '}
+                            {getOnboardedByLabel(ticket.vendorId)}
+                          </div>
+                        </div>
                       </div>
-                    )}
-                    {ticket.vendorId?.status && (
-                      <div className="text-xs">
-                        <span className={`px-1 py-0.5 rounded text-xs ${
-                          ticket.vendorId.status === 'active' ? 'bg-green-100 text-green-700' :
-                          ticket.vendorId.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {ticket.vendorId.status}
-                        </span>
-                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No Vendor</span>
                     )}
                   </TableCell>
                   <TableCell>

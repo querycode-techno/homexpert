@@ -10,9 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Skeleton } from "@/components/ui/skeleton"
 import { 
   Phone, 
-  Mail, 
   MapPin, 
-  Calendar, 
   MoreHorizontal, 
   Eye, 
   EyeOff,
@@ -25,7 +23,6 @@ import {
   AlertTriangle,
   User
 } from "lucide-react"
-import { format, formatDistanceToNow } from "date-fns"
 
 // Function to parse city from address format
 const parseCity = (address) => {
@@ -109,6 +106,10 @@ const STATUS_CONFIG = {
   }
 }
 
+const LEAD_EXPIRY_THRESHOLD_DAYS = 3
+const HOURS_IN_DAY = 24
+const MS_IN_HOUR = 1000 * 60 * 60
+
 function LeadTableSkeleton() {
   return (
     <div className="space-y-3">
@@ -122,6 +123,7 @@ function LeadTableSkeleton() {
           </div>
           <Skeleton className="h-6 w-20" />
           <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-6 w-24" />
           <Skeleton className="h-6 w-24" />
           <Skeleton className="h-8 w-8" />
         </div>
@@ -140,6 +142,54 @@ function LeadTableRow({
   const [showPhone, setShowPhone] = useState(false)
   const statusConfig = STATUS_CONFIG[lead.status] || STATUS_CONFIG.pending
   const StatusIcon = statusConfig.icon
+  const shouldShowExpiry = !lead.isAssigned
+  const createdAtDate = shouldShowExpiry && lead.createdAt ? new Date(lead.createdAt) : null
+  const hasValidCreatedAt = createdAtDate && !Number.isNaN(createdAtDate.getTime())
+  let expiryLabel = '-'
+  let expiryVariant = 'outline'
+
+  if (hasValidCreatedAt) {
+    const expiryDate = new Date(
+      createdAtDate.getTime() +
+        LEAD_EXPIRY_THRESHOLD_DAYS * HOURS_IN_DAY * MS_IN_HOUR
+    )
+    const diffMs = expiryDate.getTime() - Date.now()
+
+    if (diffMs > 0) {
+      const hoursLeft = Math.floor(diffMs / MS_IN_HOUR)
+      const daysLeft = Math.floor(hoursLeft / HOURS_IN_DAY)
+      const remainingHours = hoursLeft % HOURS_IN_DAY
+      const segments = []
+
+      if (daysLeft > 0) {
+        segments.push(`${daysLeft}d`)
+      }
+
+      segments.push(`${remainingHours}h`)
+      expiryLabel = `${segments.join(' ')} left`
+      expiryVariant = hoursLeft <= 24 ? 'destructive' : 'outline'
+    } else {
+      const overdueHours = Math.abs(Math.floor(diffMs / MS_IN_HOUR))
+      const overdueDays = Math.floor(overdueHours / HOURS_IN_DAY)
+      const remainingOverdueHours = overdueHours % HOURS_IN_DAY
+
+      if (overdueHours === 0) {
+        expiryLabel = 'Expired'
+      } else {
+        const overdueSegments = []
+        if (overdueDays > 0) {
+          overdueSegments.push(`${overdueDays}d`)
+        }
+        overdueSegments.push(`${remainingOverdueHours}h`)
+        expiryLabel = `Expired ${overdueSegments.join(' ')} ago`
+      }
+      expiryVariant = 'destructive'
+    }
+  }
+
+  const expiryBadgeClasses = expiryVariant === 'destructive'
+    ? 'bg-red-100 text-red-800 border-red-200'
+    : 'bg-amber-100 text-amber-800 border-amber-200'
 
   const handleQuickStatusChange = (newStatus) => {
     onLeadAction('updateStatus', lead._id, { 
@@ -203,13 +253,15 @@ function LeadTableRow({
         </div>
       </TableCell>
 
-      {/* City */}
+      {/* Location */}
       <TableCell>
-        <div className="flex items-center text-sm">
-          <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
-          <span className="truncate max-w-[120px]">
-            {parseCity(lead.address)}
-          </span>
+        <div className="flex items-start text-sm gap-2">
+          <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground" />
+          <div className="min-w-0">
+            <div className="font-medium truncate max-w-[140px]">
+             {lead.state ? `${lead.state}/${lead.city || parseCity(lead.address) || '—'}` : parseCity(lead.address) || '—'}
+            </div>
+          </div>
         </div>
       </TableCell>
 
@@ -252,6 +304,17 @@ function LeadTableRow({
             <Clock className="h-3 w-3 mr-1" />
             Unassigned
           </Badge>
+        )}
+      </TableCell>
+
+      {/* Lead Expiry */}
+      <TableCell>
+        {shouldShowExpiry && hasValidCreatedAt ? (
+          <Badge variant="outline" className={`whitespace-nowrap ${expiryBadgeClasses}`}>
+            {expiryLabel}
+          </Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground">-</span>
         )}
       </TableCell>
 
@@ -431,10 +494,11 @@ export function LeadTable({
                   />
                 </TableHead>
                 <TableHead>Customer</TableHead>
-                <TableHead>City</TableHead>
+                <TableHead>Location</TableHead>
                 <TableHead className="w-48">Service</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Assignment</TableHead>
+                <TableHead>Lead Expiry (days/hours)</TableHead>
                 <TableHead>Taken By</TableHead>
                 <TableHead>Created By</TableHead>
                 <TableHead className="w-12"></TableHead>
@@ -443,7 +507,7 @@ export function LeadTable({
             <TableBody>
               {leads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center">
+                  <TableCell colSpan={10} className="h-24 text-center">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="text-muted-foreground">No leads found</div>
                       <div className="text-sm text-muted-foreground">

@@ -34,6 +34,7 @@ export function VendorManagement() {
   const currentVerified = searchParams.get('verified') || ""
   const currentOnboardedBy = searchParams.get('onboardedBy') || ""
   const currentOnline = searchParams.get('online') || ""
+  const currentSubscriptionStatus = searchParams.get('subscriptionStatus') || ""
 
   // State management
   const [vendors, setVendors] = useState([])
@@ -57,15 +58,16 @@ export function VendorManagement() {
 
   // Local state synced with URL parameters
   const [searchTerm, setSearchTerm] = useState(currentSearch)
-    const [filters, setFilters] = useState({
-      status: currentStatus,
-      state: currentState,
-      city: currentCity,
-      service: currentService,
-      verified: currentVerified,
-      onboardedBy: currentOnboardedBy,
-      online: currentOnline
-    })
+  const [filters, setFilters] = useState({
+    status: currentStatus,
+    state: currentState,
+    city: currentCity,
+    service: currentService,
+    verified: currentVerified,
+    onboardedBy: currentOnboardedBy,
+    online: currentOnline,
+    subscriptionStatus: currentSubscriptionStatus
+  })
 
   // File input ref
   const vendorFileInputRef = useRef(null)
@@ -103,7 +105,7 @@ export function VendorManagement() {
   // Load vendors when non-search parameters change (full reload with stats)
   useEffect(() => {
     fetchVendors(false) // Full reload including stats
-  }, [currentPage, currentStatus, currentState, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline])
+  }, [currentPage, currentStatus, currentState, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline, currentSubscriptionStatus])
   
   // Handle search separately (table only, no stats reload)
   useEffect(() => {
@@ -124,9 +126,10 @@ export function VendorManagement() {
       service: currentService,
       verified: currentVerified,
       onboardedBy: currentOnboardedBy,
-      online: currentOnline
+      online: currentOnline,
+      subscriptionStatus: currentSubscriptionStatus
     })
-  }, [currentSearch, currentStatus, currentState, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline])
+  }, [currentSearch, currentStatus, currentState, currentCity, currentService, currentVerified, currentOnboardedBy, currentOnline, currentSubscriptionStatus])
 
   // Fetch vendors using the vendor service
   const fetchVendors = async (searchOnly = false) => {
@@ -142,7 +145,8 @@ export function VendorManagement() {
         service: currentService,
         verified: currentVerified,
         onboardedBy: currentOnboardedBy,
-        online: currentOnline
+        online: currentOnline,
+        subscriptionStatus: currentSubscriptionStatus
       }
 
       const result = await vendorService.getVendors(params)
@@ -334,11 +338,12 @@ export function VendorManagement() {
       newFilters.service !== currentService ||
       newFilters.verified !== currentVerified ||
       newFilters.onboardedBy !== currentOnboardedBy ||
-      newFilters.online !== currentOnline
+      newFilters.online !== currentOnline ||
+      newFilters.subscriptionStatus !== currentSubscriptionStatus
     
     // Also trigger update if this is a clear operation (all filters empty)
-    const isClearOperation = !newFilters.status && !newFilters.state && !newFilters.city && !newFilters.service && !newFilters.verified && !newFilters.onboardedBy && !newFilters.online
-    const hadFilters = currentStatus || currentState || currentCity || currentService || currentVerified || currentOnboardedBy || currentOnline
+    const isClearOperation = !newFilters.status && !newFilters.state && !newFilters.city && !newFilters.service && !newFilters.verified && !newFilters.onboardedBy && !newFilters.online && !newFilters.subscriptionStatus
+    const hadFilters = currentStatus || currentState || currentCity || currentService || currentVerified || currentOnboardedBy || currentOnline || currentSubscriptionStatus
     
     if (filtersChanged || (isClearOperation && hadFilters)) {
       updateURL({ 
@@ -349,6 +354,7 @@ export function VendorManagement() {
         verified: newFilters.verified || undefined,
         onboardedBy: newFilters.onboardedBy || undefined,
         online: newFilters.online || undefined,
+        subscriptionStatus: newFilters.subscriptionStatus || undefined,
         page: undefined // Reset to page 1 by removing page param
       })
     }
@@ -460,7 +466,8 @@ export function VendorManagement() {
           service: currentService,
           verified: currentVerified,
           onboardedBy: currentOnboardedBy,
-          online: currentOnline
+          online: currentOnline,
+          subscriptionStatus: currentSubscriptionStatus
         }}
       />
 
