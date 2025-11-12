@@ -609,7 +609,7 @@ export function VendorForm({
                     rules={{ required: "State is required" }}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>State</FormLabel>
+                        <FormLabel>State *</FormLabel>
                         <FormControl>
                           <SearchableSelect
                             options={stateOptions}
@@ -632,7 +632,7 @@ export function VendorForm({
                     rules={{ required: "City is required" }}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>City</FormLabel>
+                        <FormLabel>City *</FormLabel>
                         <FormControl>
                           <SearchableSelect
                             options={cityOptions}
