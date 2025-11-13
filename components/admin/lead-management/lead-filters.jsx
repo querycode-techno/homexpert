@@ -221,7 +221,17 @@ export function LeadFilters({ filters, searchTerm = '', onFilterChange, onSearch
   const availableServices = useMemo(() => {
     try {
       const services = serviceUtils.getAllServices()
-      return services.map(service => service.name).sort()
+      if (!Array.isArray(services)) {
+        return []
+      }
+
+      const normalized = services.map((service) => {
+        if (typeof service === 'string') return service
+        if (service && typeof service === 'object' && 'name' in service) return service.name
+        return ''
+      }).filter(Boolean)
+
+      return Array.from(new Set(normalized)).sort((a, b) => a.localeCompare(b))
     } catch (error) {
       console.error('Error getting services:', error)
       return []
