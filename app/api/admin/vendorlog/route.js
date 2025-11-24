@@ -2,13 +2,19 @@ import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { ObjectId } from 'mongodb';
 
-// GET /api/admin/vendorlog - Get all vendor log entries
+// GET /api/admin/vendorlog - Get all vendor log entries with pagination
 export async function GET(request) {
   try {
+    // Get query parameters for pagination
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const skip = (page - 1) * limit;
+
     // Get collections
     const vendorLogsCollection = await database.getVendorLogsCollection();
 
-    // Build aggregation pipeline to get all vendor logs
+    // Build aggregation pipeline to get vendor logs with pagination
     const pipeline = [
       // Lookup vendor information
       {
@@ -188,11 +194,29 @@ export async function GET(request) {
       },
       
       // Sort by time descending (newest first)
-      { $sort: { time: -1 } }
+      { $sort: { time: -1 } },
+      
+      // Add pagination
+      { $skip: skip },
+      { $limit: limit }
     ];
 
-    // Execute aggregation
-    const logs = await vendorLogsCollection.aggregate(pipeline).toArray();
+    // Build count pipeline (simplified - just count all documents)
+    // We use a simpler count since we just need the total number
+    const countPipeline = [
+      {
+        $count: 'total'
+      }
+    ];
+
+    // Execute both aggregations in parallel
+    const [logsResult, countResult] = await Promise.all([
+      vendorLogsCollection.aggregate(pipeline).toArray(),
+      vendorLogsCollection.aggregate(countPipeline).toArray()
+    ]);
+
+    const logs = logsResult;
+    const total = countResult[0]?.total || 0;
 
     // Format logs data
     const formattedLogs = logs.map(log => ({
@@ -228,7 +252,15 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
-      logs: formattedLogs
+      logs: formattedLogs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1
+      }
     });
 
   } catch (error) {

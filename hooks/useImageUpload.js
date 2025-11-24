@@ -73,7 +73,7 @@ export function useImageUpload({
       }, 100);
 
       // Upload file
-      const response = await fetch('/api/upload/image', {
+      const response = await fetch('/api/auth/upload/image', {
         method: 'POST',
         body: formData,
       });
@@ -128,7 +128,7 @@ export function useImageUpload({
       formData.append('subfolder', subfolder);
 
       // Upload file
-      const response = await fetch('/api/upload/image', {
+      const response = await fetch('/api/auth/upload/image', {
         method: 'POST',
         body: formData,
       });
@@ -220,7 +220,7 @@ export function useImageUpload({
    */
   const deleteImage = async (publicUrl) => {
     try {
-      const response = await fetch(`/api/upload/image?url=${encodeURIComponent(publicUrl)}`, {
+      const response = await fetch(`/api/auth/upload/image?url=${encodeURIComponent(publicUrl)}`, {
         method: 'DELETE',
       });
 

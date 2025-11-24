@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 export const useDocumentUpload = () => {
   const [uploadState, setUploadState] = useState({});
 
-  const uploadDocument = async (file, documentType, subfolder = 'vendor-documents') => {
+  const uploadDocument = async (file, documentType, subfolder = 'vendor-documents', uploadKey = null) => {
     if (!file) {
       toast.error('Please select a file to upload');
       return null;
@@ -24,52 +24,116 @@ export const useDocumentUpload = () => {
       return null;
     }
 
-    const uploadKey = `${documentType}_${Date.now()}`;
+    const key = uploadKey || `${documentType}_${Date.now()}`;
     
-    try {
-      // Set loading state
-      setUploadState(prev => ({
-        ...prev,
-        [uploadKey]: { loading: true, progress: 0 }
-      }));
+    return new Promise((resolve) => {
+      try {
+        // Set loading state
+        setUploadState(prev => ({
+          ...prev,
+          [key]: { loading: true, progress: 0 }
+        }));
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('subfolder', subfolder);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('subfolder', subfolder);
 
-      const response = await fetch('/api/auth/upload/image', {
-        method: 'POST',
-        body: formData,
-      });
+        // Use XMLHttpRequest for real upload progress tracking
+        const xhr = new XMLHttpRequest();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
+        // Track upload progress
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 100);
+            setUploadState(prev => ({
+              ...prev,
+              [key]: { 
+                ...prev[key],
+                loading: true, 
+                progress: percentComplete 
+              }
+            }));
+          }
+        });
+
+        // Handle completion
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const result = JSON.parse(xhr.responseText);
+              
+              // Set success state
+              setUploadState(prev => ({
+                ...prev,
+                [key]: { loading: false, success: true, progress: 100, file: result.file }
+              }));
+
+              toast.success(`${documentType} uploaded successfully`);
+              resolve(result.file);
+            } catch (parseError) {
+              console.error('Parse error:', parseError);
+              setUploadState(prev => ({
+                ...prev,
+                [key]: { loading: false, error: 'Failed to parse response', progress: 0 }
+              }));
+              toast.error(`Failed to upload ${documentType}`);
+              resolve(null);
+            }
+          } else {
+            let errorMessage = 'Upload failed';
+            try {
+              const errorData = JSON.parse(xhr.responseText);
+              errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+              errorMessage = xhr.statusText || errorMessage;
+            }
+            
+            setUploadState(prev => ({
+              ...prev,
+              [key]: { loading: false, error: errorMessage, progress: 0 }
+            }));
+            
+            toast.error(`Failed to upload ${documentType}: ${errorMessage}`);
+            resolve(null);
+          }
+        });
+
+        // Handle errors
+        xhr.addEventListener('error', () => {
+          setUploadState(prev => ({
+            ...prev,
+            [key]: { loading: false, error: 'Network error', progress: 0 }
+          }));
+          toast.error(`Failed to upload ${documentType}: Network error`);
+          resolve(null);
+        });
+
+        // Handle abort
+        xhr.addEventListener('abort', () => {
+          setUploadState(prev => ({
+            ...prev,
+            [key]: { loading: false, error: 'Upload cancelled', progress: 0 }
+          }));
+          resolve(null);
+        });
+
+        // Start upload
+        xhr.open('POST', '/api/auth/upload/image');
+        xhr.send(formData);
+
+      } catch (error) {
+        console.error('Upload error:', error);
+        
+        // Set error state
+        setUploadState(prev => ({
+          ...prev,
+          [key]: { loading: false, error: error.message, progress: 0 }
+        }));
+
+        toast.error(`Failed to upload ${documentType}: ${error.message}`);
+        resolve(null);
       }
-
-      const result = await response.json();
-      
-      // Set success state
-      setUploadState(prev => ({
-        ...prev,
-        [uploadKey]: { loading: false, success: true, file: result.file }
-      }));
-
-      toast.success(`${documentType} uploaded successfully`);
-      return result.file;
-
-    } catch (error) {
-      console.error('Upload error:', error);
-      
-      // Set error state
-      setUploadState(prev => ({
-        ...prev,
-        [uploadKey]: { loading: false, error: error.message }
-      }));
-
-      toast.error(`Failed to upload ${documentType}: ${error.message}`);
-      return null;
-    }
+    });
   };
 
   const deleteDocument = async (publicUrl, documentType) => {

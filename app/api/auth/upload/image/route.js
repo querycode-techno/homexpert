@@ -36,7 +36,11 @@ export async function POST(request) {
         publicUrl: result.publicUrl,
         originalName: result.originalName,
         size: result.size,
-        type: result.type
+        type: result.type,
+        ...(result.cloudinaryPublicId && { cloudinaryPublicId: result.cloudinaryPublicId }),
+        ...(result.format && { format: result.format }),
+        ...(result.width && { width: result.width }),
+        ...(result.height && { height: result.height }),
       }
     });
 
@@ -57,16 +61,17 @@ export async function DELETE(request) {
 
     const { searchParams } = new URL(request.url);
     const publicUrl = searchParams.get('url');
+    const publicId = searchParams.get('publicId'); // Optional Cloudinary public_id
 
-    if (!publicUrl) {
+    if (!publicUrl && !publicId) {
       return NextResponse.json(
-        { error: 'No file URL provided' },
+        { error: 'No file URL or public ID provided' },
         { status: 400 }
       );
     }
 
-    // Delete the file
-    const deleted = await deleteFileFromPublic(publicUrl);
+    // Delete the file (use publicId if available, otherwise use publicUrl)
+    const deleted = await deleteFileFromPublic(publicUrl || publicId, publicId);
 
     if (!deleted) {
       return NextResponse.json(

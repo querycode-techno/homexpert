@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Upload, X, Download, CheckCircle, XCircle } from 'lucide-react';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
@@ -47,7 +48,7 @@ const DocumentUpload = ({
 
   const documentTypeOptions = getDocumentTypeOptions();
 
-  const handleFileSelect = (event) => {
+  const handleFileSelect = async (event) => {
     const file = event.target.files[0];
     if (file) {
       setSelectedFile(file);
@@ -60,13 +61,27 @@ const DocumentUpload = ({
       } else {
         setPreviewUrl(null);
       }
+
+      // Auto-upload the file immediately
+      const uploadedFile = await uploadDocument(file, title, 'vendor-documents', uploadKey);
+      if (uploadedFile) {
+        onDocumentChange({
+          ...document,
+          docImageUrl: uploadedFile.publicUrl
+        });
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) return;
 
-    const uploadedFile = await uploadDocument(selectedFile, title, 'vendor-documents');
+    const uploadedFile = await uploadDocument(selectedFile, title, 'vendor-documents', uploadKey);
     if (uploadedFile) {
       onDocumentChange({
         ...document,
@@ -155,7 +170,7 @@ const DocumentUpload = ({
         <div className="space-y-2">
           <Label>Document Upload (Optional) {required && <span className="text-red-500">*</span>}</Label>
           
-          {!document?.docImageUrl && !selectedFile && (
+          {!document?.docImageUrl && !selectedFile && !currentUpload?.loading && (
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
               <input
                 ref={fileInputRef}
@@ -181,13 +196,17 @@ const DocumentUpload = ({
           )}
 
           {/* Preview */}
-          {(selectedFile || document?.docImageUrl) && (
+          {(selectedFile || document?.docImageUrl || currentUpload?.loading) && (
             <div className="border rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
                   <span className="text-sm font-medium">
-                    {selectedFile ? selectedFile.name : 'Document uploaded'}
+                    {currentUpload?.loading 
+                      ? 'Uploading...' 
+                      : selectedFile 
+                        ? selectedFile.name 
+                        : 'Document uploaded'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -208,8 +227,8 @@ const DocumentUpload = ({
                 </div>
               </div>
 
-              {/* Upload button for selected file */}
-              {selectedFile && !currentUpload?.loading && (
+              {/* Upload button for selected file (only show if upload failed) */}
+              {selectedFile && !currentUpload?.loading && currentUpload?.error && (
                 <div className="mt-3">
                   <Button
                     type="button"
@@ -218,16 +237,30 @@ const DocumentUpload = ({
                     className="w-full"
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    Upload Document
+                    Retry Upload
                   </Button>
                 </div>
               )}
 
               {/* Upload progress */}
               {currentUpload?.loading && (
-                <div className="mt-3 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Uploading...</span>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Uploading...</span>
+                    </div>
+                    <span className="text-muted-foreground">{currentUpload.progress || 0}%</span>
+                  </div>
+                  <Progress value={currentUpload.progress || 0} className="h-2" />
+                </div>
+              )}
+
+              {/* Upload error */}
+              {currentUpload?.error && !currentUpload?.loading && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-red-600">
+                  <XCircle className="h-4 w-4" />
+                  <span>{currentUpload.error}</span>
                 </div>
               )}
 

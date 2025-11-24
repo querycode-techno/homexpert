@@ -15,7 +15,8 @@ import {
   PaginationItem, 
   PaginationLink, 
   PaginationNext, 
-  PaginationPrevious 
+  PaginationPrevious,
+  PaginationEllipsis
 } from '@/components/ui/pagination'
 import { 
   DropdownMenu, 
@@ -39,6 +40,7 @@ export default function VendorLogsPage() {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalLogs, setTotalLogs] = useState(0)
   const [deletingId, setDeletingId] = useState(null)
   const [selectedLogIds, setSelectedLogIds] = useState(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
@@ -118,17 +120,18 @@ export default function VendorLogsPage() {
     })
   }
 
-  // Fetch vendor logs
-  const fetchLogs = async () => {
+  // Fetch vendor logs with pagination
+  const fetchLogs = async (page = currentPage) => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/vendorlog')
+      const response = await fetch(`/api/admin/vendorlog?page=${page}&limit=${ITEMS_PER_PAGE}`)
       const data = await response.json()
       
       if (data.success) {
         const enrichedLogs = await enrichLogsWithLeadDetails(data.logs || [])
         setLogs(enrichedLogs)
-        setTotalPages(Math.ceil(enrichedLogs.length / ITEMS_PER_PAGE))
+        setTotalPages(data.pagination?.totalPages || 1)
+        setTotalLogs(data.pagination?.total || 0)
       } else {
         toast.error('Failed to fetch vendor logs')
       }
@@ -152,7 +155,7 @@ export default function VendorLogsPage() {
       
       if (data.success) {
         toast.success('Vendor log deleted successfully')
-        fetchLogs() // Refresh the list
+        fetchLogs(currentPage) // Refresh current page
       } else {
         toast.error(data.error || 'Failed to delete vendor log')
       }
@@ -215,20 +218,75 @@ export default function VendorLogsPage() {
     )
   }
 
-  // Get paginated logs
+  // Get paginated logs (now logs are already paginated from server)
   const getPaginatedLogs = () => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    const endIndex = startIndex + ITEMS_PER_PAGE
-    return logs.slice(startIndex, endIndex)
+    return logs // Server already returns paginated data
   }
 
   // Handle page change
   const handlePageChange = (page) => {
-    setCurrentPage(page)
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+      fetchLogs(page) // Fetch new page from server
+      // Scroll to top of table
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  // Generate pagination page numbers with ellipsis
+  const getPaginationPages = () => {
+    const pages = []
+    const maxVisiblePages = 7 // Show max 7 page numbers
+    const sidePages = 2 // Pages to show on each side of current page
+
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if total is less than max
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      // Always show first page
+      pages.push(1)
+
+      let startPage = Math.max(2, currentPage - sidePages)
+      let endPage = Math.min(totalPages - 1, currentPage + sidePages)
+
+      // Adjust if we're near the start
+      if (currentPage <= sidePages + 2) {
+        endPage = Math.min(maxVisiblePages - 1, totalPages - 1)
+      }
+
+      // Adjust if we're near the end
+      if (currentPage >= totalPages - sidePages - 1) {
+        startPage = Math.max(2, totalPages - maxVisiblePages + 2)
+      }
+
+      // Add ellipsis after first page if needed
+      if (startPage > 2) {
+        pages.push('ellipsis-start')
+      }
+
+      // Add page numbers around current page
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i)
+      }
+
+      // Add ellipsis before last page if needed
+      if (endPage < totalPages - 1) {
+        pages.push('ellipsis-end')
+      }
+
+      // Always show last page
+      if (totalPages > 1) {
+        pages.push(totalPages)
+      }
+    }
+
+    return pages
   }
 
   useEffect(() => {
-    fetchLogs()
+    fetchLogs(currentPage)
   }, [])
 
 
@@ -339,9 +397,9 @@ export default function VendorLogsPage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-muted-foreground">
-              Total logs: {logs.length}
-            </div>
+                  <div className="text-sm text-muted-foreground">
+                    Total logs: {totalLogs}
+                  </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="destructive"
@@ -375,7 +433,7 @@ export default function VendorLogsPage() {
                     }
 
                     setSelectedLogIds(new Set())
-                    fetchLogs()
+                    fetchLogs(currentPage) // Refresh current page
                   } catch (error) {
                     console.error('Error deleting selected logs:', error)
                     toast.error('Error deleting selected logs')
@@ -566,7 +624,11 @@ export default function VendorLogsPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="mt-6">
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, totalLogs)} of {totalLogs} entries
+                  </div>
+                  
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
@@ -576,17 +638,27 @@ export default function VendorLogsPage() {
                         />
                       </PaginationItem>
                       
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            onClick={() => handlePageChange(page)}
-                            isActive={currentPage === page}
-                            className="cursor-pointer"
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
+                      {getPaginationPages().map((page, index) => {
+                        if (page === 'ellipsis-start' || page === 'ellipsis-end') {
+                          return (
+                            <PaginationItem key={`ellipsis-${index}`}>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          )
+                        }
+                        
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => handlePageChange(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer min-w-[2.5rem]"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      })}
                       
                       <PaginationItem>
                         <PaginationNext 
@@ -599,10 +671,6 @@ export default function VendorLogsPage() {
                 </div>
               )}
 
-              {/* Summary */}
-              <div className="mt-4 text-sm text-gray-500 text-center">
-                Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, logs.length)} of {logs.length} entries
-              </div>
             </>
           )}
         </CardContent>

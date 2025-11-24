@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { verifyVendorToken, createAuthErrorResponse } from '@/lib/middleware/vendorAuth';
 import { ObjectId } from 'mongodb';
+import { processImageUpload } from '@/lib/uploadUtils';
 
 // POST /api/vendors/documents/upload - Upload vendor documents
 export async function POST(request) {
@@ -87,19 +88,17 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const fileExtension = file.name.split('.').pop();
-    const filename = `${timestamp}-${randomString}.${fileExtension}`;
+    // Process the upload using uploadUtils (supports Cloudinary and local storage)
+    const uploadResult = await processImageUpload(file, 'vendor-documents');
 
-    // For this implementation, we'll simulate file upload
-    // In production, you would upload to cloud storage (AWS S3, CloudFront, etc.)
-    const uploadPath = `/vendor-documents/${filename}`;
-    
-    // Simulate file upload (In production, implement actual file upload)
-    // const uploadedUrl = await uploadToCloudStorage(file, uploadPath);
-    const uploadedUrl = `/vendor-documents/${filename}`;
+    if (!uploadResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: uploadResult.errors?.join(', ') || 'Failed to upload document'
+      }, { status: 400 });
+    }
+
+    const uploadedUrl = uploadResult.publicUrl;
 
     // Update vendor document
     const updateField = `documents.${documentType}`;
@@ -107,7 +106,8 @@ export async function POST(request) {
       type: docType || vendor.documents?.[documentType]?.type || "",
       number: documentNumber || vendor.documents?.[documentType]?.number || "",
       docImageUrl: uploadedUrl,
-      uploadedAt: new Date()
+      uploadedAt: new Date(),
+      ...(uploadResult.cloudinaryPublicId && { cloudinaryPublicId: uploadResult.cloudinaryPublicId }),
     };
 
     await vendorsCollection.updateOne(

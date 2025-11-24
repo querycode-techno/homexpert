@@ -31,6 +31,9 @@
 #### 4. Dashboard & Analytics
 - `GET /api/vendors/dashboard` - Dashboard stats & data
 
+#### 5. Business Details
+- `GET /api/vendors/businessdetails` - Get business contact details
+
 #### 5. Utilities
 - `lib/middleware/vendorAuth.js` - JWT authentication middleware
 - Complete API documentation with examples

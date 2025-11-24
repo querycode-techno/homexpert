@@ -125,6 +125,12 @@ export function AdminSidebar() {
       href: "/admin/roles",
       permission: can.manageRoles,
     },
+    {
+      title: "Business Details",
+      icon: <Settings className="h-5 w-5" />,
+      href: "/admin/settings/businessdetails",
+      permission: can.manageRoles, // Admin only
+    },
     // {
     //   title: "Booking & Lead Assignment",
     //   icon: <Calendar className="h-5 w-5" />,

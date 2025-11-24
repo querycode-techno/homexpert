@@ -341,9 +341,40 @@ Update bank account details.
 
 ---
 
+## Business Details
+
+### 12. Get Business Details
+**GET** `/businessdetails`
+*Requires Authentication*
+
+Get business contact information.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "name": "Business Name",
+    "logo": "https://...",
+    "phone": "+91 1234567890",
+    "whatsapp": "+91 1234567890",
+    "email": "contact@business.com",
+    "paymentQrCode": "https://..."
+  }
+}
+```
+
+**Example:**
+```bash
+curl -X GET https://your-domain.com/api/vendors/businessdetails \
+  -H "Authorization: Bearer your_access_token"
+```
+
+---
+
 ## Dashboard & Analytics
 
-### 12. Get Dashboard Data
+### 13. Get Dashboard Data
 **GET** `/dashboard`
 *Requires Authentication*
 
