@@ -9,8 +9,10 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { toast } from "sonner"
 import { Star, Users, Search, UserPlus } from "lucide-react"
+import { getStateOptions, getCityOptions } from '@/lib/utils/stateCityUtils'
 
 export function AssignmentDialog({ 
   open, 
@@ -27,10 +29,50 @@ export function AssignmentDialog({
   const [loadingMore, setLoadingMore] = useState(false)
   const [totalVendors, setTotalVendors] = useState(0)
   const [serviceFilter, setServiceFilter] = useState('')
+  const [stateFilter, setStateFilter] = useState('')
   const [cityFilter, setCityFilter] = useState('')
   const [onlineFilter, setOnlineFilter] = useState('')
   const [availableServices, setAvailableServices] = useState([])
-  const [availableCities, setAvailableCities] = useState([])
+  const [stateOptions, setStateOptions] = useState([])
+  const [cityOptions, setCityOptions] = useState([])
+  const [cityOptionsLoading, setCityOptionsLoading] = useState(false)
+
+  // Load state options when dialog opens
+  useEffect(() => {
+    if (open) {
+      const loadStates = async () => {
+        try {
+          const options = await getStateOptions()
+          setStateOptions(options)
+        } catch {
+          setStateOptions([])
+        }
+      }
+      loadStates()
+    }
+  }, [open])
+
+  // Load city options when state filter changes
+  useEffect(() => {
+    if (!open || !stateFilter) {
+      setCityOptions([])
+      return
+    }
+    let cancelled = false
+    const loadCities = async () => {
+      setCityOptionsLoading(true)
+      try {
+        const options = await getCityOptions(stateFilter)
+        if (!cancelled) setCityOptions(options)
+      } catch {
+        if (!cancelled) setCityOptions([])
+      } finally {
+        if (!cancelled) setCityOptionsLoading(false)
+      }
+    }
+    loadCities()
+    return () => { cancelled = true }
+  }, [stateFilter, open])
 
   // Fetch vendors when dialog opens
   useEffect(() => {
@@ -45,6 +87,7 @@ export function AssignmentDialog({
       setSelectedVendors([])
       setSearchTerm('')
       setServiceFilter('')
+      setStateFilter('')
       setCityFilter('')
       setOnlineFilter('')
       setCurrentPage(1)
@@ -52,7 +95,8 @@ export function AssignmentDialog({
       setVendors([])
       setTotalVendors(0)
       setAvailableServices([])
-      setAvailableCities([])
+      setStateOptions([])
+      setCityOptions([])
     }
   }, [open])
 
@@ -61,21 +105,21 @@ export function AssignmentDialog({
     const delayedSearch = setTimeout(() => {
       if (open && selectedLeads.length > 0) {
         setCurrentPage(1)
-        fetchVendors(1, searchTerm, serviceFilter, cityFilter, onlineFilter, true)
+        fetchVendors(1, searchTerm, serviceFilter, stateFilter, cityFilter, onlineFilter, true)
       }
     }, 500)
 
     return () => clearTimeout(delayedSearch)
-  }, [searchTerm, serviceFilter, cityFilter, onlineFilter, open, selectedLeads])
+  }, [searchTerm, serviceFilter, stateFilter, cityFilter, onlineFilter, open, selectedLeads])
 
   // Load more vendors
   const loadMoreVendors = () => {
     if (hasMore && !loadingMore && !loading) {
-      fetchVendors(currentPage + 1, searchTerm, serviceFilter, cityFilter, onlineFilter, false)
+      fetchVendors(currentPage + 1, searchTerm, serviceFilter, stateFilter, cityFilter, onlineFilter, false)
     }
   }
 
-  const fetchVendors = async (page = 1, search = '', service = '', city = '', online = '', reset = false) => {
+  const fetchVendors = async (page = 1, search = '', service = '', state = '', city = '', online = '', reset = false) => {
     if (page === 1) {
       setLoading(true)
     } else {
@@ -91,6 +135,7 @@ export function AssignmentDialog({
       });
       
       if (service) params.append('service', service);
+      if (state) params.append('state', state);
       if (city) params.append('city', city);
       if (online) params.append('online', online);
       
@@ -103,11 +148,9 @@ export function AssignmentDialog({
           
           if (reset || page === 1) {
             setVendors(newVendors)
-            // Extract unique services and cities for filters
+            // Extract unique services for filters
             const services = [...new Set(newVendors.flatMap(v => v.services || []))].sort()
-            const cities = [...new Set(newVendors.map(v => v.address?.city).filter(Boolean))].sort()
             setAvailableServices(services)
-            setAvailableCities(cities)
           } else {
             setVendors(prev => [...prev, ...newVendors])
           }
@@ -323,7 +366,7 @@ export function AssignmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-[900px] lg:max-w-[1000px] h-[95vh] flex flex-col">
         <DialogHeader className="flex-shrink-0 pb-4">
           <DialogTitle>
             Assign {selectedLeads.length === 1 ? 'Lead' : 'Leads'} to Vendors
@@ -363,19 +406,32 @@ export function AssignmentDialog({
                 </SelectContent>
               </Select>
               
-              <Select value={cityFilter || "all"} onValueChange={(value) => setCityFilter(value === "all" ? "" : value)}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Filter by city" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {availableCities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={[{ value: '', label: 'All states' }, ...stateOptions]}
+                value={stateFilter || ''}
+                onValueChange={(value) => {
+                  setStateFilter(value || '')
+                  // Clear city when state changes
+                  if (!value) {
+                    setCityFilter('')
+                  }
+                }}
+                placeholder="Select state..."
+                searchPlaceholder="Type to search states..."
+                emptyMessage="No states found"
+                className="w-[180px]"
+              />
+              
+              <SearchableSelect
+                options={[{ value: '', label: 'All cities' }, ...cityOptions]}
+                value={cityFilter || ''}
+                onValueChange={(value) => setCityFilter(value || '')}
+                placeholder={stateFilter ? "Select city..." : "Select state first"}
+                searchPlaceholder="Type to search cities..."
+                emptyMessage={stateFilter ? "No cities found" : "Select a state first"}
+                disabled={!stateFilter || cityOptionsLoading}
+                className="w-[180px]"
+              />
               
               <Select value={onlineFilter || "all"} onValueChange={(value) => setOnlineFilter(value === "all" ? "" : value)}>
                 <SelectTrigger className="w-[140px]">
@@ -389,12 +445,13 @@ export function AssignmentDialog({
               </Select>
               
               {/* Clear Filters */}
-              {(serviceFilter || cityFilter || onlineFilter) && (
+              {(serviceFilter || stateFilter || cityFilter || onlineFilter) && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     setServiceFilter('')
+                    setStateFilter('')
                     setCityFilter('')
                     setOnlineFilter('')
                   }}

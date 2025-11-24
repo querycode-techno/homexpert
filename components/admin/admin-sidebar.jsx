@@ -22,6 +22,7 @@ import {
   Store,
   Headphones,
   MapPin,
+  Smartphone,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -129,6 +130,12 @@ export function AdminSidebar() {
       title: "Business Details",
       icon: <Settings className="h-5 w-5" />,
       href: "/admin/settings/businessdetails",
+      permission: can.manageRoles, // Admin only
+    },
+    {
+      title: "App Updates",
+      icon: <Smartphone className="h-5 w-5" />,
+      href: "/admin/settings/app-updates",
       permission: can.manageRoles, // Admin only
     },
     // {

@@ -420,6 +420,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const leadIds = searchParams.get('leadIds')?.split(',') || [];
     const serviceFilter = searchParams.get('service');
+    const stateFilter = searchParams.get('state');
     const cityFilter = searchParams.get('city');
     const onlineFilter = searchParams.get('online');
     const assignmentType = searchParams.get('type') || 'manual';
@@ -476,9 +477,14 @@ export async function GET(request) {
       ];
     }
 
-    // Optional: Filter by city if specifically requested (but not by default)
+    // Filter by state if provided
+    if (stateFilter && stateFilter !== 'all') {
+      userQuery['address.state'] = { $regex: stateFilter, $options: 'i' };
+    }
+
+    // Filter by city if specifically requested (but not by default)
     if (cityFilter && cityFilter !== 'all') {
-      userQuery['address.city'] = cityFilter;
+      userQuery['address.city'] = { $regex: cityFilter, $options: 'i' };
     }
     // Note: Removed automatic city filtering from leads to show all vendors
 
