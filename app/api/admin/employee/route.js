@@ -254,6 +254,16 @@ export async function POST(request) {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    // Map role name to user type
+    const roleNameToType = {
+      'admin': 'admin',
+      'telecaller': 'telecaller',
+      'helpline': 'helpline',
+    };
+    
+    // Get user type from role name (default to 'user' if not found)
+    const userType = roleNameToType[roleExists.name?.toLowerCase()] || 'user';
+
     // Create user data
     const userData = {
       name: name.trim(),
@@ -261,6 +271,7 @@ export async function POST(request) {
       phone: phone.trim(),
       password: hashedPassword,
       role: new ObjectId(String(role)),
+      type: userType, // Set type based on role name
       address: address || {},
       profileImage: profileImage || null,
       createdAt: new Date(),

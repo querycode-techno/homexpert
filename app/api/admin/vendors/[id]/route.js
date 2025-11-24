@@ -2,6 +2,131 @@ import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { requireAdmin } from '@/lib/dal';
 import { ObjectId } from 'mongodb';
+import mongoose from 'mongoose';
+import Notification from '@/lib/models/notification';
+import NotificationRecipient from '@/lib/models/notificationRecipient';
+import User from '@/lib/models/user';
+import admin from '@/lib/firebase/admin';
+
+// Connect to MongoDB for Mongoose models
+async function connectDB() {
+  if (mongoose.connections[0].readyState) {
+    return;
+  }
+  try {
+    await mongoose.connect(process.env.MONGODB_URI);
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+}
+
+// Function to send verification notification to vendor
+async function sendVerificationNotification(vendorUserId, vendorBusinessName, adminUserId) {
+  try {
+    await connectDB();
+
+    // Fetch vendor's user to get FCM token
+    const vendorUser = await User.findById(vendorUserId).select('name email fcmToken');
+    
+    if (!vendorUser) {
+      console.error('Vendor user not found for notification');
+      return { sent: false, reason: 'Vendor user not found' };
+    }
+
+    // Create notification content
+    const title = 'Account Verified';
+    const message = `Congratulations! Your vendor account "${vendorBusinessName}" has been verified. You can now start receiving leads and managing your business.`;
+
+    // Create the notification document
+    const notification = new Notification({
+      title,
+      message,
+      messageType: 'Success',
+      createdBy: adminUserId,
+      target: 'vendor',
+    });
+    await notification.save();
+
+    // Create notification recipient record
+    const recipientDoc = new NotificationRecipient({
+      notificationId: notification._id,
+      userId: vendorUserId,
+      userType: 'vendor',
+      deliveryStatus: vendorUser.fcmToken ? 'pending' : 'failed',
+      deliveryAttempts: 0,
+    });
+    await recipientDoc.save();
+
+    // Send FCM notification if vendor has a token
+    if (vendorUser.fcmToken && vendorUser.fcmToken.trim() !== '') {
+      try {
+        const fcmMessage = {
+          notification: {
+            title,
+            body: message,
+          },
+          data: {
+            type: 'vendor_verified',
+            notificationId: notification._id.toString(),
+          },
+          token: vendorUser.fcmToken,
+        };
+
+        const sendResult = await admin.messaging().send(fcmMessage);
+        console.log(`FCM verification notification sent to vendor ${vendorBusinessName}:`, sendResult);
+
+        // Update delivery status to delivered
+        await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
+          deliveryStatus: 'delivered',
+          deliveryAttempts: 1,
+        });
+
+        return {
+          sent: true,
+          notificationId: notification._id,
+          fcmResult: sendResult
+        };
+
+      } catch (fcmError) {
+        console.error(`Failed to send FCM to vendor ${vendorBusinessName}:`, fcmError.message);
+
+        // Update delivery status to failed
+        await NotificationRecipient.findByIdAndUpdate(recipientDoc._id, {
+          deliveryStatus: 'failed',
+          deliveryAttempts: 1,
+        });
+
+        // Remove invalid FCM token if it's a token error
+        if (fcmError.code === 'messaging/invalid-registration-token' || 
+            fcmError.code === 'messaging/registration-token-not-registered') {
+          await User.findByIdAndUpdate(vendorUserId, { fcmToken: null });
+          console.log(`Removed invalid FCM token for vendor: ${vendorBusinessName}`);
+        }
+
+        return {
+          sent: false,
+          notificationId: notification._id,
+          error: fcmError.message
+        };
+      }
+    } else {
+      console.log(`No FCM token for vendor ${vendorBusinessName}, notification saved to database only`);
+      return {
+        sent: false,
+        notificationId: notification._id,
+        reason: 'No FCM token'
+      };
+    }
+
+  } catch (error) {
+    console.error('Error sending verification notification:', error);
+    return {
+      sent: false,
+      error: error.message
+    };
+  }
+}
 
 // GET /api/admin/vendors/[id] - Get vendor by ID
 export async function GET(request, { params }) {
@@ -375,6 +500,16 @@ export async function PUT(request, { params }) {
           date: new Date(),
           performedBy: new ObjectId(adminUserId),
           notes: body.verified.verificationNotes || 'Vendor verified by admin'
+        });
+
+        // Send push notification to vendor (fire and forget)
+        sendVerificationNotification(
+          existingVendor.user,
+          existingVendor.businessName || 'Your business',
+          adminUserId
+        ).catch(error => {
+          console.error('Failed to send verification notification:', error);
+          // Don't fail the update if notification fails
         });
       }
       // If unmarking as verified, update status back to pending

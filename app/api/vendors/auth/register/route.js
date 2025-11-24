@@ -91,6 +91,7 @@ export async function POST(request) {
       phone: phone.trim(),
       password: hashedPassword,
       role: vendorRole._id,
+      type: 'vendor', // Set type as vendor
       profileImage: "",
       address: {
         street: address.street?.trim(),

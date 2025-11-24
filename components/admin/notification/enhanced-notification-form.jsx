@@ -63,9 +63,7 @@ export function EnhancedNotificationForm({ onSuccess, onCancel }) {
 
   const userRoleOptions = [
     { value: "vendor", label: "Vendors" },
-    { value: "customer", label: "Customers" },
     { value: "admin", label: "Admins" },
-    { value: "support_team", label: "Support Team" },
     { value: "helpline", label: "Helpline" },
     { value: "telecaller", label: "Telecaller" },
   ]

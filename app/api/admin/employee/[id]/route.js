@@ -243,12 +243,36 @@ export async function PUT(request, { params }) {
       }
     }
 
+    // Map role name to user type
+    const roleNameToType = {
+      'admin': 'admin',
+      'telecaller': 'telecaller',
+      'helpline': 'helpline',
+    };
+    
+    // Determine user type based on role
+    let userType = existingEmployee.type || 'user';
+    if (role && role !== existingEmployee.role.toString()) {
+      // Role is being updated, get the new role name
+      const newRole = await rolesCollection.findOne({ _id: new ObjectId(String(role)) });
+      if (newRole) {
+        userType = roleNameToType[newRole.name?.toLowerCase()] || 'user';
+      }
+    } else if (existingEmployee.role) {
+      // Role not being updated, but ensure type is set based on current role
+      const currentRole = await rolesCollection.findOne({ _id: existingEmployee.role });
+      if (currentRole && !existingEmployee.type) {
+        userType = roleNameToType[currentRole.name?.toLowerCase()] || 'user';
+      }
+    }
+
     // Prepare update data
     const updateData = {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       phone: phone.trim(),
       role: role ? new ObjectId(String(role)) : existingEmployee.role,
+      type: userType, // Set type based on role
       address: address || existingEmployee.address,
       profileImage: profileImage !== undefined ? profileImage : existingEmployee.profileImage,
       updatedAt: new Date(),

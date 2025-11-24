@@ -86,6 +86,7 @@ export async function POST(request) {
       phone,
       password: hashedPassword,
       role: vendorRole._id,
+      type: 'vendor', // Set type as vendor
       profileImage: "",
       createdAt: new Date(),
       updatedAt: new Date()
