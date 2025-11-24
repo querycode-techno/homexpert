@@ -41,14 +41,14 @@ export async function GET(request) {
     // Calculate document verification status
     const documentVerification = {
       identity: {
-        status: vendor.documents?.identity?.docImageUrl ? 'pending' : 'missing',
+        status: vendor.documents?.identity?.docImageUrl ? 'uploaded' : 'missing',
         hasDocument: !!vendor.documents?.identity?.docImageUrl,
         type: vendor.documents?.identity?.type || null,
         number: vendor.documents?.identity?.number || null,
         documentUrl: vendor.documents?.identity?.docImageUrl || null
       },
       business: {
-        status: vendor.documents?.business?.docImageUrl ? 'pending' : 'missing',
+        status: vendor.documents?.business?.docImageUrl ? 'uploaded' : 'missing',
         hasDocument: !!vendor.documents?.business?.docImageUrl,
         type: vendor.documents?.business?.type || null,
         number: vendor.documents?.business?.number || null,

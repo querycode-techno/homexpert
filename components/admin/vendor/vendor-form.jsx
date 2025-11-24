@@ -794,10 +794,10 @@ export function VendorForm({
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Verification</h3>
                     <Badge 
-                      variant={vendor?.verified?.status === 'verified' ? 'default' : 'secondary'}
-                      className={vendor?.verified?.status === 'verified' ? 'bg-green-500' : 'bg-orange-500'}
+                      variant={vendor?.verified?.isVerified ? 'default' : 'secondary'}
+                      className={vendor?.verified?.isVerified ? 'bg-green-500' : 'bg-orange-500'}
                     >
-                      {vendor?.verified?.status || 'pending'}
+                      {vendor?.verified?.isVerified ? 'verified' : 'pending'}
                     </Badge>
                   </div>
                   
