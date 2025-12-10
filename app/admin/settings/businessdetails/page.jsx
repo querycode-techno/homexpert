@@ -19,7 +19,8 @@ export default function BusinessDetailsPage() {
     phone: '',
     whatsapp: '',
     email: '',
-    paymentQrCode: ''
+    paymentQrCode: '',
+    paymentUpiId: ''
   })
   const [logoPreview, setLogoPreview] = useState('')
   const [qrPreview, setQrPreview] = useState('')
@@ -48,7 +49,8 @@ export default function BusinessDetailsPage() {
           phone: data.data.phone || '',
           whatsapp: data.data.whatsapp || '',
           email: data.data.email || '',
-          paymentQrCode: data.data.paymentQrCode || ''
+          paymentQrCode: data.data.paymentQrCode || '',
+          paymentUpiId: data.data.paymentUpiId || ''
         })
         setLogoPreview(data.data.logo || '')
         setQrPreview(data.data.paymentQrCode || '')
@@ -137,7 +139,8 @@ export default function BusinessDetailsPage() {
           phone: formData.phone,
           whatsapp: formData.whatsapp,
           email: formData.email,
-          paymentQrCode: formData.paymentQrCode
+          paymentQrCode: formData.paymentQrCode,
+          paymentUpiId: formData.paymentUpiId
         })
       })
 
@@ -343,6 +346,17 @@ export default function BusinessDetailsPage() {
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Payment UPI ID */}
+            <div className="space-y-2">
+              <Label htmlFor="paymentUpiId">Payment UPI ID</Label>
+              <Input
+                id="paymentUpiId"
+                value={formData.paymentUpiId}
+                onChange={(e) => setFormData(prev => ({ ...prev, paymentUpiId: e.target.value }))}
+                placeholder="example@upi"
+              />
             </div>
 
             {/* Submit Button */}

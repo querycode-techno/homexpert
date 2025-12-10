@@ -22,7 +22,8 @@ export async function GET(request) {
           phone: '',
           whatsapp: '',
           email: '',
-          paymentQrCode: ''
+          paymentQrCode: '',
+          paymentUpiId: ''
         }
       });
     }
@@ -37,6 +38,7 @@ export async function GET(request) {
         whatsapp: settings.whatsapp || '',
         email: settings.email || '',
         paymentQrCode: settings.paymentQrCode || '',
+        paymentUpiId: settings.paymentUpiId || '',
         createdAt: settings.createdAt,
         updatedAt: settings.updatedAt
       }
@@ -57,7 +59,7 @@ export async function POST(request) {
     await requireAdmin();
 
     const body = await request.json();
-    const { name, logo, phone, whatsapp, email, paymentQrCode } = body;
+    const { name, logo, phone, whatsapp, email, paymentQrCode, paymentUpiId } = body;
 
     // Validate required fields
     if (!name || !phone || !email) {
@@ -96,6 +98,7 @@ export async function POST(request) {
       whatsapp: whatsapp || '',
       email,
       paymentQrCode: paymentQrCode || '',
+      paymentUpiId: paymentUpiId || '',
       createdAt: new Date(),
       updatedAt: new Date()
     });
@@ -110,7 +113,8 @@ export async function POST(request) {
         phone,
         whatsapp: whatsapp || '',
         email,
-        paymentQrCode: paymentQrCode || ''
+        paymentQrCode: paymentQrCode || '',
+        paymentUpiId: paymentUpiId || ''
       }
     });
 
@@ -129,7 +133,7 @@ export async function PUT(request) {
     await requireAdmin();
 
     const body = await request.json();
-    const { name, logo, phone, whatsapp, email, paymentQrCode } = body;
+    const { name, logo, phone, whatsapp, email, paymentQrCode, paymentUpiId } = body;
 
     // Validate required fields
     if (!name || !phone || !email) {
@@ -162,6 +166,7 @@ export async function PUT(request) {
         whatsapp: whatsapp || '',
         email,
         paymentQrCode: paymentQrCode || '',
+        paymentUpiId: paymentUpiId || '',
         createdAt: new Date(),
         updatedAt: new Date()
       });
@@ -176,7 +181,8 @@ export async function PUT(request) {
           phone,
           whatsapp: whatsapp || '',
           email,
-          paymentQrCode: paymentQrCode || ''
+          paymentQrCode: paymentQrCode || '',
+          paymentUpiId: paymentUpiId || ''
         }
       });
     }
@@ -192,6 +198,7 @@ export async function PUT(request) {
           whatsapp: whatsapp || '',
           email,
           paymentQrCode: paymentQrCode || '',
+          paymentUpiId: paymentUpiId || '',
           updatedAt: new Date()
         }
       }
@@ -218,6 +225,7 @@ export async function PUT(request) {
         whatsapp: updated.whatsapp || '',
         email: updated.email,
         paymentQrCode: updated.paymentQrCode || '',
+        paymentUpiId: updated.paymentUpiId || '',
         createdAt: updated.createdAt,
         updatedAt: updated.updatedAt
       }

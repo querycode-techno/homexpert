@@ -26,7 +26,8 @@ export async function GET(request) {
           phone: '',
           whatsapp: '',
           email: '',
-          paymentQrCode: ''
+          paymentQrCode: '',
+          paymentUpiId: ''
         }
       });
     }
@@ -39,7 +40,8 @@ export async function GET(request) {
         phone: settings.phone || '',
         whatsapp: settings.whatsapp || '',
         email: settings.email || '',
-        paymentQrCode: settings.paymentQrCode || ''
+        paymentQrCode: settings.paymentQrCode || '',
+        paymentUpiId: settings.paymentUpiId || ''
       }
     });
 
