@@ -84,13 +84,14 @@ const plans = await subscriptionPlansCollection.find({
       };
     });
 
-    // Group plans by duration for better UX
-    const plansByDuration = {
-      '1-month': formattedPlans.filter(p => p.duration === '1-month'),
-      '3-month': formattedPlans.filter(p => p.duration === '3-month'),
-      '6-month': formattedPlans.filter(p => p.duration === '6-month'),
-      '12-month': formattedPlans.filter(p => p.duration === '12-month')
-    };
+    // Group plans by duration dynamically for better UX
+    const plansByDuration = {};
+    formattedPlans.forEach(plan => {
+      if (!plansByDuration[plan.duration]) {
+        plansByDuration[plan.duration] = [];
+      }
+      plansByDuration[plan.duration].push(plan);
+    });
 
     return NextResponse.json({
       success: true,
@@ -114,10 +115,11 @@ const plans = await subscriptionPlansCollection.find({
         plans: formattedPlans,
         plansByDuration,
         recommendations: {
-          mostPopular: formattedPlans.find(p => p.duration === '3-month'),
+          mostPopular: formattedPlans.length > 0 ? formattedPlans[0] : null, // First plan (sorted by price)
           bestValue: formattedPlans.reduce((best, current) => 
             current.pricePerLead < (best?.pricePerLead || Infinity) ? current : best, null),
-          longestDuration: formattedPlans.find(p => p.duration === '12-month')
+          longestDuration: formattedPlans.reduce((longest, current) => 
+            (current.durationInDays || 0) > (longest?.durationInDays || 0) ? current : longest, formattedPlans[0] || null)
         }
       }
     });

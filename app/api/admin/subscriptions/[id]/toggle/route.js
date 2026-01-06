@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { requireAdmin } from '@/lib/dal';
 import { ObjectId } from 'mongodb';
+import { getDurationMonths } from '@/lib/utils/subscriptionUtils';
 
 // Helper function to add virtual fields to plan objects
 function addVirtualFields(plan) {
@@ -12,14 +13,8 @@ function addVirtualFields(plan) {
     : 0;
   plan.pricePerLead = Math.round(plan.effectivePrice / plan.totalLeads);
 
-  // Calculate monthly equivalent
-  const durationMap = {
-    '1-month': 1,
-    '3-month': 3,
-    '6-month': 6,
-    '12-month': 12
-  };
-  const months = durationMap[plan.duration] || 1;
+  // Calculate monthly equivalent dynamically
+  const months = getDurationMonths(plan.duration);
   plan.monthlyEquivalent = Math.round(plan.effectivePrice / months);
   
   return plan;

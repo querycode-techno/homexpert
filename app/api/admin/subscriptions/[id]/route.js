@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { requireAdmin } from '@/lib/dal';
 import { ObjectId } from 'mongodb';
+import { getDurationMonths, getDurationInDays, validateDuration } from '@/lib/utils/subscriptionUtils';
 
 // Helper function to add virtual fields to plan objects
 function addVirtualFields(plan) {
@@ -12,14 +13,8 @@ function addVirtualFields(plan) {
     : 0;
   plan.pricePerLead = Math.round(plan.effectivePrice / plan.totalLeads);
 
-  // Calculate monthly equivalent
-  const durationMap = {
-    '1-month': 1,
-    '3-month': 3,
-    '6-month': 6,
-    '12-month': 12
-  };
-  const months = durationMap[plan.duration] || 1;
+  // Calculate monthly equivalent dynamically
+  const months = getDurationMonths(plan.duration);
   plan.monthlyEquivalent = Math.round(plan.effectivePrice / months);
   
   return plan;
@@ -227,26 +222,34 @@ export async function PUT(request, { params }) {
     if (planName !== undefined) updateData.planName = planName.trim();
     if (description !== undefined) updateData.description = description.trim();
     if (duration !== undefined) {
+      // Validate duration format
+      const durationValidation = validateDuration(duration, 24);
+      if (!durationValidation.isValid) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: durationValidation.error
+          },
+          { status: 400 }
+        );
+      }
+      
       updateData.duration = duration;
-      // Recalculate duration in days and leads per month
-      const durationMap = {
-        '1-month': 30,
-        '3-month': 90,
-        '6-month': 180,
-        '12-month': 365
-      };
-      updateData.durationInDays = durationMap[duration];
+      // Recalculate duration in days and leads per month dynamically
+      updateData.durationInDays = getDurationInDays(duration);
+      const months = getDurationMonths(duration);
       if (totalLeads !== undefined) {
-        updateData.leadsPerMonth = Math.ceil(totalLeads / (updateData.durationInDays / 30));
+        updateData.leadsPerMonth = Math.ceil(totalLeads / months);
       } else {
-        updateData.leadsPerMonth = Math.ceil(existingPlan.totalLeads / (updateData.durationInDays / 30));
+        updateData.leadsPerMonth = Math.ceil(existingPlan.totalLeads / months);
       }
     }
     if (totalLeads !== undefined) {
       updateData.totalLeads = parseInt(totalLeads);
       // Recalculate leads per month if duration hasn't changed
       if (duration === undefined) {
-        updateData.leadsPerMonth = Math.ceil(totalLeads / (existingPlan.durationInDays / 30));
+        const months = getDurationMonths(existingPlan.duration);
+        updateData.leadsPerMonth = Math.ceil(totalLeads / months);
       }
     }
     if (price !== undefined) updateData.price = parseFloat(price);

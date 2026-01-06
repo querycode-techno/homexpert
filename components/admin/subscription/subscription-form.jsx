@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { Plus, X, Clock, Users, Tag, Search } from "lucide-react"
 import { toast } from "sonner"
 import subscriptionService from "@/lib/services/subscriptionService"
+import { getDurationOptions } from "@/lib/utils/subscriptionUtils"
 
 export function SubscriptionForm({ plan, isOpen, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false)
@@ -312,11 +313,12 @@ export function SubscriptionForm({ plan, isOpen, onClose, onSuccess }) {
                     <SelectTrigger>
                       <SelectValue placeholder="Select duration" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1-month">1 Month</SelectItem>
-                      <SelectItem value="3-month">3 Months</SelectItem>
-                      <SelectItem value="6-month">6 Months</SelectItem>
-                      <SelectItem value="12-month">12 Months</SelectItem>
+                    <SelectContent className="max-h-[300px]">
+                      {getDurationOptions(1, 24).map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

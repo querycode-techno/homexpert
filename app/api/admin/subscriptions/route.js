@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { requireAdmin } from '@/lib/dal';
 import { ObjectId } from 'mongodb';
+import { getDurationMonths, getDurationInDays, validateDuration } from '@/lib/utils/subscriptionUtils';
 
 // Helper function to add virtual fields to plan objects
 function addVirtualFields(plan) {
@@ -12,14 +13,8 @@ function addVirtualFields(plan) {
     : 0;
   plan.pricePerLead = Math.round(plan.effectivePrice / plan.totalLeads);
 
-  // Calculate monthly equivalent
-  const durationMap = {
-    '1-month': 1,
-    '3-month': 3,
-    '6-month': 6,
-    '12-month': 12
-  };
-  const months = durationMap[plan.duration] || 1;
+  // Calculate monthly equivalent dynamically
+  const months = getDurationMonths(plan.duration);
   plan.monthlyEquivalent = Math.round(plan.effectivePrice / months);
   
   return plan;
@@ -192,13 +187,13 @@ export async function POST(request) {
       );
     }
 
-    // Validate duration
-    const validDurations = ['1-month', '3-month', '6-month', '12-month'];
-    if (!validDurations.includes(duration)) {
+    // Validate duration format
+    const durationValidation = validateDuration(duration, 24);
+    if (!durationValidation.isValid) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Invalid duration. Must be one of: ' + validDurations.join(', ')
+          error: durationValidation.error
         },
         { status: 400 }
       );
@@ -251,15 +246,10 @@ export async function POST(request) {
       );
     }
 
-    // Calculate duration in days and leads per month
-    const durationMap = {
-      '1-month': 30,
-      '3-month': 90,
-      '6-month': 180,
-      '12-month': 365
-    };
-    const durationInDays = durationMap[duration];
-    const leadsPerMonth = Math.ceil(totalLeads / (durationInDays / 30));
+    // Calculate duration in days and leads per month dynamically
+    const durationInDays = getDurationInDays(duration);
+    const months = getDurationMonths(duration);
+    const leadsPerMonth = Math.ceil(totalLeads / months);
 
     // Create subscription plan data
     const planData = {

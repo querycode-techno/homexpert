@@ -24,6 +24,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination"
 import { toast } from "sonner"
 import subscriptionService from "@/lib/services/subscriptionService"
+import { getDurationOptions } from "@/lib/utils/subscriptionUtils"
 
 export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
   const [plans, setPlans] = useState([])
@@ -221,12 +222,13 @@ export function SubscriptionList({ onCreatePlan, onEditPlan, refreshTrigger }) {
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Duration" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px]">
                 <SelectItem value="all">All Duration</SelectItem>
-                <SelectItem value="1-month">1 Month</SelectItem>
-                <SelectItem value="3-month">3 Months</SelectItem>
-                <SelectItem value="6-month">6 Months</SelectItem>
-                <SelectItem value="12-month">12 Months</SelectItem>
+                {getDurationOptions(1, 12).map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
