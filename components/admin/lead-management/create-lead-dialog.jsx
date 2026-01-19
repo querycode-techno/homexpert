@@ -203,23 +203,23 @@ export default function CreateLeadDialog({
       }
 
       // Create notification for vendor
-      if (currentUserId) {
-        try {
-          const address = `${formData.address.trim()}${formData.city ? `, ${formData.city}` : ''}${formData.state ? `, ${formData.state}` : ''}${formData.pincode ? ` - ${formData.pincode}` : ''}`.trim();
+      // if (currentUserId) {
+      //   try {
+      //     const address = `${formData.address.trim()}${formData.city ? `, ${formData.city}` : ''}${formData.state ? `, ${formData.state}` : ''}${formData.pincode ? ` - ${formData.pincode}` : ''}`.trim();
 
-          await createNotification({
-            title: "New Lead Created by Admin",
-            message: `Admin created a new lead for ${selectedSubService?.name} at ${address}`,
-            messageType: "Info",
-            target: "vendor",
-            userId: currentUserId,
-            link: "",
-          });
-        } catch (notificationError) {
-          console.error('Error creating notification:', notificationError);
-          // Don't fail the whole operation for notification errors
-        }
-      }
+      //     await createNotification({
+      //       title: "New Lead Created by Admin",
+      //       message: `Admin created a new lead for ${selectedSubService?.name} at ${address}`,
+      //       messageType: "Info",
+      //       target: "vendor",
+      //       userId: currentUserId,
+      //       link: "",
+      //     });
+      //   } catch (notificationError) {
+      //     console.error('Error creating notification:', notificationError);
+      //     // Don't fail the whole operation for notification errors
+      //   }
+      // }
 
     } catch (error) {
       console.error('Error submitting lead:', error)
