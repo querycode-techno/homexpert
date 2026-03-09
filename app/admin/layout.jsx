@@ -3,18 +3,14 @@
 import { SessionProvider } from "next-auth/react"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { AdminHeader } from "@/components/admin/admin-header"
+import { AdminSessionGuard } from "@/components/admin/admin-session-guard"
 import { DataProvider } from "@/lib/data-context"
 import { SidebarProvider, useSidebar } from "@/lib/sidebar-context"
 import { Toaster } from "sonner"
-import FCMTokenUpdater from '@/components/firebase/fcm-token-updater';
+import FCMTokenUpdater from '@/components/firebase/fcm-token-updater'
 
-
-
-
- function AdminLayoutContent({ children }) {
+function AdminLayoutContent({ children }) {
   const { collapsed } = useSidebar()
-
- 
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -39,9 +35,11 @@ export default function AdminLayout({ children }) {
       <FCMTokenUpdater />
       <DataProvider>
         <SidebarProvider>
-          <AdminLayoutContent>
-            {children}
-          </AdminLayoutContent>
+          <AdminSessionGuard>
+            <AdminLayoutContent>
+              {children}
+            </AdminLayoutContent>
+          </AdminSessionGuard>
           <Toaster />
         </SidebarProvider>
       </DataProvider>
