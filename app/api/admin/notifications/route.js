@@ -1,4 +1,5 @@
 import connectDB from '@/lib/connnectDB'
+import { requireAdmin } from '@/lib/dal'
 import User from '@/lib/models/user'
 import Notification from '@/lib/models/notification'
 import admin from '@/lib/firebase/admin'
@@ -6,6 +7,15 @@ import NotificationRecipient from '@/lib/models/notificationRecipient'
 
 
 export async function GET(req) {
+  try {
+    await requireAdmin();
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ success: false, message: 'Admin access required' }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   await connectDB();
 
   const { searchParams } = new URL(req.url, `http://${req.headers.host}`);
@@ -48,6 +58,15 @@ export async function GET(req) {
 
 
 export async function POST(req) {
+  try {
+    await requireAdmin();
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ success: false, message: 'Admin access required' }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   await connectDB();
 
   const userType = "admin"; // as per your requirement
@@ -218,6 +237,15 @@ export async function POST(req) {
 
 // delete notification by id
 export async function DELETE(req) {
+  try {
+    await requireAdmin();
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ success: false, message: 'Admin access required' }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   await connectDB();
 
   try {

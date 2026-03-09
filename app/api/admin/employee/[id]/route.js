@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { requireAdmin } from '@/lib/dal';
+import { permissionCache } from '@/lib/permissionCache';
 import { ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
@@ -414,6 +415,9 @@ export async function DELETE(request, { params }) {
         { status: 500 }
       );
     }
+
+    // Clear permission cache so deleted user's session is fully invalidated
+    permissionCache.clear(id);
 
     return NextResponse.json({
       success: true,

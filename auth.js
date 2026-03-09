@@ -88,38 +88,48 @@ export const authOptions = {
       return token
     },
     async session({ session, token }) {
-      // Pass cached data from JWT token
-      if (token) {
+      if (!token?.sub) return session
+
+      try {
+        await client.connect()
+        const db = client.db('homexpert')
+
+        // Verify user still exists (invalidates session if account was deleted)
+        const user = await db.collection('users').findOne(
+          { _id: new ObjectId(token.sub) },
+          { projection: { _id: 1 } }
+        )
+
+        if (!user) {
+          // User deleted from database - invalidate session
+          return { ...session, user: {}, expires: null }
+        }
+
+        // Pass cached data from JWT token
         session.user.id = token.sub
         session.user.userId = token.userId
         session.user.role = token.role
-        
-        // Fetch permissions for this session
-        try {
-          await client.connect()
-          const db = client.db('homexpert')
-          
-          // Get role with permissions
-          const role = await db.collection('roles').findOne(
-            { _id: new ObjectId(token.role.id) },
-            { projection: { permissions: 1 } }
-          )
-          
-          if (role?.permissions && role.permissions.length > 0) {
-            // Fetch permission details
-            const permissions = await db.collection('permissions').find({
-              _id: { $in: role.permissions.map(id => new ObjectId(id)) }
-            }, { projection: { module: 1, action: 1, resource: 1 } }).toArray()
-            
-            session.user.permissions = permissions
-          } else {
-            session.user.permissions = []
-          }
-        } catch (error) {
-          console.error('Error fetching permissions in session:', error)
+
+        // Get role with permissions
+        const role = await db.collection('roles').findOne(
+          { _id: new ObjectId(token.role.id) },
+          { projection: { permissions: 1 } }
+        )
+
+        if (role?.permissions && role.permissions.length > 0) {
+          const permissions = await db.collection('permissions').find({
+            _id: { $in: role.permissions.map(id => new ObjectId(id)) }
+          }, { projection: { module: 1, action: 1, resource: 1 } }).toArray()
+
+          session.user.permissions = permissions
+        } else {
           session.user.permissions = []
         }
+      } catch (error) {
+        console.error('Error in session callback:', error)
+        return { ...session, user: {}, expires: null }
       }
+
       return session
     },
     async signIn({ user, account, profile }) {
