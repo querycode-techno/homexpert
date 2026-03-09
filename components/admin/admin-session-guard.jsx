@@ -1,43 +1,71 @@
 "use client"
 
 import { useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter, usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { useSession, getSession, signOut } from 'next-auth/react'
+import { usePathname } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
+
+function redirectToLogin(pathname) {
+  const url = new URL('/auth/admin-login', window.location.origin)
+  url.searchParams.set('callbackUrl', pathname || '/admin')
+  window.location.href = url.pathname + url.search
+}
+
+function isSessionValid(session) {
+  const user = session?.user
+  return user && (user.id || user.userId) && user.role
+}
 
 /**
  * Guards admin layout: redirects to login when unauthenticated or when
  * session is invalid (e.g. user was deleted from DB but JWT still in cookie).
- * Prevents blank pages and ensures deleted users are sent to login.
+ * Refetches session on route change so client-side nav after account deletion
+ * also redirects instead of showing blank / "admin access required".
  */
 export function AdminSessionGuard({ children }) {
   const { data: session, status } = useSession()
-  const router = useRouter()
   const pathname = usePathname()
 
+  // On load and on every admin route change, validate session. Refetch from server
+  // so we catch invalid session (e.g. deleted user) even when client cache was stale.
   useEffect(() => {
     if (status === 'loading') return
 
-    // No session at all
     if (status === 'unauthenticated') {
-      const url = new URL('/auth/admin-login', window.location.origin)
-      url.searchParams.set('callbackUrl', pathname || '/admin')
-      router.replace(url.pathname + url.search)
+      redirectToLogin(pathname)
       return
     }
 
-    // Session exists but invalid (e.g. user deleted - session callback returned user: {})
-    const user = session?.user
-    const hasValidUser = user && (user.id || user.userId) && user.role
-    if (status === 'authenticated' && !hasValidUser) {
-      signOut({ redirect: false }).then(() => {
-        const url = new URL('/auth/admin-login', window.location.origin)
-        url.searchParams.set('callbackUrl', pathname || '/admin')
-        window.location.href = url.pathname + url.search
-      })
+    const check = async () => {
+      // Refetch fresh session from server (session callback runs, returns invalid if user deleted)
+      const freshSession = await getSession()
+      if (!freshSession) {
+        redirectToLogin(pathname)
+        return
+      }
+      if (!isSessionValid(freshSession)) {
+        await signOut({ redirect: false })
+        redirectToLogin(pathname)
+      }
     }
-  }, [status, session, router, pathname])
+
+    check()
+  }, [pathname, status])
+
+  // When any admin API returns 401, redirect to login (covers stale session on client-side nav)
+  useEffect(() => {
+    const originalFetch = window.fetch
+    window.fetch = async (...args) => {
+      const res = await originalFetch(...args)
+      const url = typeof args[0] === 'string' ? args[0] : args[0]?.url
+      if (url?.includes('/api/admin/') && res.status === 401) {
+        await signOut({ redirect: false })
+        redirectToLogin(typeof window !== 'undefined' ? window.location.pathname : '/admin')
+      }
+      return res
+    }
+    return () => { window.fetch = originalFetch }
+  }, [])
 
   // Show loading while checking auth to avoid blank flash
   if (status === 'loading') {
