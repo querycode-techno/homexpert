@@ -40,13 +40,21 @@ export const authOptions = {
                 email: 1,
                 password: 1,
                 role: 1,
-                profile: 1
+                profile: 1,
+                status: 1,
+                isActive: 1
               }
             }
           )
 
           if (!user) {
             throw new Error("Invalid credentials")
+          }
+
+          // Block inactive accounts from logging in
+          const isInactive = (user.status && user.status.toLowerCase() === 'inactive') || user.isActive === false
+          if (isInactive) {
+            throw new Error("Account is inactive. Please contact your administrator.")
           }
 
           // Verify password
@@ -94,14 +102,20 @@ export const authOptions = {
         await client.connect()
         const db = client.db('homexpert')
 
-        // Verify user still exists (invalidates session if account was deleted)
+        // Verify user still exists and is active (invalidates if deleted or inactive)
         const user = await db.collection('users').findOne(
           { _id: new ObjectId(token.sub) },
-          { projection: { _id: 1 } }
+          { projection: { _id: 1, status: 1, isActive: 1 } }
         )
 
         if (!user) {
           // User deleted from database - invalidate session
+          return { ...session, user: {}, expires: null }
+        }
+
+        const isInactive = (user.status && user.status.toLowerCase() === 'inactive') || user.isActive === false
+        if (isInactive) {
+          // Account inactive - invalidate session (same as deleted)
           return { ...session, user: {}, expires: null }
         }
 
