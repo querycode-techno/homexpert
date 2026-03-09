@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { 
   Table, 
   TableBody, 
@@ -31,11 +32,14 @@ import {
   MoreHorizontal, 
   Trash2, 
   AlertCircle,
-  Trash 
+  Trash,
+  ShieldX
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { PermissionGuard } from '@/hooks/usePermissions'
+import { PERMISSIONS } from '@/lib/permissions'
 
-export default function VendorLogsPage() {
+function VendorLogsContent() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
@@ -676,5 +680,37 @@ export default function VendorLogsPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+const AccessDeniedFallback = () => (
+  <div className="container mx-auto p-6">
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2 text-destructive">
+          <ShieldX className="h-5 w-5" />
+          <CardTitle>Access Denied</CardTitle>
+        </div>
+        <p className="text-muted-foreground">
+          You don&apos;t have permission to view vendor logs. You need the &quot;View Vendors&quot; permission.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <Link href="/admin">
+          <Button variant="outline">Back to Dashboard</Button>
+        </Link>
+      </CardContent>
+    </Card>
+  </div>
+)
+
+export default function VendorLogsPage() {
+  return (
+    <PermissionGuard
+      permission={PERMISSIONS.VENDORS.VIEW}
+      fallback={<AccessDeniedFallback />}
+    >
+      <VendorLogsContent />
+    </PermissionGuard>
   )
 }

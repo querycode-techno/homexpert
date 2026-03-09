@@ -112,7 +112,7 @@ export function AdminSidebar() {
       title: "Vendor Logs",
       icon: <Briefcase className="h-5 w-5" />,
       href: "/admin/vendor-logs",
-      permission: null,
+      permission: can.viewVendors,
     },
     {
       title: "City Management",

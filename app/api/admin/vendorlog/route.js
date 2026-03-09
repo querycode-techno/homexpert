@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
+import { requireAdmin } from '@/lib/dal';
 import { ObjectId } from 'mongodb';
 
 // GET /api/admin/vendorlog - Get all vendor log entries with pagination
 export async function GET(request) {
+  try {
+    await requireAdmin();
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Admin access required' },
+      { status: 401 }
+    );
+  }
+
   try {
     // Get query parameters for pagination
     const { searchParams } = new URL(request.url);
@@ -274,6 +284,15 @@ export async function GET(request) {
 
 // DELETE /api/admin/vendorlog - Delete a specific vendor log entry
 export async function DELETE(request) {
+  try {
+    await requireAdmin();
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Admin access required' },
+      { status: 401 }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const vendorlogId = searchParams.get('vendorlogId');
