@@ -19,7 +19,8 @@ export async function GET(request) {
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
-    const limit = parseInt(searchParams.get('limit')) || 20;
+    // const limit = parseInt(searchParams.get('limit')) || 20;
+    const limit = 20;
     const service = searchParams.get('service');
     const location = searchParams.get('location');
     const maxPrice = searchParams.get('maxPrice');
