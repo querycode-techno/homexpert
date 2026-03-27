@@ -694,27 +694,34 @@ export async function PATCH(request) {
           validPerformedBy = new mongoose.Types.ObjectId(data.performedBy);
         }
         
-        const updatePromises = leadsToUpdate.map(lead => 
-          Lead.findByIdAndUpdate(
-            lead._id,
-            { 
-              $set: { 
-                status: data.status,
-                modifiedBy: validPerformedBy,
-                updatedAt: new Date()
-              },
-              $push: {
-                leadProgressHistory: {
-                  fromStatus: lead.status,
-                  toStatus: data.status,
-                  date: new Date(),
-                  performedBy: validPerformedBy,
-                  reason: data.notes || `Bulk status update to ${data.status}`
-                }
+        const shouldResetTakenFields = ['available', 'assigned', 'pending'].includes(data.status);
+        const updatePromises = leadsToUpdate.map(lead => {
+          const updateDoc = {
+            $set: {
+              status: data.status,
+              modifiedBy: validPerformedBy,
+              updatedAt: new Date()
+            },
+            $push: {
+              leadProgressHistory: {
+                fromStatus: lead.status,
+                toStatus: data.status,
+                date: new Date(),
+                performedBy: validPerformedBy,
+                reason: data.notes || `Bulk status update to ${data.status}`
               }
             }
-          )
-        );
+          };
+
+          if (shouldResetTakenFields) {
+            updateDoc.$unset = {
+              takenBy: 1,
+              takenAt: 1
+            };
+          }
+
+          return Lead.findByIdAndUpdate(lead._id, updateDoc);
+        });
         
         await Promise.all(updatePromises);
         updateResult = { modifiedCount: leadsToUpdate.length, matchedCount: leadsToUpdate.length };
@@ -763,6 +770,10 @@ export async function PATCH(request) {
           Lead.findByIdAndUpdate(
             lead._id,
             { 
+              $unset: {
+                takenBy: 1,
+                takenAt: 1
+              },
               $set: { 
                 'availableToVendors.vendor': data.vendorIds,
                 'availableToVendors.assignedAt': new Date(),

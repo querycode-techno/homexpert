@@ -104,9 +104,12 @@ export async function GET(request) {
     ] = await Promise.all([
       // Available leads count (if subscription active)
       activeSubscription ? leadsCollection.countDocuments({
-        'availableToVendors.vendor': new ObjectId(vendorId),
+        'availableToVendors.vendor': new ObjectId(userId),
         status: { $in: ['available', 'assigned'] },
-        takenBy: { $exists: false }
+        $or: [
+          { takenBy: { $exists: false } },
+          { takenBy: null }
+        ]
       }) : 0,
       
       // Total taken leads
@@ -215,9 +218,12 @@ export async function GET(request) {
       // Recent available leads (last 5) - if subscription active
       activeSubscription ? leadsCollection.find(
         {
-          'availableToVendors.vendor': new ObjectId(vendorId),
+          'availableToVendors.vendor': new ObjectId(userId),
           status: { $in: ['available', 'assigned'] },
-          takenBy: { $exists: false }
+          $or: [
+            { takenBy: { $exists: false } },
+            { takenBy: null }
+          ]
         },
         {
           projection: {

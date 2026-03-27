@@ -75,7 +75,10 @@ export async function GET(request) {
     const query = {
       'availableToVendors.vendor': new ObjectId(userId),
       status: { $in: ['available', 'assigned'] },
-      takenBy: { $exists: false }
+      $or: [
+        { takenBy: { $exists: false } },
+        { takenBy: null }
+      ]
     };
 
     // Add service filter (only if explicitly specified)
@@ -205,13 +208,13 @@ export async function GET(request) {
           },
           totalTaken: {
             $sum: {
-              $cond: [{ $eq: ['$takenBy', new ObjectId(userId)] }, 1, 0]
+              $cond: [{ $eq: ['$takenBy', new ObjectId(vendorId)] }, 1, 0]
             }
           },
           totalValue: {
             $sum: {
               $cond: [
-                { $and: [{ $ne: ['$price', null] }, { $eq: ['$takenBy', new ObjectId(userId)] }] },
+                { $and: [{ $ne: ['$price', null] }, { $eq: ['$takenBy', new ObjectId(vendorId)] }] },
                 '$price',
                 0
               ]

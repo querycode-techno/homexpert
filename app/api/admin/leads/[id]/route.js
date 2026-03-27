@@ -769,6 +769,13 @@ export async function PATCH(request, { params }) {
             }
           }
         };
+
+        if (['available', 'assigned', 'pending'].includes(data.status)) {
+          updateQuery.$unset = {
+            takenBy: 1,
+            takenAt: 1
+          };
+        }
         message = `Lead status updated to ${data.status}`;
         break;
 
@@ -820,6 +827,10 @@ export async function PATCH(request, { params }) {
         }
         
         updateQuery = {
+          $unset: {
+            takenBy: 1,
+            takenAt: 1
+          },
           $set: {
             'availableToVendors.vendor': data.vendorIds,
             'availableToVendors.assignedAt': new Date(),

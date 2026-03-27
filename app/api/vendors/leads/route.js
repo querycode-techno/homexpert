@@ -287,7 +287,10 @@ export async function POST(request) {
       _id: new ObjectId(leadId),
       'availableToVendors.vendor': new ObjectId(userId),
       status: { $in: ['available', 'assigned'] },
-      takenBy: { $exists: false }
+      $or: [
+        { takenBy: { $exists: false } },
+        { takenBy: null }
+      ]
     });
 
     if (!lead) {
@@ -304,7 +307,10 @@ export async function POST(request) {
     const updateResult = await leadsCollection.updateOne(
       { 
         _id: new ObjectId(leadId),
-        takenBy: { $exists: false } // Double-check it hasn't been taken
+        $or: [
+          { takenBy: { $exists: false } },
+          { takenBy: null }
+        ] // Double-check it hasn't been taken
       },
       {
         $set: {
