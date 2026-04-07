@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Lead from '@/lib/models/lead';
+import { notifyMatchedVendorsForNewLead } from '@/lib/services/leadVendorNotificationService';
 
 // Ensure mongoose connection
 async function connectDB() {
@@ -154,6 +155,12 @@ export async function POST(request) {
     if (existingLead) {
       //console.log(`Duplicate lead detected for phone ${body.customerPhone}, service ${body.service}`);
       // Still return success for better user experience
+    }
+
+    try {
+      await notifyMatchedVendorsForNewLead(savedLead);
+    } catch (pushErr) {
+      console.error('Matched vendor push notification error (public lead):', pushErr);
     }
 
     // Return optimistic success response
