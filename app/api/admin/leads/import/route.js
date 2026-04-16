@@ -103,6 +103,8 @@ export async function POST(request) {
       else if (lower === 'service') headerMap.service = index;
       else if (lower === 'sub service') headerMap.selectedSubService = index;
       else if (lower === 'address') headerMap.address = index;
+      else if (lower === 'city') headerMap.city = index;
+      else if (lower === 'state') headerMap.state = index;
       else if (lower === 'description') headerMap.description = index;
       else if (lower === 'price') headerMap.price = index;
       else if (lower === 'preferred date') headerMap.preferredDate = index;
@@ -115,6 +117,8 @@ export async function POST(request) {
       else if (lower.includes('service') && !lower.includes('sub')) headerMap.service = index;
       else if (lower.includes('sub') && lower.includes('service')) headerMap.selectedSubService = index;
       else if (lower.includes('address')) headerMap.address = index;
+      else if (lower === 'lead city' || lower === 'customer city') headerMap.city = index;
+      else if (lower === 'lead state' || lower === 'customer state') headerMap.state = index;
       else if (lower.includes('description')) headerMap.description = index;
       else if (lower.includes('price')) headerMap.price = index;
       else if (lower.includes('date') && lower.includes('preferred')) headerMap.preferredDate = index;
@@ -122,7 +126,7 @@ export async function POST(request) {
     });
 
     // Check required fields
-    const required = ['customerName', 'customerPhone', 'service', 'address'];
+    const required = ['customerName', 'customerPhone', 'service', 'address', 'city', 'state'];
     const missing = required.filter(field => headerMap[field] === undefined);
     
     if (missing.length > 0) {
@@ -152,6 +156,8 @@ export async function POST(request) {
         const service = row[headerMap.service]?.trim();
         const selectedSubService = row[headerMap.selectedSubService]?.trim() || undefined;
         const address = row[headerMap.address]?.trim();
+        const city = row[headerMap.city]?.trim();
+        const state = row[headerMap.state]?.trim();
         const description = row[headerMap.description]?.trim() || `Service request for ${service}`;
         const price = row[headerMap.price] ? Number(row[headerMap.price]) : undefined;
         const preferredDate = row[headerMap.preferredDate] ? new Date(row[headerMap.preferredDate]) : undefined;
@@ -182,56 +188,70 @@ export async function POST(request) {
           continue;
         }
 
-                 // Check for duplicates (same as main API) - only if not skipping
-         if (!options.skipDuplicates) {
-           const existingLead = await Lead.findOne({
-             customerPhone: customerPhone,
-             service: service,
-             createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-           }).lean();
+        if (!city) {
+          results.errors.push(`Row ${rowNum}: City is required`);
+          results.failed++;
+          continue;
+        }
 
-           if (existingLead) {
-             results.errors.push(`Row ${rowNum}: Duplicate lead (similar lead exists within 24 hours)`);
-             results.failed++;
-             continue;
-           }
-         }
+        if (!state) {
+          results.errors.push(`Row ${rowNum}: State is required`);
+          results.failed++;
+          continue;
+        }
 
-                 // Create lead (following exact structure from main API)
-         const leadData = {
-           customerName,
-           customerPhone,
-           customerEmail,
-           service,
-           selectedService: service, // Same as service for imports
-           selectedSubService,
-           address,
-           description,
-           price: price && !isNaN(price) ? price : undefined,
-           getQuote: !price || isNaN(price),
-           preferredDate,
-           preferredTime,
-           status: 'pending',
-           availableToVendors: { vendor: [] },
-           followUps: [],
-           notes: [],
-           leadProgressHistory: [{
-             toStatus: 'pending',
-             reason: 'Lead imported from CSV',
-             date: new Date()
-           }],
-           refundRequest: {
-             isRequested: false,
-             adminResponse: { status: 'pending' }
-           },
-           // Add createdBy if provided in options
-           createdBy: options.createdBy && mongoose.Types.ObjectId.isValid(options.createdBy) 
-             ? new mongoose.Types.ObjectId(options.createdBy) 
-             : undefined,
-           modifiedBy: options.createdBy && mongoose.Types.ObjectId.isValid(options.createdBy) 
-             ? new mongoose.Types.ObjectId(options.createdBy) 
-             : undefined
-         };
+        // Check for duplicates (same as main API) - only if not skipping
+        if (!options.skipDuplicates) {
+          const existingLead = await Lead.findOne({
+            customerPhone: customerPhone,
+            service: service,
+            createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+          }).lean();
+
+          if (existingLead) {
+            results.errors.push(`Row ${rowNum}: Duplicate lead (similar lead exists within 24 hours)`);
+            results.failed++;
+            continue;
+          }
+        }
+
+        // Create lead (following exact structure from main API)
+        const leadData = {
+          customerName,
+          customerPhone,
+          customerEmail,
+          service,
+          selectedService: service, // Same as service for imports
+          selectedSubService,
+          city,
+          state,
+          address,
+          description,
+          price: price && !isNaN(price) ? price : undefined,
+          getQuote: !price || isNaN(price),
+          preferredDate,
+          preferredTime,
+          status: 'pending',
+          availableToVendors: { vendor: [] },
+          followUps: [],
+          notes: [],
+          leadProgressHistory: [{
+            toStatus: 'pending',
+            reason: 'Lead imported from CSV',
+            date: new Date()
+          }],
+          refundRequest: {
+            isRequested: false,
+            adminResponse: { status: 'pending' }
+          },
+          // Add createdBy if provided in options
+          createdBy: options.createdBy && mongoose.Types.ObjectId.isValid(options.createdBy)
+            ? new mongoose.Types.ObjectId(options.createdBy)
+            : undefined,
+          modifiedBy: options.createdBy && mongoose.Types.ObjectId.isValid(options.createdBy)
+            ? new mongoose.Types.ObjectId(options.createdBy)
+            : undefined
+        };
 
         const newLead = new Lead(leadData);
         await newLead.save();
@@ -264,8 +284,8 @@ export async function GET() {
   try {
     await requireAdmin();
 
-    const template = `Customer Name,Phone Number,Email Address,Service,Sub Service,Address,Description,Price,Preferred Date,Preferred Time
-John Doe,9876543210,john@example.com,Plumbing,Pipe Repair,123 Main St Delhi,Kitchen sink repair,500,2024-01-15,10:00 AM`;
+    const template = `Customer Name,Phone Number,Email Address,Service,Sub Service,Address,City,State,Description,Price,Preferred Date,Preferred Time
+John Doe,9876543210,john@example.com,Plumbing,Pipe Repair,123 Main Street,Delhi,Delhi,Kitchen sink repair,500,2024-01-15,10:00 AM`;
 
     return new NextResponse(template, {
       headers: {

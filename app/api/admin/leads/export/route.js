@@ -59,7 +59,9 @@ export async function POST(request) {
         { customerPhone: searchRegex },
         { customerEmail: searchRegex },
         { service: searchRegex },
-        { address: searchRegex }
+        { address: searchRegex },
+        { city: searchRegex },
+        { state: searchRegex }
       ];
     }
 
@@ -91,11 +93,13 @@ export async function POST(request) {
     // Create CSV headers (matching import template exactly)
     const headers = [
       'Customer Name',
-      'Phone Number', 
+      'Phone Number',
       'Email Address',
       'Service',
       'Sub Service',
       'Address',
+      'City',
+      'State',
       'Description',
       'Price',
       'Preferred Date',
@@ -113,6 +117,8 @@ export async function POST(request) {
         escapeCSV(lead.service || ''),
         escapeCSV(lead.selectedSubService || ''),
         escapeCSV(lead.address || ''),
+        escapeCSV(lead.city || ''),
+        escapeCSV(lead.state || ''),
         escapeCSV(lead.description || ''),
         escapeCSV(lead.price || ''),
         escapeCSV(formatDate(lead.preferredDate)),
@@ -149,8 +155,8 @@ export async function GET() {
   try {
     await requireAdmin();
 
-    const template = `Customer Name,Phone Number,Email Address,Service,Sub Service,Address,Description,Price,Preferred Date,Preferred Time
-John Doe,9876543210,john@example.com,Plumbing,Pipe Repair,123 Main St Delhi,Kitchen sink repair,500,2024-01-15,10:00 AM`;
+    const template = `Customer Name,Phone Number,Email Address,Service,Sub Service,Address,City,State,Description,Price,Preferred Date,Preferred Time
+John Doe,9876543210,john@example.com,Plumbing,Pipe Repair,123 Main Street,Delhi,Delhi,Kitchen sink repair,500,2024-01-15,10:00 AM`;
 
     return new NextResponse(template, {
       status: 200,
