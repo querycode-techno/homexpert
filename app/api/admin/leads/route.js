@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/dal';
 import Lead from '@/lib/models/lead';
 import User from '@/lib/models/user';
 import Role from '@/lib/models/role';
+import { notifyMatchedVendorsForNewLead } from '@/lib/services/leadVendorNotificationService';
 
 // Connect to MongoDB
 async function connectDB() {
@@ -167,7 +168,11 @@ export async function POST(request) {
     const newLead = new Lead(leadData);
     const savedLead = await newLead.save();
 
-    //console.log('Lead created successfully:', savedLead._id);
+    try {
+      await notifyMatchedVendorsForNewLead(savedLead);
+    } catch (pushErr) {
+      console.error('Matched vendor push notification error (admin lead):', pushErr);
+    }
 
     // Return success response
     return NextResponse.json({
