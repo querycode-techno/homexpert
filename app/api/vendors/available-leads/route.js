@@ -3,6 +3,33 @@ import { database } from '@/lib/db';
 import { verifyVendorToken, createAuthErrorResponse } from '@/lib/middleware/vendorAuth';
 import { ObjectId } from 'mongodb';
 
+/** Case-insensitive exact match for Mongo $regex (escapes special chars). */
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Restrict leads to the same structured city + state as the vendor profile.
+ * Leads use top-level `city` / `state`; vendors use `address.city` / `address.state`.
+ */
+function applyVendorCityStateMatch(targetQuery, vendor) {
+  const vendorCity = vendor.address?.city?.trim();
+  const vendorState = vendor.address?.state?.trim();
+
+  if (vendorCity && vendorState) {
+    targetQuery.city = {
+      $regex: `^${escapeRegex(vendorCity)}$`,
+      $options: 'i'
+    };
+    targetQuery.state = {
+      $regex: `^${escapeRegex(vendorState)}$`,
+      $options: 'i'
+    };
+  } else {
+    targetQuery.$expr = { $eq: [1, 0] };
+  }
+}
+
 // GET /api/vendors/available-leads - Get leads available to vendor
 export async function GET(request) {
   // Verify authentication
@@ -19,7 +46,6 @@ export async function GET(request) {
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 20;
     const service = searchParams.get('service');
-    const location = searchParams.get('location');
     const maxPrice = searchParams.get('maxPrice');
     const urgency = searchParams.get('urgency');
     const sortBy = searchParams.get('sortBy') || 'createdAt'; // createdAt, price, distance
@@ -87,10 +113,8 @@ export async function GET(request) {
     }
     // Note: Removed automatic service filtering - vendors can see all available leads
 
-    // Add location filter
-    if (location) {
-      query.address = new RegExp(location, 'i');
-    }
+    // Same city + state as vendor (lead.city / lead.state vs vendor.address)
+    applyVendorCityStateMatch(query, vendor);
 
     // Add price filter
     if (maxPrice) {
@@ -147,6 +171,8 @@ export async function GET(request) {
         
         // Location
         address: lead.address,
+        city: lead.city,
+        state: lead.state,
         
         // Pricing
         price: lead.price,
@@ -183,11 +209,14 @@ export async function GET(request) {
     });
 
     // Get vendor's lead statistics
+    const statsMatch = {
+      'availableToVendors.vendor': new ObjectId(userId)
+    };
+    applyVendorCityStateMatch(statsMatch, vendor);
+
     const leadStats = await leadsCollection.aggregate([
       {
-        $match: {
-          'availableToVendors.vendor': new ObjectId(userId)
-        }
+        $match: statsMatch
       },
       {
         $group: {
@@ -257,7 +286,8 @@ export async function GET(request) {
           services: vendor.services,
           appliedFilters: {
             service: service || null,
-            location: location || null,
+            vendorCity: vendor.address?.city?.trim() || null,
+            vendorState: vendor.address?.state?.trim() || null,
             maxPrice: maxPrice || null,
             urgency: urgency || null
           }
