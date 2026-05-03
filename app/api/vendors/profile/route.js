@@ -4,6 +4,10 @@ import { verifyVendorToken, createAuthErrorResponse } from '@/lib/middleware/ven
 import { ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
+function isPlainObject(value) {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
 // GET /api/vendors/profile - Get vendor profile
 export async function GET(request) {
   // Verify authentication
@@ -153,7 +157,7 @@ export async function PUT(request) {
       userUpdates.profileImage = updateData.profileImage;
     }
 
-    if (updateData.address) {
+    if (isPlainObject(updateData.address)) {
       userUpdates.address = updateData.address;
     }
 
@@ -166,8 +170,35 @@ export async function PUT(request) {
       vendorUpdates.services = updateData.services.map(s => s.trim());
     }
 
-    if (updateData.vendorAddress) {
-      vendorUpdates.address = updateData.vendorAddress;
+    /**
+     * Vendor.address must stay in sync when clients send `address` (User only, e.g. mobile app).
+     * Precedence when both are sent: vendorAddress overlays address over existing vendor doc.
+     * If merged city differs from previous vendor city, reset serviceAreas (locations invalid).
+     */
+    const hasAddressPayload =
+      isPlainObject(updateData.address) || isPlainObject(updateData.vendorAddress);
+
+    if (hasAddressPayload) {
+      const existingVendor = await vendorsCollection.findOne({
+        _id: new ObjectId(vendorId),
+      });
+      const prevAddr =
+        existingVendor?.address && isPlainObject(existingVendor.address)
+          ? { ...existingVendor.address }
+          : {};
+      const nextAddr = { ...prevAddr };
+      if (isPlainObject(updateData.address)) {
+        Object.assign(nextAddr, updateData.address);
+      }
+      if (isPlainObject(updateData.vendorAddress)) {
+        Object.assign(nextAddr, updateData.vendorAddress);
+      }
+      const prevCity = (prevAddr.city || '').toString().trim();
+      const nextCity = (nextAddr.city || '').toString().trim();
+      if (prevCity !== nextCity) {
+        nextAddr.serviceAreas = [];
+      }
+      vendorUpdates.address = nextAddr;
     }
 
     if (updateData.documents) {

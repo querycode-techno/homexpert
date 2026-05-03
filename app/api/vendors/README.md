@@ -212,6 +212,8 @@ Update vendor profile information.
 }
 ```
 
+Sending **`address`** updates the linked **User** document and is **merged into Vendor.address** as well (preserving vendor-only fields such as `area` where omitted). **`vendorAddress`** is optional and overlays the same merge when both are sent. If the merged **city** changes from the vendor’s previous city, **`serviceAreas`** is reset to `[]` so location-based coverage stays consistent.
+
 ### 7. Update Password
 **PATCH** `/profile`
 *Requires Authentication*
