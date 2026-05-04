@@ -155,7 +155,7 @@ export async function POST(request) {
         const customerEmail = row[headerMap.customerEmail]?.trim() || undefined;
         const service = row[headerMap.service]?.trim();
         const selectedSubService = row[headerMap.selectedSubService]?.trim() || undefined;
-        const address = row[headerMap.address]?.trim();
+        const addressLine = row[headerMap.address]?.trim();
         const city = row[headerMap.city]?.trim();
         const state = row[headerMap.state]?.trim();
         const description = row[headerMap.description]?.trim() || `Service request for ${service}`;
@@ -182,7 +182,7 @@ export async function POST(request) {
           continue;
         }
 
-        if (!address) {
+        if (!addressLine) {
           results.errors.push(`Row ${rowNum}: Address is required`);
           results.failed++;
           continue;
@@ -199,6 +199,9 @@ export async function POST(request) {
           results.failed++;
           continue;
         }
+
+        // Full address for DB: street + city + state (city/state also stored on schema)
+        const address = `${addressLine}, ${city}, ${state}`;
 
         // Check for duplicates (same as main API) - only if not skipping
         if (!options.skipDuplicates) {
