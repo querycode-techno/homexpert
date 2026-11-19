@@ -110,7 +110,7 @@ export async function GET(request, { params }) {
 
   try {
     const { vendorId, userId } = authResult.user;
-    const subscriptionId = params.id;
+    const subscriptionId = (await params).id;
 
     if (!subscriptionId) {
       return NextResponse.json({
@@ -237,7 +237,7 @@ export async function PUT(request, { params }) {
 
   try {
     const { vendorId, userId } = authResult.user;
-    const subscriptionId = params.id;
+    const subscriptionId = (await params).id;
     const requestBody = await request.json();
     const { 
       newPlanId, 
@@ -505,7 +505,7 @@ export async function DELETE(request, { params }) {
 
   try {
     const { vendorId, userId } = authResult.user;
-    const subscriptionId = params.id;
+    const subscriptionId = (await params).id;
 
     if (!subscriptionId) {
       return NextResponse.json({

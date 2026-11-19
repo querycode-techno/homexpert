@@ -32,3 +32,5 @@ next-env.d.ts
 ._*
 .Spotlight-V100
 .Trashes
+# keep the committed env template
+!.env.example

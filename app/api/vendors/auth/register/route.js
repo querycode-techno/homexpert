@@ -3,7 +3,10 @@ import { database } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'homexpert-dev-secret-2024';
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error('NEXTAUTH_SECRET is not set');
+}
+const JWT_SECRET = process.env.NEXTAUTH_SECRET;
 
 export async function POST(request) {
   try {

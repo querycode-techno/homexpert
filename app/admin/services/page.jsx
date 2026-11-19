@@ -1,257 +1,56 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { 
-  Search, 
-  Plus, 
-  Filter,
-  Download,
-  Upload
-} from 'lucide-react'
-import { 
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import servicesData from '@/lib/data/services.json'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ResourceManager } from "@/components/admin/cms/resource-manager"
 
-export default function ServicesManagement() {
-  const [services, setServices] = useState(servicesData.categories)
-  const [filteredServices, setFilteredServices] = useState(servicesData.categories)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
+const STATUS = [{ value: "published", label: "Published" }, { value: "draft", label: "Draft" }, { value: "hidden", label: "Hidden" }]
+const TAX = [{ value: "gst18", label: "GST 18%" }, { value: "gst0", label: "GST 0%" }]
 
-  useEffect(() => {
-    let filtered = services
+const categoryFields = [
+  { name: "name", label: "Name", type: "text" },
+  { name: "slug", label: "Slug (unique id)", type: "text" },
+  { name: "iconUrl", label: "Icon", type: "image" },
+  { name: "imageUrl", label: "Image", type: "image" },
+  { name: "sortOrder", label: "Sort order", type: "number", default: 0 },
+  { name: "status", label: "Status", type: "select", options: STATUS, default: "published" },
+  { name: "taxClass", label: "Tax class", type: "select", options: TAX, default: "gst18" },
+]
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.map(category => ({
-        ...category,
-        services: category.services.filter(service =>
-          service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          service.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          service.subServices.some(sub => 
-            sub.name.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        )
-      })).filter(category => category.services.length > 0)
-    }
+const serviceFields = [
+  { name: "categoryId", label: "Category", type: "ref", ref: { resource: "categories", label: "name" } },
+  { name: "name", label: "Name", type: "text" },
+  { name: "slug", label: "Slug (unique id)", type: "text" },
+  { name: "shortDescription", label: "Short description", type: "text" },
+  { name: "description", label: "Description", type: "textarea" },
+  { name: "imageUrl", label: "Main image", type: "image" },
+  { name: "gallery", label: "Gallery image URLs (one per line)", type: "list" },
+  { name: "inclusions", label: "What's included (one per line)", type: "list" },
+  { name: "exclusions", label: "What's not included (one per line)", type: "list" },
+  { name: "howItWorks", label: "How it works (one per line)", type: "list" },
+  { name: "warranty", label: "Warranty", type: "text" },
+  { name: "badges", label: "Badges (one per line)", type: "list" },
+  { name: "subServices", label: "Options & prices (JSON)", type: "json", default: [], hint: 'Array of { "key": "ac-service", "name": "AC Service", "pricing": { "type": "fixed|from|quote", "amountPaise": 59900 }, "status": "active" }. Prices are in paise (₹599 = 59900). Every price change is recorded in the Activity log.' },
+  { name: "faqs", label: "FAQs (JSON)", type: "json", default: [], hint: 'Array of { "question": "…", "answer": "…" }' },
+  { name: "popularityScore", label: "Popularity (for ordering)", type: "number", default: 0 },
+  { name: "taxClass", label: "Tax class override", type: "select", options: TAX },
+  { name: "status", label: "Status", type: "select", options: STATUS, default: "published" },
+]
 
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(category => category.id === selectedCategory)
-    }
-
-    setFilteredServices(filtered)
-  }, [searchTerm, selectedCategory, services])
-
-  const getTotalServices = () => {
-    return services.reduce((total, category) => total + category.services.length, 0)
-  }
-
-  const getTotalSubServices = () => {
-    return services.reduce((total, category) => 
-      total + category.services.reduce((subTotal, service) => 
-        subTotal + service.subServices.length, 0
-      ), 0
-    )
-  }
-
-  const formatPrice = (price) => {
-    if (typeof price === 'number') {
-      return `₹${price.toLocaleString()}`
-    }
-    return price // For "Quote" or other string values
-  }
-
+export default function CatalogueAdmin() {
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Service Management</h1>
-        <p className="text-muted-foreground">
-          Manage all your home services, pricing, and categories
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Categories</CardTitle>
-            <div className="text-2xl">📁</div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{services.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Services</CardTitle>
-            <div className="text-2xl">🛠️</div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{getTotalServices()}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sub Services</CardTitle>
-            <div className="text-2xl">⚙️</div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{getTotalSubServices()}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Status</CardTitle>
-            <div className="text-2xl">✅</div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">Live</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Controls */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex flex-1 gap-4 w-full sm:w-auto">
-              {/* Search */}
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search services..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              
-              {/* Category Filter */}
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Categories</option>
-                {services.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.icon} {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Action Buttons */}
-            {/* <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Upload className="h-4 w-4 mr-2" />
-                Import
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Service
-              </Button>
-            </div> */}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Services Display */}
-      <div className="space-y-4">
-        {filteredServices.map((category) => (
-          <Card key={category.id}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">{category.icon}</span>
-                {category.name}
-                <Badge variant="secondary">{category.services.length} services</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="multiple" className="w-full">
-                {category.services.map((service) => (
-                  <AccordionItem key={service.id} value={service.id}>
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="text-left">
-                          <div className="font-medium">{service.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {service.description}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">
-                            {service.subServices.length} sub-services
-                          </Badge>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {service.subServices.map((subService, index) => (
-                            <div 
-                              key={index}
-                              className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"
-                            >
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">
-                                    {subService.name}
-                                  </div>
-                                  {subService.note && (
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      {subService.note}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="ml-2">
-                                  <Badge variant="secondary" className="text-xs">
-                                    {formatPrice(subService.price)}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredServices.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="text-4xl mb-4">🔍</div>
-            <h3 className="text-lg font-medium mb-2">No services found</h3>
-            <p className="text-muted-foreground text-center">
-              Try adjusting your search terms or filters to find what you're looking for.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+    <div className="space-y-4">
+      <div><h1 className="text-2xl font-bold">Catalogue</h1><p className="text-muted-foreground">Categories, services, options and prices shown in the customer app. Changes go live immediately.</p></div>
+      <Tabs defaultValue="services">
+        <TabsList><TabsTrigger value="services">Services</TabsTrigger><TabsTrigger value="categories">Categories</TabsTrigger></TabsList>
+        <TabsContent value="services">
+          <ResourceManager resource="services" title="Service" fields={serviceFields} filters={[{ name: "status", label: "Status", options: ["published", "draft", "hidden"] }]}
+            columns={[{ key: "name", label: "Name" }, { key: "slug", label: "Slug" }, { label: "Options", render: (r) => r.subServices?.length ?? 0 }, { key: "status", label: "Status", badge: true }, { label: "Rating", render: (r) => (r.ratingCount ? `${r.ratingAvg} (${r.ratingCount})` : "—") }]} />
+        </TabsContent>
+        <TabsContent value="categories">
+          <ResourceManager resource="categories" title="Category" fields={categoryFields} filters={[{ name: "status", label: "Status", options: ["published", "draft", "hidden"] }]}
+            columns={[{ key: "name", label: "Name" }, { key: "slug", label: "Slug" }, { key: "sortOrder", label: "Order" }, { key: "status", label: "Status", badge: true }]} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
-} 
+}

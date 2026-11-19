@@ -13,7 +13,7 @@ export async function GET(request, { params }) {
 
   try {
     const { vendorId, userId } = authResult.user;
-    const leadId = params.id;
+    const leadId = (await params).id;
 
     if (!leadId) {
       return NextResponse.json({
@@ -154,7 +154,7 @@ export async function POST(request, { params }) {
 
   try {
     const { vendorId, userId } = authResult.user;
-    const leadId = params.id;
+    const leadId = (await params).id;
     const { 
       followUp, 
       date, 
@@ -299,7 +299,7 @@ export async function PUT(request, { params }) {
 
   try {
     const { vendorId, userId } = authResult.user;
-    const leadId = params.id;
+    const leadId = (await params).id;
     const { followUpId, completed, completionNote } = await request.json();
 
     if (!leadId || !followUpId) {

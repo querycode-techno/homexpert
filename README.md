@@ -116,3 +116,36 @@ next.config.mjs        # Next.js configuration
 # homexpert
 # homexpert
 # homexpert
+
+
+## Customer API (`/api/v1`) — setup
+
+Serves the HomesXpert customer app (`../user-app`, contract in `../../hx-user-app-doc/api/openapi.yaml`). Bookings are stored as
+`service_requests` bridged to the existing `leads`, so vendor and admin screens keep working unchanged.
+
+Required environment (no fallbacks; the API refuses to run without them):
+
+| Variable | Purpose |
+|---|---|
+| `MONGODB_URI` | MongoDB **replica set** (transactions are used at checkout) |
+| `CUSTOMER_JWT_ACTIVE_KID`, `CUSTOMER_JWT_PRIVATE_KEY` | ES256 (EC P-256) key that signs customer access tokens (separate from `NEXTAUTH_SECRET`). Generate: `openssl ecparam -name prime256v1 -genkey -noout \| openssl pkcs8 -topk8 -nocrypt` |
+| `CUSTOMER_JWT_PUBLIC_KEYS` | optional JSON `{kid: PEM}` of retired public keys; keep a rotated-out key here for 15 minutes so live tokens keep working |
+| `GOOGLE_MAPS_API_KEY` | optional; enables Google Places/Geocoding for address lookup (otherwise OpenStreetMap Nominatim is used) |
+| `OTP_SMS_APP_HASH` | optional 11-character Android SMS Retriever hash (per signing key); the OTP template must start with `<#>` and end with `##hash##` for auto-fill |
+| `MSG91_NOTIF_TEMPLATE_ID` | DLT-approved transactional template used for the SMS fallback when a push cannot be delivered |
+| `OTP_PEPPER` | secret mixed into OTP and phone hashes |
+| `CRON_SECRET` | authenticates the scheduler call below |
+| `MSG91_AUTH_KEY`, `MSG91_OTP_TEMPLATE_ID` | SMS provider for OTP (production fails closed without them) |
+| `FIREBASE_STORAGE_BUCKET` | photo uploads (defaults to `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`) |
+
+First-time data setup (idempotent): `node scripts/seed-customer-api.mjs --city "Bengaluru,Karnataka" --pincodes 560001,560002`
+(catalogue from `lib/data/services.json`, slot template, FAQs/topics, launch city + serviceable pincodes).
+
+Scheduler: call `POST /api/v1/internal/jobs` every minute with header `x-cron-secret: $CRON_SECRET`. It sends booking-status
+notifications for vendor/admin changes, 24 h / 2 h reminders, support-reply notifications and processes account deletions.
+
+### Admin sections for the customer app
+Catalogue, Banners, Coverage & Slots, App Configuration and Activity Log (admin role); Customers, Customer Bookings, Reviews and
+Carts & Funnel (admin + helpline). Every write is recorded in the Activity Log. Customer tickets appear in the existing Support desk.
+Vendors record the final amount and "payment collected" when completing a job; an amount above the estimate by more than
+`payment.toleranceBps` is held for ops instead of being marked collected.

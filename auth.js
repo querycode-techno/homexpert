@@ -7,7 +7,7 @@ import client from "@/lib/db"
 
 export const authOptions = {
   adapter: MongoDBAdapter(client),
-  secret: process.env.NEXTAUTH_SECRET || "homexpert-dev-secret-2024",
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
     maxAge: 7 * 24 * 60 * 60, // 7 days

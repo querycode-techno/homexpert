@@ -64,6 +64,7 @@ export async function middleware(request) {
     pathname.startsWith('/api/public/') ||
     pathname.startsWith('/api/setup/') ||
     pathname.startsWith('/api/health') ||
+    pathname.startsWith('/api/v1/') || // customer API authenticates itself (separate audience/keys)
     pathname.includes('.') ||
     pathname.startsWith('/favicon')
   ) {
@@ -74,7 +75,7 @@ export async function middleware(request) {
   // Get token using NextAuth JWT
   const token = await getToken({ 
     req: request, 
-    secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-development"
+    secret: process.env.NEXTAUTH_SECRET
   })
 
   // Extract role name from token (role can be object or string)

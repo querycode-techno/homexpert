@@ -159,9 +159,10 @@ export async function GET(request) {
 
       return {
         id: lead._id.toString(),
-        customerName: lead.customerName,
-        customerPhone: lead.customerPhone,
-        customerEmail: lead.customerEmail,
+        // BR-09: customer-app leads show first name and area only until the vendor takes the lead
+        ...(lead.visibility?.revealCustomerContact === false && !lead.takenBy
+          ? { customerName: String(lead.customerName || '').split(' ')[0], customerPhone: null, customerEmail: null, contactHidden: true }
+          : { customerName: lead.customerName, customerPhone: lead.customerPhone, customerEmail: lead.customerEmail }),
         
         // Service details
         service: lead.service,
@@ -170,7 +171,7 @@ export async function GET(request) {
         description: lead.description,
         
         // Location
-        address: lead.address,
+        address: lead.visibility?.revealCustomerContact === false && !lead.takenBy ? String(lead.address || '').split(',').slice(-2).join(',').trim() : lead.address,
         city: lead.city,
         state: lead.state,
         

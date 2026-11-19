@@ -67,10 +67,58 @@ export function AdminSidebar() {
       permission: can.viewVendors, // Using same permission for now
     },
     {
-      title: "Service Management",
+      title: "Catalogue",
       icon: <Settings className="h-5 w-5" />,
       href: "/admin/services",
       permission: can.manageRoles, // Admin only for service management
+    },
+    {
+      title: "Customer Bookings",
+      icon: <Calendar className="h-5 w-5" />,
+      href: "/admin/customer-bookings",
+      permission: can.viewLeads,
+    },
+    {
+      title: "Customers",
+      icon: <Users className="h-5 w-5" />,
+      href: "/admin/customers",
+      permission: can.viewLeads,
+    },
+    {
+      title: "Reviews",
+      icon: <Headphones className="h-5 w-5" />,
+      href: "/admin/reviews",
+      permission: can.manageSupport,
+    },
+    {
+      title: "Carts & Funnel",
+      icon: <BarChart3 className="h-5 w-5" />,
+      href: "/admin/funnel",
+      permission: can.viewLeads,
+    },
+    {
+      title: "Home Slides",
+      icon: <Bell className="h-5 w-5" />,
+      href: "/admin/marketing/slides",
+      permission: can.manageRoles,
+    },
+    {
+      title: "Coverage & Slots",
+      icon: <Settings className="h-5 w-5" />,
+      href: "/admin/coverage",
+      permission: can.manageRoles,
+    },
+    {
+      title: "App Configuration",
+      icon: <Settings className="h-5 w-5" />,
+      href: "/admin/app-config",
+      permission: can.manageRoles,
+    },
+    {
+      title: "Activity Log",
+      icon: <Briefcase className="h-5 w-5" />,
+      href: "/admin/activity",
+      permission: can.manageRoles,
     },
     {
       title: "Payment Overview",

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/dal';
 import SupportTicket from '@/lib/models/supportTicket';
+import '@/lib/models/customerAccount';
 import Vendor from '@/lib/models/vendor';
 import User from '@/lib/models/user';
 import Lead from '@/lib/models/lead';
@@ -170,6 +171,7 @@ export async function GET(request) {
     // Get tickets with pagination and population
     const tickets = await SupportTicket.find(query)
       .populate('createdBy', 'name email')
+      .populate('customerId', 'name phone')
       .populate('assignedTo', 'name email')
       .populate({
         path: 'vendorId',
@@ -195,6 +197,14 @@ export async function GET(request) {
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
+
+    // Tickets raised from the customer app have a Customer, not a staff User, as creator
+    tickets.forEach((t) => {
+      if (!t.createdBy && t.customerId) {
+        t.createdBy = { name: t.customerId.name || 'Customer', email: t.customerId.phone };
+        t.createdByType = 'customer';
+      }
+    });
 
     // Debug log to check vendor population
     // if (tickets.length > 0) {

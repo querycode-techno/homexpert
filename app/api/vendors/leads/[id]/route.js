@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { database } from '@/lib/db';
 import { verifyVendorToken, createAuthErrorResponse } from '@/lib/middleware/vendorAuth';
 import { ObjectId } from 'mongodb';
+import { connect as connectPlatform } from '@/lib/platform/mongo';
+import { loadConfig as loadPlatformConfig } from '@/lib/domain/config';
+import { verifyJobOtp } from '@/lib/domain/jobOtp';
+import { enforce } from '@/lib/platform/rateLimit';
+import { Quote } from '@/lib/models/booking';
+import { notify } from '@/lib/domain/notifications';
 
 // GET /api/vendors/leads/[id] - Get specific lead details
 export async function GET(request, { params }) {
@@ -13,7 +19,7 @@ export async function GET(request, { params }) {
 
   try {
     const { vendorId, userId } = authResult.user;
-    const leadId = params.id;
+    const leadId = (await params).id;
 
     if (!leadId) {
       return NextResponse.json({
@@ -107,6 +113,7 @@ export async function GET(request, { params }) {
         needsUrgentAction: isOverdue || (lead.status === 'taken' && daysSinceTaken >= 1),
         
         // Status flow
+        requiresJobOtp: lead.source === 'user_app',
         canContact: lead.status === 'taken',
         canSchedule: ['contacted', 'interested'].includes(lead.status),
         canComplete: ['scheduled', 'in_progress'].includes(lead.status),
@@ -177,7 +184,7 @@ export async function PUT(request, { params }) {
 
   try {
     const { vendorId, userId } = authResult.user;
-    const leadId = params.id;
+    const leadId = (await params).id;
     const { 
       status, 
       scheduledDate, 
@@ -186,7 +193,11 @@ export async function PUT(request, { params }) {
       actualServiceCost, 
       reason, 
       customerFeedback,
-      note 
+      note,
+      finalAmount,
+      paymentMethod,
+      paymentCollected,
+      jobOtp
     } = await request.json();
 
     if (!leadId) {
@@ -211,6 +222,20 @@ export async function PUT(request, { params }) {
         success: false,
         error: 'Lead not found or not accessible'
       }, { status: 404 });
+    }
+
+    // FR-VND-03: customer-app jobs are started and finished with the customer's 4-digit job code
+    if (currentLead.source === 'user_app' && status && status !== currentLead.status && ['in_progress', 'completed'].includes(status)) {
+      await connectPlatform();
+      try {
+        await enforce(`jobotp:${leadId}`, { limit: 8, windowSeconds: 1800 }, 'Too many wrong job codes. Try again in a few minutes.');
+      } catch (e) {
+        return NextResponse.json({ success: false, error: e.message }, { status: 429 });
+      }
+      const phase = currentLead.status === 'in_progress' ? 'finish' : 'start';
+      if (!verifyJobOtp(String(currentLead.requestId), phase, jobOtp)) {
+        return NextResponse.json({ success: false, error: "Enter the 4-digit job code shown in the customer's app." }, { status: 422 });
+      }
     }
 
     const now = new Date();
@@ -256,6 +281,39 @@ export async function PUT(request, { params }) {
     // Handle scheduling updates
     if (scheduledDate) updateData.scheduledDate = new Date(scheduledDate);
     if (scheduledTime) updateData.scheduledTime = scheduledTime;
+
+    // FR-VND-02: final amount + "payment collected". An amount above the estimate by more than the configured tolerance
+    // is held for ops/customer approval (BR-04) instead of being marked collected.
+    let paymentNotice;
+    if (finalAmount !== undefined && finalAmount !== null) {
+      const amount = Number(finalAmount);
+      if (!Number.isFinite(amount) || amount < 0) {
+        return NextResponse.json({ success: false, error: 'Final amount must be a valid number' }, { status: 422 });
+      }
+      const paise = Math.round(amount * 100);
+      updateData.finalAmountPaise = paise;
+      updateData.actualServiceCost = amount;
+      await connectPlatform();
+      const { payment } = await loadPlatformConfig();
+      const estimate = currentLead.estimatePaise;
+      if (estimate && paise > estimate * (1 + payment.toleranceBps / 10000)) {
+        updateData.quotePending = true;
+        if (currentLead.customerId && currentLead.requestId) {
+          await Quote.updateMany({ requestId: currentLead.requestId, status: 'pending' }, { status: 'expired' });
+          const quote = await Quote.create({ requestId: currentLead.requestId, leadId: currentLead._id, estimatePaise: estimate, finalPaise: paise, note: note || undefined, paymentMethod: ['cash', 'upi', 'other'].includes(paymentMethod) ? paymentMethod : undefined, collectOnApproval: !!paymentCollected, expiresAt: new Date(Date.now() + 24 * 3600 * 1000) });
+          await notify(currentLead.customerId, { category: 'bookings', title: 'Please confirm the final price', body: 'Your Xpert quoted more than the estimate. Review and approve or decline.', deepLink: `homesxpert://booking/${currentLead.requestId}`, dedupeKey: `quote:${quote._id}` });
+        }
+        paymentNotice = 'The final amount is above the estimate by more than the allowed margin. Our team will confirm it with the customer before payment is recorded.';
+      } else {
+        updateData.quotePending = false;
+        if (paymentCollected) {
+          updateData.appPaymentStatus = 'collected';
+          updateData.paymentStatus = 'paid'; // keep the team's coarse payment flag in step
+          updateData.paymentCollectedAt = now;
+          if (['cash', 'upi', 'other'].includes(paymentMethod)) updateData.paymentMethod = paymentMethod;
+        }
+      }
+    }
 
     // Handle pricing updates
     if (conversionValue !== undefined) updateData.conversionValue = conversionValue;
@@ -318,10 +376,14 @@ export async function PUT(request, { params }) {
 
     return NextResponse.json({
       success: true,
-      message: `Lead ${status ? 'status updated' : 'updated'} successfully`,
+      message: paymentNotice || `Lead ${status ? 'status updated' : 'updated'} successfully`,
       data: {
         lead: {
           id: updatedLead._id.toString(),
+          finalAmount: updatedLead.finalAmountPaise != null ? updatedLead.finalAmountPaise / 100 : undefined,
+          paymentStatus: updatedLead.appPaymentStatus,
+          quotePending: !!updatedLead.quotePending,
+          requiresJobOtp: updatedLead.source === 'user_app',
           status: updatedLead.status,
           customerName: updatedLead.customerName,
           service: updatedLead.service,

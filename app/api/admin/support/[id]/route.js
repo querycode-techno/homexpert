@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/dal';
 import { database } from '@/lib/db';
+import { Customer } from '@/lib/models/customerAccount';
 import SupportTicket from '@/lib/models/supportTicket';
 import Notification from '@/lib/models/notification';
 import NotificationRecipient from '@/lib/models/notificationRecipient';
@@ -153,6 +154,15 @@ export async function GET(request, { params }) {
         success: false,
         error: 'Support ticket not found'
       }, { status: 404 });
+    }
+
+    // Customer-app tickets: show the customer as creator and as the sender of their own messages
+    if (ticket.customerId) {
+      const customer = await Customer.findById(ticket.customerId).select('name phone').lean();
+      const who = { _id: ticket.customerId, name: customer?.name || 'Customer', email: customer?.phone, type: 'customer' };
+      ticket.createdBy = ticket.createdBy || who;
+      ticket.messages = (ticket.messages || []).map((m) => (m.senderType === 'customer' ? { ...m, sender: who } : m));
+      ticket.customer = who;
     }
 
     const vendorObjectId =
